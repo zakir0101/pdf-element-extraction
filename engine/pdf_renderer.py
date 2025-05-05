@@ -5,8 +5,24 @@ import string
 from .pdf_operator import PdfOperator
 from .engine_state import EngineState
 import cairo
-from cairo import Context, ImageSurface
+from cairo import Context, Glyph, ImageSurface
+digit_to_name = {
+    '0': 'zero',
+    '1': 'one',
+    '2': 'two',
+    '3': 'three',
+    '4': 'four',
+    '5': 'five',
+    '6': 'six',
+    '7': 'seven',
+    '8': 'eight',
+    '9': 'nine',
+}
+from fontTools.agl import UV2AGL
 
+def char_to_glyph_name(ch):
+    codepoint = ord(ch)
+    return UV2AGL.get(codepoint, None)
 
 class BaseRenderer:
     def __init__(self, state: EngineState) -> None:
@@ -104,6 +120,15 @@ class BaseRenderer:
         h_scale = 1.0 if natural_width == 0 else width / natural_width
         return h_scale, ratio
 
+    def get_glyph_scale(self, gid, width):
+        extents = self.ctx.glyph_extents([cairo.Glyph(gid,0,0)])
+        natural_width = extents.x_advance
+        if natural_width == 0 :
+            natural_width = self.default_char_width 
+        ratio = extents.y_advance / natural_width or 1 
+        h_scale = 1.0 if natural_width == 0 else width / natural_width
+        return h_scale, ratio
+
     def draw_string(self, cmd: PdfOperator):
         # print("drawing single text ", text)
         self.draw_string_array(cmd, is_single=True)
@@ -172,14 +197,28 @@ class BaseRenderer:
                 ):
                     if word.isspace():
                         x += w_spacing
-                    for char in re.finditer(char_regex, word):
-                        if char.group("symbol"):
-                            char, char_width = self.state.font.get_unicode(
-                                char.group("symbol")
-                            )
-                        else:
-                            char = char.group("char")
+                    for char_or in re.finditer(char_regex, word):
+                        char_code = None
+                        char = char_or.group("char")
+                        symbol = char_or.group("symbol")
+
+                        if char:
                             char_width = self.state.font.get_char_width(char)
+                            glyph_id  = font.char_to_gid.get(char)
+                            if glyph_id is None :
+                                if char == "p":
+                                    print("correcting p")
+                                    char = font.symbol_to_char.get( "pi")
+                            #     else:
+                            #         raise Exception(f"char {char} not found in font")
+                            print("char is ..",char)
+                        elif symbol:
+                            glyph_id, char_width = font.get_char_code(symbol)
+                            char = chr(glyph_id)
+                            # char = char_to_glyph_name(symbol)
+                            # char_code = font.name_to_gid.get( char )
+                            print("symbole is ",symbol)
+
                         if char_width is None or char_width == 0:
                             print("char width is ", char_width)
                             print("x is ", x)
@@ -187,15 +226,26 @@ class BaseRenderer:
                                 f"Character {char} not found in font"
                             )
                         char_width = state.convert_em_to_ts(char_width)
-                        h_scale, ratio = self.get_scale(char, char_width)
-
+                        # h_scale, ratio = self.get_scale(char, char_width)
+                        
+                        if ord(char) != 0:
+                            glyph_id = self.ctx.get_scaled_font().text_to_glyphs(0,0,char,False)[0][0]
+                        else:
+                            glyph_id = 0
+                        h_scale, ratio = self.get_glyph_scale(glyph_id, char_width)
                         self.ctx.save()
                         try:
                             self.ctx.translate(x, 0)
                             self.ctx.scale(h_scale, 1)
                             self.ctx.move_to(0, 0)
                             self.ctx.set_font_size(font_size)
-                            self.ctx.show_text(char)
+                            # if cairo_font_face :
+                            glyph = cairo.Glyph(glyph_id,0,0)
+                            # glyph = self.ctx.get_scaled_font().text_to_glyphs(0,0,char,False)[0]
+                            self.ctx.show_glyphs([glyph]) 
+                            #
+                            # else:
+                            #     self.ctx.show_text(char)
 
                         except:
                             print("error")

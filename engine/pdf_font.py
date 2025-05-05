@@ -1,12 +1,17 @@
+import enum
 import os
+from traceback import print_stack
 from typing import Tuple
 import cairo
 import json
 from PyPDF2.generic import PdfObject, IndirectObject
 from PyPDF2 import PdfReader
 import sys
+from .create_cairo_font import create_cairo_font_face_for_file
 from fontTools.ttLib import TTFont
 from fontTools.unicode import Unicode
+from fontTools.cffLib import CFFFontSet
+import io
 
 # from PyPDF2.fontTools.agl import AGL2UV  # Standard Adobe Glyph List
 # from fontTools.encodings.symbol import encoding as symbol_encoding
@@ -17,6 +22,7 @@ class PdfFont:
     def __init__(
         self, font_name: str, font_object: PdfObject | None, reader: PdfReader
     ) -> None:
+
         if font_object is None:
             raise ValueError("Font object is None")
         font_dict = {
@@ -44,6 +50,19 @@ class PdfFont:
         self.unicode_map = {}
         self.load_unicode_map()
 
+
+
+        self.temp_dir = "temp"
+        font_path = self.temp_dir+ "\\" + font_name + "_"+ str(self.first_char)  + ".ttf"
+        print("Font path:", font_path)
+        self.font_path = font_path
+        if not os.path.exists(self.temp_dir):
+            os.mkdir(self.temp_dir)
+        elif os.path.exists(font_path):
+            os.remove(font_path) 
+
+        self.font_face = None
+        self.embedded_font = None
         if "/FontDescriptor" in font_dict:
             font_desc = font_dict["/FontDescriptor"]
             if isinstance(font_desc, IndirectObject):
@@ -58,39 +77,37 @@ class PdfFont:
 
                     # Get the raw font data
                     font_data = font_file.get_data()
-
                     # Save to temporary file for fontTools
-                    import tempfile
+                    file = open(font_path , "bw")
+                    file.write( font_data)
+                    file.flush()
+                    file.close()
 
-                    with tempfile.NamedTemporaryFile(
-                        delete=False, suffix=".ttf"
-                    ) as tmp:
-                        tmp.write(font_data)
-                        tmp.flush()
-                    # Replace the embedded font loading section (around line 70)
+                    # file = open(font_path , "br")
+                    # cff = CFFFontSet()
+                    # cff.decompile(file,None)
+                    # font_name = cff.fontNames[0]
+                    # topdict   = cff[font_name]
+                    # gid_to_name =  topdict.charset
+                    # self.cff = cff
+                    self.char_to_gid, self.symbol_to_char = self.get_glyph_id_maps(font_path)
+                    print("hopla, font name is ",font_name)
+                    print("symbole_to_gid",self.symbol_to_char)
                     try:
-                        pass
-                        self.embedded_font, glyphs_names = (
-                            self.verify_embedded_font_loading(
-                                font_file_key, font_desc, font_data, tmp.name
-                            )
-                        )
+                        if self.embedded_font is not None:
+                            self.embedded_font.save(font_path)
+                        print("Font Saved successfully to", font_path)
+                        # self.font_face = create_cairo_font_face_for_file(file)
+                        # return font_face
                         # if glyphs_names:
                         #     print(
                         #         f"Loaded {len(glyphs_names)} glyphs from embedded font"
                         #     )
                     except Exception as e:
+                        
                         print(f"Could not load embedded font {font_name}: {e}")
                         self.embedded_font = None
-                    # Clean up temp file
-
-                    # Before cleaning up the file
-                    # if hasattr(self.embedded_font, "close"):
-                    #     self.embedded_font.close()
-                    # try:
-                    #     os.unlink(tmp.name)
-                    # except Exception as e:
-                    #     print(f"Error cleaning up temp file: {e}")
+                        self.font_face = None
 
         # Extract ToUnicode map if present
         self.is_math_font = "Math" in self.base_font
@@ -144,47 +161,80 @@ class PdfFont:
         #     f"font : {self.font_name} has family {self.family} and style {self.style} and base font {self.base_font}"
         # )
 
+    def get_glyph_id_maps(self,font_path, limit=None):
+        import freetype, os, textwrap
+
+        face = freetype.Face(font_path)
+
+        # ── pick a Unicode char-map if the font provides one ───────────────
+        # for cmap in face.charmaps:
+        #     pid, eid = cmap.platform_id, cmap.encoding_id
+        #     if pid == 0 or (pid == 3 and eid in (1, 10)):   # Unicode BMP/full
+        #         face.set_charmap(cmap)
+        #         break
+
+        face.set_charmap(face.charmaps[0])
+        cm = face.charmap
+        count = 0
+        char_to_gid = {}
+        symbol_to_gid = {}
+        for cp, raw_gid in face.get_chars():                # iterate the cmap
+            if limit and count >= limit:
+                break
+            char = chr(cp) if 32 <= cp < 0x7F else "?"
+            try:
+                gname = face.get_glyph_name(raw_gid).decode("ascii", "replace")
+            except Exception:
+                gname = "<none>"
+
+            char_to_gid[char] =  char # count +  self.first_char + 1
+            symbol_to_gid[gname] = char # count +  self.first_char + 1
+            # print(f"{cp:02X}  {char:>2}   {raw_gid:5}   {gname}")
+            count += 1
+
+        return char_to_gid, symbol_to_gid
+
     def get_cairo_font_face(self):
         """Get a Cairo font face from the embedded font if available"""
-        if not hasattr(self, "embedded_font") or self.embedded_font is None:
+        if not hasattr(self, "embedded_font") :
             print("embeded font is NONE ")
             return None
+        # if self.font_face :
+        #     return self.font_face
+        # else:
 
-        # if True or hasattr(self.embedded_font, "ttFont"):
-        # For TTFont objects
-        import tempfile
-        import os
-        from .create_cairo_font import (
-            create_cairo_font_face_for_file,
-        )
-
-        # Create a temporary file with the font data
-        print("hi")
-        try:
-            tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".ttf")
-            tmp.close()  # Close the file handle but don't delete the file yet
-
-        except Exception as e:
-            print(f"Failed to create temporary file: {e}")
-            return None
-        try:
-
-            print("hallo")
-            self.embedded_font.save(tmp.name)
-            font_face = create_cairo_font_face_for_file(tmp.name)
-            print(font_face)
-            # Delete the temporary file after creating the font face
-            os.unlink(tmp.name)
-            return font_face
-        except Exception as e:
-            print(f"Failed to create Cairo font face: {e}")
-            try:
-                os.unlink(tmp.name)
-            except:
-                pass
-            return None
-
-        return None
+            # self.font_face = create_cairo_font_face_for_file(file)
+        self.font_face = create_cairo_font_face_for_file(self.font_path)
+        return self.font_face
+        # import tempfile
+        # import os
+        # from .create_cairo_font import (
+        #     create_cairo_font_face_for_file,
+        # )
+        #
+        # try:
+        #     tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".ttf",dir=".\\temp")
+        #     tmp.close()  # Close the file handle but don't delete the file yet
+        # except Exception as e:
+        #     print(f"Failed to create temporary file: {e}")
+        #     return None
+        # try:
+        #
+        #     print("hallo")
+        #     self.embedded_font.save(tmp.name)
+        #     font_face = create_cairo_font_face_for_file(tmp.name)
+        #     print(font_face)
+        #     os.unlink(tmp.name)
+        #     return font_face
+        # except Exception as e:
+        #     print(f"Failed to create Cairo font face: {e}")
+        #     try:
+        #         os.unlink(tmp.name)
+        #     except:
+        #         pass
+        #     return None
+        #
+        # return None
 
     def load_unicode_map(self):
         path = "engine\\agl_list.txt"
@@ -198,7 +248,7 @@ class PdfFont:
                 agl_code, unicode = line.split(";")
                 self.unicode_map[agl_code] = unicode.strip()
 
-    def map_diff_encoding(self):
+    def map_diff_encoding(self,debug=True):
         # LATER:
         current_index = 1
         diff_map = {}
@@ -208,8 +258,10 @@ class PdfFont:
                 current_index = int(sym)
             else:
                 diff_map[current_index] = sym
+
                 current_index += 1
-        print(diff_map)
+        if debug:
+            print(diff_map)
         return diff_map
 
     # def get_unicode(self, diff_code: str) -> Tuple[str, int | None]:
@@ -244,34 +296,38 @@ class PdfFont:
     #
     #     return chr(unicode_value), width
 
-    def get_unicode(self, diff_code: str) -> Tuple[str, int | None]:
-        # parse unicode as octal number
-
+    def get_char_code(self,diff_code : str) -> Tuple[int,int]:
+        
         diff_code = diff_code.lstrip("\\")
         char_code = int(diff_code, 8)
         width = self.get_char_width_from_code(char_code)
+        return char_code,width
+
+    def get_unicode(self, diff_code: str) -> Tuple[str, int | None]:
+        # parse unicode as octal number
+        char_code,width = self.get_char_code(diff_code=diff_code)
         if self.diff_map is None:
             # print(
             #     f"No difference encoding map found for font {self.font_name} , char_code is {char_code},  diff code {diff_code}"
             # )
-            return self.get_default_ansi(char_code), width
+            return self.get_default_ansi(char_code), width, char_code
 
         char_symbol = self.diff_map.get(char_code)
         if not char_symbol:
             print(
                 f"Symbol not found for {char_code}, from diff code {diff_code}"
             )
-            return self.get_default_ansi(char_code), width
+            return self.get_default_ansi(char_code), width,char_code
         char_symbol = char_symbol.lstrip("/")
         unicode_value = self.unicode_map.get(
             char_symbol.replace("lpar", "lparen").replace("rpar", "rparen")
         )
         if not unicode_value:
             print(f"Unicode not found for {char_symbol}")
-            return self.get_default_ansi(char_code), width
+            return self.get_default_ansi(char_code), width,char_code
 
         value = json.loads(f'"\\u{unicode_value}"')
-        return value, width
+        return value, width,char_code
 
     def get_default_ansi(self, char_code_base_10: int):
         return bytearray([char_code_base_10]).decode("ansi")
@@ -335,7 +391,7 @@ class PdfFont:
 
             # For Type1 fonts
             elif font_file_key == "/FontFile":
-                if debug:
+                if debug or True:
                     print("Type1 font detected, limited support available")
                 return None, []
 
@@ -355,12 +411,12 @@ class PdfFont:
                             b"typ1",
                         ):
                             is_ttf = True
-                            if debug:
+                            if debug :
                                 print(
                                     f"Valid font signature detected: {signature}"
                                 )
                         else:
-                            if debug:
+                            if debug : 
                                 print(
                                     f"Warning: Not a standard TTF/OTF signature: {signature}"
                                 )
@@ -374,8 +430,10 @@ class PdfFont:
                             font = TTFont(
                                 tmp_file_path,
                                 fontNumber=0,
-                                # lazy=True,
+                                lazy=True,
+                                checkChecksums=False,
                                 ignoreDecompileErrors=True,
+
                             )
 
                             # print("after0")
@@ -390,21 +448,13 @@ class PdfFont:
                             #     glyphs_names = list(font["glyf"].glyphs.keys())
                             # else:
                             #     glyphs_names = []
-                            glyphs_names = []
                             # print("after2")
-
-                            if debug or True:
-                                print(
-                                    f"TrueType/OpenType font loaded successfully with {len(glyphs_names)} glyphs"
-                                )
-                                # Print first 100 glyph names as verification
-                                print(
-                                    f"First 100 glyph names: {glyphs_names[:100]}"
-                                )
-                            return font, glyphs_names
+                            glyphs = []
+                        # Directly inspect the outlines table:
+                            glyphs = font.getGlyphNames()
 
                         except Exception as e:
-                            if debug:
+                            if debug or True:
                                 print(
                                     f"Failed to load TrueType/OpenType font with TTFont: {e}"
                                 )

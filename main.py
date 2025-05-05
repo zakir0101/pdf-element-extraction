@@ -12,9 +12,16 @@ from fontTools.encodings import MacRoman
 def main():
     file = "9702_m23_qp_12.pdf"
     file2 = "9709_m23_qp_32.pdf"
-    engine: PdfEngine = PdfEngine(f"PDFs\\{file}", scaling=4, debug=True)
-    engine.get_page_stream(3).debug_original_stream().execute_stream(200)
+    engine: PdfEngine = PdfEngine(f"PDFs\\{file2}", scaling=4, debug=True)
+    engine.get_page_stream(3).debug_original_stream().execute_stream(50)
 
+def test_offset():
+    char = ["P","N"]
+    char2 = ["3","1"] 
+    for i in range(2):
+        print(ord(char[i]), ord(char2[i]))
+        print("diff = ", ord(char[i]) - ord(char2[i]))
+        print("diff_ansi = ", ord(char[i].encode("ansi")) - ord(char2[i].encode("ansi")))
 
 def test_cario_matrix_operation():
     print("\nMatrix Operation Tests:")
@@ -227,7 +234,7 @@ def text_symbole_encoding():
 
 if __name__ == "__main__":
     # test_cario_matrix_operation()
-
+    # test_offset()
     main()
     # test_unicodek
 
