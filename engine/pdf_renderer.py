@@ -1,28 +1,17 @@
-from pprint import pprint
 import re
-import math
 import string
+
+from engine.create_cairo_font import open_image_in_irfan
 from .pdf_operator import PdfOperator
 from .engine_state import EngineState
 import cairo
-from cairo import Context, Glyph, ImageSurface
-digit_to_name = {
-    '0': 'zero',
-    '1': 'one',
-    '2': 'two',
-    '3': 'three',
-    '4': 'four',
-    '5': 'five',
-    '6': 'six',
-    '7': 'seven',
-    '8': 'eight',
-    '9': 'nine',
-}
-from fontTools.agl import UV2AGL
+import subprocess
+from cairo import Context, ImageSurface
+import os
+from .pdf_detectors import Question, QuestionDetector, Sequence, Symbol
 
-def char_to_glyph_name(ch):
-    codepoint = ord(ch)
-    return UV2AGL.get(codepoint, None)
+SEP = os.path.sep
+
 
 class BaseRenderer:
     def __init__(self, state: EngineState) -> None:
@@ -53,11 +42,13 @@ class BaseRenderer:
 
         self.surface: ImageSurface | None = None
         self.ctx: Context | None = None
+        self.skip_footer = True
 
     def initialize(self, width: int, height: int) -> None:
         """Initialize the Cairo surface and context."""
         self.width = width
         self.height = height
+        self.footer_y = height * 0.95
         self.surface = cairo.ImageSurface(
             cairo.FORMAT_ARGB32, self.width, self.height
         )
@@ -121,11 +112,11 @@ class BaseRenderer:
         return h_scale, ratio
 
     def get_glyph_scale(self, gid, width):
-        extents = self.ctx.glyph_extents([cairo.Glyph(gid,0,0)])
+        extents = self.ctx.glyph_extents([cairo.Glyph(gid, 0, 0)])
         natural_width = extents.x_advance
-        if natural_width == 0 :
-            natural_width = self.default_char_width 
-        ratio = extents.y_advance / natural_width or 1 
+        if natural_width == 0:
+            natural_width = self.default_char_width
+        ratio = extents.y_advance / natural_width or 1
         h_scale = 1.0 if natural_width == 0 else width / natural_width
         return h_scale, ratio
 
@@ -133,7 +124,25 @@ class BaseRenderer:
         # print("drawing single text ", text)
         self.draw_string_array(cmd, is_single=True)
 
+    def count_dots(self, char_arry):
+        dot = "."
+        return len([c for c in char_arry if dot in c])
+
     def draw_string_array(self, cmd: PdfOperator, is_single=False):
+        glyph_array, char_array, update_text_position = self.get_glyph_array(
+            cmd, is_single
+        )
+        if len(glyph_array) == 0:
+            return
+
+        if self.skip_footer and char_array[0][2] >= self.footer_y:
+            return
+        count = self.count_dots(char_array)
+        if count < 20:
+            self.draw_glyph_array(glyph_array)
+        update_text_position()
+
+    def get_glyph_array(self, cmd: PdfOperator, is_single=False):
         if is_single:
             text_array = [cmd.args[0]]
         else:
@@ -142,35 +151,22 @@ class BaseRenderer:
         state = self.state
         x, y = state.text_position
         font_size = state.font_size
-        # am = state.get_current_matrix()
-        # self.ctx.set_matrix(am)
 
         char_regex = r"(?:(?:^|[^\\])\\(?P<symbol>\d{3}))|(?P<char>.)"
 
         font = self.state.font
 
-        # self.ctx.select_font_face(
-        #     font.family,
-        #     font.slant,
-        #     font.weight,
-        # )
-
-        # Check if we have an embedded font face available
         cairo_font_face = None
-        # if hasattr(font, "get_cairo_font_face"):
         try:
             cairo_font_face = font.get_cairo_font_face()
-            # print("embeded font loaded successfully", cairo_font_face)
         except Exception as e:
+            pass
             print(f"Error loading embedded font face: {e}")
 
-        # Use the embedded font if available
         if cairo_font_face is not None:
-            # print("using embedded font ")
             self.ctx.set_font_face(cairo_font_face)
         else:
-            # print(" embeded font NOT found ")
-            # Fall back to standard Cairo font selection
+            print(" embeded font NOT found ")
             self.ctx.select_font_face(
                 font.family,
                 font.slant,
@@ -179,16 +175,16 @@ class BaseRenderer:
 
         self.ctx.set_font_size(font_size)
 
-        self.ctx.set_font_size(font_size)
-
         c_spacing = state.character_spacing
         w_spacing = state.word_spacing
 
+        m_c = self.state.get_current_matrix()
+        glyph_array = []
+        char_array = []
+
         for element in text_array:
             if isinstance(element, float):
-                dx = float(element)
-                dx = state.convert_em_to_ts(dx)
-                # dx = tm.transform_distance(dx, 0)[0]
+                dx = state.convert_em_to_ts(float(element))
                 x -= dx
             elif isinstance(element, str):
                 element = self.clean_text(element)
@@ -198,68 +194,71 @@ class BaseRenderer:
                     if word.isspace():
                         x += w_spacing
                     for char_or in re.finditer(char_regex, word):
-                        char_code = None
-                        char = char_or.group("char")
-                        symbol = char_or.group("symbol")
-
-                        if char:
-                            char_width = self.state.font.get_char_width(char)
-                            glyph_id  = font.char_to_gid.get(char)
-                            if glyph_id is None :
-                                if char == "p":
-                                    print("correcting p")
-                                    char = font.symbol_to_char.get( "pi")
-                            #     else:
-                            #         raise Exception(f"char {char} not found in font")
-                            print("char is ..",char)
-                        elif symbol:
-                            glyph_id, char_width = font.get_char_code(symbol)
-                            char = chr(glyph_id)
-                            # char = char_to_glyph_name(symbol)
-                            # char_code = font.name_to_gid.get( char )
-                            print("symbole is ",symbol)
-
-                        if char_width is None or char_width == 0:
-                            print("char width is ", char_width)
-                            print("x is ", x)
-                            raise ValueError(
-                                f"Character {char} not found in font"
-                            )
-                        char_width = state.convert_em_to_ts(char_width)
-                        # h_scale, ratio = self.get_scale(char, char_width)
-                        
-                        if ord(char) != 0:
-                            glyph_id = self.ctx.get_scaled_font().text_to_glyphs(0,0,char,False)[0][0]
-                        else:
-                            glyph_id = 0
-                        h_scale, ratio = self.get_glyph_scale(glyph_id, char_width)
-                        self.ctx.save()
-                        try:
-                            self.ctx.translate(x, 0)
-                            self.ctx.scale(h_scale, 1)
-                            self.ctx.move_to(0, 0)
-                            self.ctx.set_font_size(font_size)
-                            # if cairo_font_face :
-                            glyph = cairo.Glyph(glyph_id,0,0)
-                            # glyph = self.ctx.get_scaled_font().text_to_glyphs(0,0,char,False)[0]
-                            self.ctx.show_glyphs([glyph]) 
-                            #
-                            # else:
-                            #     self.ctx.show_text(char)
-
-                        except:
-                            print("error")
-                            raise ValueError(f"Character {char} not supported")
+                        glyph_id, char_width, char = (
+                            self.get_glyph_id_for_char(char_or)
+                        )
+                        if glyph_id is None:
                             continue
-
-                        self.ctx.restore()
+                        glyph_obj = cairo.Glyph(glyph_id, x, y)
+                        glyph_array.append(glyph_obj)
+                        x0, y0 = m_c.transform_point(x, y)
+                        char_height = self.ctx.glyph_extents(
+                            [glyph_obj]
+                        ).y_bearing
+                        w, h = m_c.transform_distance(char_width, char_height)
+                        char_array.append((char, x0, y0, w, h))
                         x += char_width + c_spacing
+
             else:
                 raise ValueError("Invalid text element")
 
-        if is_single or True:
-            pass
-            self.state.text_position = [x, y]
+        def update_on_finish():
+            if is_single:
+                self.state.text_position = [x, y]
+
+        return glyph_array, char_array, update_on_finish
+
+    def get_glyph_id_for_char(self, char_or):
+        font = self.state.font
+        char = char_or.group("char")
+        symbol = char_or.group("symbol")
+        if char:
+            if not font.is_composite:
+                char_width = font.get_char_width(char)
+                glyph_id = font.char_to_gid.get(char)
+
+                if glyph_id is None:
+                    if char == "p":
+                        print("correcting p")
+                        glyph_id = font.symbol_to_gid.get("pi")
+                        char = "pi"
+            else:
+                glyph_id = ord(char)
+                char_width = font.widths[glyph_id]
+
+        elif symbol:
+            char_code, char_width = font.get_char_code(symbol)
+            symbol = font.diff_map.get(char_code, "").replace("/", "")
+            if not symbol:
+                symbol = font.get_symbol_name_from_char_code(char_code)
+            glyph_id = font.symbol_to_gid.get(symbol)
+            char = symbol
+
+        char_width = self.state.convert_em_to_ts(char_width)
+        return glyph_id, char_width, char
+
+    def draw_glyph_array(self, glyph_array):
+        self.ctx.save()
+        try:
+            # self.ctx.set_font_size(self.state.font_size)
+            # self.ctx.translate(0, 0)
+            # self.ctx.scale(1, 1)
+            self.ctx.move_to(0, 0)
+            self.ctx.show_glyphs(glyph_array)
+        except:
+            print("error")
+            raise ValueError(f"ERROR while drawing Glyph array")
+        self.ctx.restore()
 
     def clean_text(self, text: str):
         text = text.replace("\\(", "(").replace("\\)", ")")
@@ -420,57 +419,35 @@ class BaseRenderer:
         if func:
             func(cmd)
 
+    def kill_with_taskkill(self):
+        """Use Windows’ native taskkill (works from Windows or WSL)."""
+        TARGET = "i_view64.exe"
+        cmd = ["taskkill.exe", "/IM", TARGET, "/F"]
+        subprocess.run(
+            cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+        )
+
+    def open_image_in_irfan(self, img_path):
+        c_prefix = "C:" if os.name == "nt" else "/mnt/c"
+        png_full_path = "\\\\wsl.localhost\\Ubuntu" + os.path.abspath(img_path)
+        if os.name != "nt":  # Windows
+            png_full_path = png_full_path.replace("/", "\\")
+        subprocess.Popen(
+            args=[
+                f"{c_prefix}{SEP}Program Files{SEP}IrfanView{SEP}i_view64.exe",
+                png_full_path,
+            ]
+        )
+
     def save_to_png(self, filename: str) -> None:
         """Save the rendered content to a PNG file."""
+        self.kill_with_taskkill()
         print("saving image")
         if self.surface is None:
             raise ValueError("Renderer is not initialized")
         self.surface.write_to_png(filename)
+        open_image_in_irfan(filename)
+        input("Press Enter to continue...")
+        self.kill_with_taskkill()
 
     # regex = r"(?:^|[^\\])\\(?P<symbol>\d{3})"
-
-    # text = re.sub(regex ,
-    #               lambda m : self.state.font.get_unicode(m.group("symbol")),
-    #               text,flags = re.MULTILINE | re.DOTALL)
-
-    # def test_surface_paint(self):
-    #     """
-    #     Test function to paint a simple black box in the middle of the screen
-    #     using the same surface painting method as draw_inline_image
-    #     """
-    #     # Create a small test surface (50x50 pixels)
-    #     width, height = 50, 50
-    #     surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, width, height)
-    #
-    #     print("Main surface dimensions:", self.width, self.height)
-    #     print("Test surface dimensions:", width, height)
-    #
-    #     surface_data = surface.get_data()
-    #     temp = surface_data.tolist()
-    #     print("Initial surface data:", temp[:20])
-    #
-    #     stride = surface.get_stride()
-    #     for y in range(height):
-    #         for x in range(width):
-    #             idx = y * stride + x * 4
-    #             surface_data[idx] = 0  # Blue
-    #             surface_data[idx + 1] = 0  # Green
-    #             surface_data[idx + 2] = 0  # Red
-    #             surface_data[idx + 3] = 255  # Alpha
-    #
-    #     surface.mark_dirty()
-    #     temp = surface_data.tolist()
-    #     print("After filling surface data:", temp[:20])
-    #
-    #     # Position in middle of screen
-    #     x = (self.width - width) / 2
-    #     y = (self.height - height) / 2
-    #     print("Positioning at:", x, y)
-    #
-    #     # Create pattern from surface
-    #     self.ctx.save()
-    #     self.ctx.identity_matrix()
-    #     self.ctx.set_source_surface(surface, x, y)
-    #     self.ctx.paint()
-    #     self.ctx.restore()
-    #     surface.finish()

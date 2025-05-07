@@ -315,8 +315,8 @@ class EngineState:
 
     def set_fill_color_gray(self, command: PdfOperator):
         grayscale = float(command.args[0])
+        # print("fill color = ", grayscale)
         self.fill_color = [grayscale, grayscale, grayscale]
-
         if self.debug:
             return None
 
@@ -355,6 +355,7 @@ class EngineState:
             return None
 
     def set_font(self, command: PdfOperator):
+        # print(command.args)
         fontname, font_size = command.args
         self.font = self.font_map[fontname]
         self.font_size = float(font_size)
@@ -410,6 +411,7 @@ class EngineState:
         x, y = [*command.args]
         self.leading = -float(y)
         self.tm_matrix.translate(x, y)
+        self.text_position = [0.0, 0.0]
         if self.debug:
             m = self.tm_matrix.multiply(self.cm_matrix)
             return m.transform_distance(x, y)

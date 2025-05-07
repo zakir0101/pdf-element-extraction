@@ -2,26 +2,71 @@ import json
 import cairo
 from engine.pdf_renderer import BaseRenderer
 from engine.pdf_engine import PdfEngine
+from argparse import ArgumentParser
 
 from fontTools.ttLib import TTFont
 from fontTools.unicode import Unicode
 from fontTools.agl import AGL2UV, toUnicode  # import AGL2UV
 from fontTools.encodings import MacRoman
+from engine.pdf_renderer import BaseRenderer
+from engine.pdf_question_renderer import QuestionRenderer
+from os.path import sep
+import os
 
 
-def main():
-    file = "9702_m23_qp_12.pdf"
+if os.name == "nt":  # Windows
+    ansi = "ansi"
+else:
+    ansi = "iso_8859_1"
+
+
+def main(pages):
+    file1 = "9702_m23_qp_12.pdf"
     file2 = "9709_m23_qp_32.pdf"
-    engine: PdfEngine = PdfEngine(f"PDFs\\{file2}", scaling=4, debug=True)
-    engine.get_page_stream(3).debug_original_stream().execute_stream(50)
+    file3 = "9709_m23_qp_22.pdf"
+    file4 = "9709_m23_qp_12.pdf"
+
+    # for f in os.listdir("output"):
+    #     dir = f"output{sep+f}"
+    #     if os.path.isdir(dir):
+    #         print(f)
+    engine: PdfEngine = PdfEngine(f"PDFs{sep}{file4}", scaling=8, debug=True)
+    next = 1
+    page_count = len(engine.pages)
+
+    sp = pages.split("-")
+    st = int(sp[0]) - 1
+    e = int(sp[1]) if len(sp) == 2 else page_count - 1
+    for page in range(st, e):
+        next = (
+            engine.get_page_stream(page + 1, QuestionRenderer)
+            .debug_original_stream()
+            .execute_stream_extract_question(max_show=5000, expected_next=next)
+        )
+
+
+def draw_page(page):
+    file1 = "9702_m23_qp_12.pdf"
+    file2 = "9709_m23_qp_32.pdf"
+    file3 = "9709_m23_qp_22.pdf"
+    file4 = "9709_m23_qp_12.pdf"
+    engine: PdfEngine = PdfEngine(f"PDFs{sep}{file4}", scaling=8, debug=True)
+    engine.get_page_stream(
+        page, BaseRenderer
+    ).debug_original_stream().execute_stream(1000)
+
 
 def test_offset():
-    char = ["P","N"]
-    char2 = ["3","1"] 
+    char = ["P", "N"]
+    char2 = ["3", "1"]
     for i in range(2):
         print(ord(char[i]), ord(char2[i]))
         print("diff = ", ord(char[i]) - ord(char2[i]))
-        print("diff_ansi = ", ord(char[i].encode("ansi")) - ord(char2[i].encode("ansi")))
+        print(
+            "diff_ansi = ",
+            ord(char[i].encode(ansi)) - ord(char2[i].encode(ansi)),
+        )
+
 
 def test_cario_matrix_operation():
     print("\nMatrix Operation Tests:")
@@ -109,9 +154,9 @@ def test_image_cairo():
 def test_unicode():
     char2 = "Æ"
     char2 = "Á"
-    print(ord(char2.encode("ansi")))
+    print(ord(char2.encode(ansi)))
     print("\u0420\u043e\u0441\u0441\u0438\u044fdfdfd my name is zakir")
-    path = "engine\\agl_list.txt"
+    path = f"engine{sep}agl_list.txt"
 
     unicode_map = {}
     with open(path, "r", encoding="utf-8") as f:
@@ -138,7 +183,7 @@ def test_ansi_encoding():
     # get the char from the char code
     char = chr(char_ansi_code)
     print(f"char ansi code{char}1")
-    print(ord(char2.encode("ansi")))
+    print(ord(char2.encode(ansi)))
 
 
 def test_cairo():
@@ -235,7 +280,24 @@ def text_symbole_encoding():
 if __name__ == "__main__":
     # test_cario_matrix_operation()
     # test_offset()
-    main()
+    arg = ArgumentParser()
+    arg.add_argument(
+        "mode", type=str, choices=["show", "main"], default="main"
+    )
+    arg.add_argument(
+        "--page",
+        type=int,
+    )
+    arg.add_argument(
+        "--pages",
+        type=str,
+    )
+    nm = arg.parse_args()
+    mode = nm.mode
+    if mode == "main":
+        main(nm.pages)
+    elif mode == "show":
+        draw_page(nm.page)
     # test_unicodek
 
     # test_image_cairo()

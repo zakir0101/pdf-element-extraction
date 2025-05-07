@@ -6,9 +6,10 @@ import string
 class PDFStreamParser:
 
     def __init__(self):
-        self.PRIMATIVE_REGEX = r"(?P<name>/\S+)|\((?P<stringO>)(?=\))|(?:\((?P<string>(?:.*?[^\\]))(?=\)))|(?:(?:[^_\-\n\d]|^)(?P<number>[\d.]+))|(?P<numberO>-[\d.]+)"
+        self.PRIMATIVE_REGEX = r"<(?P<hex>\S+?)>|(?P<name>/\S+)|\((?P<stringO>)(?=\))|(?:\((?P<string>(?:.*?[^\\]))(?=\)))|(?:(?:[^_\-\n\d]|^)(?P<number>[\d.]+))|(?P<numberO>-[\d.]+)"
         self.TYPES_MAP = {
             "number": float,
+            "hex": str,
             "string": str,
             "name": str,
             "binary": str,
@@ -16,7 +17,7 @@ class PDFStreamParser:
 
         self.ARRAY_REGEX = r"(?:(?P<pre>[^\\\n]|^)\[(?P<array>.*[^\\])?\])"
         self.SPLIT_REGEX = r"\s+"  # r"(?:\r\n)|\n| |\s"
-        self.ID_REGEX = r"ARRAY___\d+|NUMBER___\d+|STRING___\d+|NAME___\d+|BINARY___\d+"
+        self.ID_REGEX = r"ARRAY___\d+|NUMBER___\d+|STRING___\d+|NAME___\d+|BINARY___\d+|HEX___\d+"
         self.BOOL_REGEX = r"true|false"
 
         self.primatives_counter = 0
@@ -52,6 +53,18 @@ class PDFStreamParser:
         self.tokens = []
 
     PRINTABLE = string.ascii_letters + string.digits + string.punctuation + " "
+
+    def pdf_hex_to_str(self, hex_text: str) -> str:
+        cleaned = "".join(hex_text.split())
+        if len(cleaned) % 2 == 1:
+            cleaned += "0"
+
+        if len(cleaned) == 4:
+            cleaned = cleaned[2:]
+        raw_bytes = bytes.fromhex(cleaned)
+        result = raw_bytes.decode("latin-1")
+        # print("result is " + result)
+        return result
 
     def hex_escape(self, s):
         return "".join(
@@ -104,7 +117,7 @@ class PDFStreamParser:
         )
         if m:
             self.__extract_special_operators(m)
-            print("catched operator", m.group("operator"))
+            # print("catched operator", m.group("operator"))
         else:
             self.__extract_variables(line)
 
@@ -175,8 +188,11 @@ class PDFStreamParser:
         for p_type, p_value in match.groupdict().items():
             if p_value is None:
                 continue
+
             p_type = p_type.replace("O", "")
             value = self.TYPES_MAP[p_type](p_value)
+            if p_type == "hex":
+                value = self.pdf_hex_to_str(value)
             primative_id = f"{p_type.upper()}___{self.primatives_counter}"
             if primatives_array is not None:
                 primatives_array.append(value)
