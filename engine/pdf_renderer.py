@@ -8,13 +8,15 @@ import cairo
 import subprocess
 from cairo import Context, ImageSurface
 import os
-from .pdf_detectors import Question, QuestionDetector, Sequence, Symbol
+from .pdf_detectors import Sequence, Symbol, BaseDetector
 
 SEP = os.path.sep
 
 
 class BaseRenderer:
-    def __init__(self, state: EngineState) -> None:
+    def __init__(
+        self, state: EngineState, main_detector: BaseDetector
+    ) -> None:
         self.state: EngineState = state
         self.default_char_width = 10
         self.functions_map = {
@@ -43,11 +45,14 @@ class BaseRenderer:
         self.surface: ImageSurface | None = None
         self.ctx: Context | None = None
         self.skip_footer = True
+        self.page_number = -1
+        self.main_detector: BaseDetector = main_detector
 
-    def initialize(self, width: int, height: int) -> None:
+    def initialize(self, width: int, height: int, page: int) -> None:
         """Initialize the Cairo surface and context."""
         self.width = width
         self.height = height
+        self.page_number = page
         self.footer_y = height * 0.95
         self.surface = cairo.ImageSurface(
             cairo.FORMAT_ARGB32, self.width, self.height
@@ -124,21 +129,24 @@ class BaseRenderer:
         # print("drawing single text ", text)
         self.draw_string_array(cmd, is_single=True)
 
-    def count_dots(self, char_arry):
+    def count_dots(self, char_seq):
         dot = "."
-        return len([c for c in char_arry if dot in c])
+        return len([sym for sym in char_seq if dot in sym.ch])
+
+    def should_skip_sequence(self, char_seq):
+        if len(char_seq) == 0:
+            return True
+        if self.skip_footer and char_seq[0].y >= self.footer_y:
+            return True
 
     def draw_string_array(self, cmd: PdfOperator, is_single=False):
-        glyph_array, char_array, update_text_position = self.get_glyph_array(
+        glyph_array, char_seq, update_text_position = self.get_glyph_array(
             cmd, is_single
         )
-        if len(glyph_array) == 0:
+        char_seq: Sequence = char_seq
+        if self.should_skip_sequence(char_seq):
             return
-
-        if self.skip_footer and char_array[0][2] >= self.footer_y:
-            return
-        count = self.count_dots(char_array)
-        if count < 20:
+        if self.count_dots(char_seq) < 20:
             self.draw_glyph_array(glyph_array)
         update_text_position()
 
@@ -206,7 +214,7 @@ class BaseRenderer:
                             [glyph_obj]
                         ).y_bearing
                         w, h = m_c.transform_distance(char_width, char_height)
-                        char_array.append((char, x0, y0, w, h))
+                        char_array.append(Symbol(char, x0, y0, w, h))
                         x += char_width + c_spacing
 
             else:
@@ -216,7 +224,7 @@ class BaseRenderer:
             if is_single:
                 self.state.text_position = [x, y]
 
-        return glyph_array, char_array, update_on_finish
+        return glyph_array, Sequence(char_array), update_on_finish
 
     def get_glyph_id_for_char(self, char_or):
         font = self.state.font

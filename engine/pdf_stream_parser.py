@@ -87,15 +87,15 @@ class PDFStreamParser:
             line = lines_list[i]
             if line.strip().endswith("ID"):
                 self.__process_line(line.rstrip("ID"))
-                print("found image data")
+                # print("found image data")
                 binary_data = []
                 i += 1
                 while i < len(lines_list):
                     sub_line = lines_list[i]
                     if sub_line.startswith("EI"):
-                        print(
-                            self.hex_escape("".join(binary_data)), "ID", "EI"
-                        )
+                        # print(
+                        #     self.hex_escape("".join(binary_data)), "ID", "EI"
+                        # )
                         self.primatives_counter += 1
                         name = f"BINARY___{self.primatives_counter}"
                         self.variables_dict[name] = "".join(binary_data)

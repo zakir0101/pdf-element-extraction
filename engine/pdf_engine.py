@@ -73,7 +73,7 @@ class PdfEngine:
             self.font_map, self.scaling, self.default_height, self.debug
         )
 
-        self.renderer = rendererClass(self.state)
+        self.renderer = rendererClass(self.state, self.question_detector)
 
         contents = page.get_contents()
 
@@ -150,7 +150,9 @@ class PdfEngine:
         stream = stream or self.current_stream
 
         self.renderer.initialize(
-            int(width) * self.scaling, int(height) * self.scaling
+            int(width) * self.scaling,
+            int(height) * self.scaling,
+            self.current_page,
         )
         counter = 0
         with open(f"output{sep}output.md", "w", encoding="utf-8") as f:
@@ -189,23 +191,16 @@ class PdfEngine:
 
         renderer: QuestionRenderer = self.renderer
         self.renderer.initialize(
-            int(width) * self.scaling, int(height) * self.scaling
+            int(width) * self.scaling,
+            int(height) * self.scaling,
+            self.current_page,
         )
         counter = 0
         for cmd in self.parser.parse_stream(stream).iterate():
             explanation = self.state.execute_command(cmd)
             renderer.execute_command(cmd)
-        question_coords: list = renderer.left_most_list
-        if len(question_coords) == 0:
-            print(f"No question found on this page [{self.current_page}]")
-            return expected_next
-        else:
-            print(
-                f"found the following questions on page [{self.current_page}]"
-            )
-            print(question_coords)
         # self.renderer.save_to_png(f"output{sep}output.png")
-        renderer.save_questions_to_pngs(os.path.basename(self.pdf_path))
+        # renderer.save_questions_to_pngs(os.path.basename(self.pdf_path))
         return expected_next
         # self.renderer.start_partioning()
         # for cmd in self.parser.parse_stream(stream).iterate():

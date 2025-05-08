@@ -193,23 +193,26 @@ def get_next_label_old(prev: str):
         raise Exception
     return next
 
+
 NUMERIC = 1
 ALPHAPET = 2
 ROMAN = 3
 
-def get_next_label(prev,system)
-    if type(prev) == int and system == NUMERIC:
+
+def get_next_label(prev, system):
+    prev = str(prev)
+    if prev.isdigit() and system == NUMERIC:
+        prev = int(prev)
         prev += 1
         return prev
-    elif type(prev) == str and system == ROMAN:
+    elif type(prev) is str and system == ROMAN:
         num = romanToDecimal(prev.upper())
         return get_roman(num + 1)
-    elif type(prev) == str and len(prev) == 1 and system == ALPHAPET:
+    elif type(prev) is str and len(prev) == 1 and system == ALPHAPET:
         num = ord(prev)
         return get_alphabet(num - 96 + 1)
     else:
         raise Exception
-
 
 
 def is_first_label(input: str):

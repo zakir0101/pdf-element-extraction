@@ -19,7 +19,7 @@
 
 
 from collections import UserList
-from .pdf_utils import get_next_label
+from .pdf_utils import get_next_label, checkIfRomanNumeral
 
 
 class Box:
@@ -75,8 +75,11 @@ class Sequence(Box):
             self.threshold_x = 0.3 * (self.box[-2] - self.box[0])
         pass
 
-    def __get_item__(self, index):
+    def __getitem__(self, index) -> Symbol:
         return self.data[index]
+
+    def __len__(self):
+        return len(self.data)
 
     def __str__(self) -> str:
         rep = f"Sequence(lenght={len(self.data)}) =>\n"
@@ -153,6 +156,8 @@ NUMERIC = 1
 ALPHAPET = 2
 ROMAN = 3
 
+FIRST_MAP = {NUMERIC: "1", ALPHAPET: "a", ROMAN: "i"}
+
 LEVEL_QUESTION = 0
 LEVEL_PART = 1
 LEVEL_SUBPART = 2
@@ -178,13 +183,14 @@ class Question(Box):
         self.h: int = h
 
     def __str__(self):
-        in_page = f"In Page {self.pages[0]}" if self.level == 0 else ""
+        in_page = f" In Page {self.pages[0]}" if self.level == 0 else ""
         rep = (
             " " * self.level * 4
             + TITLE_DICT[self.level]
             + " "
             + self.label
             + in_page
+            + f"(x={self.x}, y={self.y})"
             + "\n"
         )
         for p in self.parts:
@@ -196,18 +202,21 @@ class QuestionDetector(BaseDetector):
     def __init__(self) -> None:
         super().__init__()
         self.curr_page = -1
-        self.allowed_skip_chars = [" ", "(", "[", "", "."]
+        self.allowed_skip_chars = [" ", "(", "[", "", ")", "]" "."]
         self.allowed_chars_startup = ["1", "a", "i"]
         self.tolerance = 20
         self.question_list: list[Question] = []
 
-        self.left_most_x: list[int] = [1000, 1000, 1000]
+        self.left_most_x: list[int] = [200000, 200000, 200000]
         self.current: list[Question] = [None, None, None]
         self.type: list[int] = [UNKNOWN, UNKNOWN, UNKNOWN]
         pass
 
-    def reset(self, level: int):
-        self.left_most_x[level:] = [1000] * (3 - level)
+    def reset(
+        self,
+        level: int,
+    ):
+        self.left_most_x[level:] = [200200] * (3 - level)
         self.type[level:] = [UNKNOWN] * (3 - level)
 
         if level == 0:
@@ -222,24 +231,52 @@ class QuestionDetector(BaseDetector):
         self.current[level:] = [None] * (3 - level)
 
     def set_question(self, q: Question, level: int):
+        old_cur = self.current[level]
+        if old_cur and len(old_cur.parts) < 2:
+            self.reset(level + 1)
+        if level < 2:
+            self.current[level + 1 :] = [None] * (3 - level + 1)
+            # self.type[level+1:] = [UNKNOWN] * (3 - level)
 
         if level == 0:
             self.question_list.append(q)
+            self.current[0] = q
         elif level == 1 and self.current[0]:
             self.current[0].parts.append(q)
+            self.current[1] = q
         elif level == 2 and self.current[1]:
             self.current[1].parts.append(q)
+            self.current[2] = q
         else:
             raise Exception
 
+        n_type = ALPHAPET
+        if type(q.label) is int or q.label.isdigit():
+            n_type = NUMERIC
+        elif checkIfRomanNumeral(q.label):
+            n_type = ROMAN
+        elif len(q.label) == 1:
+            n_type = ALPHAPET
+        else:
+            raise Exception
+
+        self.type[level] = n_type
         self.left_most_x[level] = q.x
 
     def get_next_allowed(self, level):
         n_type = self.type[level]
         curr = self.current[level]
         if n_type == UNKNOWN or curr is None:
-            return self.allowed_chars_startup
-        return get_next_label(curr.label)
+            if curr is not None:
+                raise Exception
+            used = None
+            if level > 0:
+                used = FIRST_MAP[self.type[level - 1]]
+            res = [i for i in self.allowed_chars_startup if i != used]
+            # print("************************************")
+            # print(res)
+            return res
+        return get_next_label(curr.label, n_type)
 
     def is_char_valid(self, char, level):
         next = self.get_next_allowed(level)
@@ -248,7 +285,10 @@ class QuestionDetector(BaseDetector):
         next = str(next)
         return next.startswith(char)
 
-    def is_char_skip(self, char):
+    def is_char_skip(self, char, level):
+        if level > 0:
+            if char in self.current[level - 1].label:
+                return True
         return not char or char in self.allowed_skip_chars
 
     def is_valid_neighbours(self, sym: Symbol, n_sym: Symbol):
@@ -257,10 +297,10 @@ class QuestionDetector(BaseDetector):
     def handle_sequence(self, seq: Sequence, page: int):
         if page != self.curr_page:
             self.curr_page = page
-            self.left_most_x = [1000] * 3
+            # self.left_most_x = [1000] * 3
         for level in range(3):
             found = self.__handle_sequence(seq, level)
-            if found:
+            if self.current[level] is None:
                 break
 
     def __handle_sequence(self, seq: Sequence, level: int):
@@ -273,20 +313,37 @@ class QuestionDetector(BaseDetector):
             sym: Symbol = sym
             char = sym.ch
             if prev_valid is None:
-                if self.is_char_skip():
-                    continue
-                if not self.is_char_valid(char, level):
-                    is_candidate = False
-                    break
 
                 x, y, x1, y1 = sym.get_box()
                 h = y1 - y
                 self.tolerance = x1 - x
                 diff = x - self.left_most_x[level]
+                # upper_x = (
+                #     self.left_most_x[level - 1]
+                #     if (level > 0 and self.current[level - 1])
+                #     else 0
+                # )
+                # diff_upper = upper_x - x
 
-                if abs(diff) > self.tolerance and diff > 0:
-                    if level == 0:
-                        self.reset(level)
+                if self.is_char_skip(char, level):
+                    continue
+                if not self.is_char_valid(char, level):
+                    # print("char ", char, ", is not valid for level", level)
+                    is_candidate = False
+                    # if diff < -self.tolerance:  # and diff_upper > 0:
+                    #     self.reset(level)
+                    #     self.left_most_x[level] = x
+                    break
+
+                # if diff_upper > 0:
+                #     print("too much left for this level=", level)
+                #     print("x=", x, ", upper_x=", upper_x)
+                #     is_candidate = False
+                #     break
+
+                if diff > self.tolerance:
+                    print(f"too low value for level {level} , ignoring it")
+                    print("x=", x, ", diff=", diff)
                     is_candidate = False
                     break
 
@@ -294,11 +351,15 @@ class QuestionDetector(BaseDetector):
                 prev_valid = sym
                 is_candidate = True
                 char_all = char
+                if level == 1:
+                    print("aim here ,char is ", char)
             else:
+                if level == 1:
+                    print("aim here 2 ,char is ", char)
                 if not self.is_valid_neighbours(sym, prev_valid):
                     break
                 else:
-                    if self.is_char_skip():
+                    if self.is_char_skip(char, level):
                         continue
                     if not self.is_char_valid(char_all + sym.ch, level):
                         is_candidate = False
@@ -309,8 +370,11 @@ class QuestionDetector(BaseDetector):
                     char_all += char
 
         if is_candidate:
-            new_q = Question(char, self.curr_page, level, x, y, 2 * h)
-            if diff < 0 and abs(diff) > self.tolerance:
+            print("found candidates for level :", level, "and char", char_all)
+            print("diff is ", diff, ", tolerence is ", self.tolerance)
+            new_q = Question(char_all, self.curr_page, level, x, y, 2 * h)
+            if diff < -self.tolerance:
+                print("resetting to char ", char_all)
                 self.reset(level)
             self.set_question(new_q, level)
             return True

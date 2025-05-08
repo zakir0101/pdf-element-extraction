@@ -4,11 +4,9 @@ from engine.pdf_renderer import BaseRenderer
 from engine.pdf_engine import PdfEngine
 from argparse import ArgumentParser
 
-from fontTools.ttLib import TTFont
+from engine.pdf_detectors import Question
 from fontTools.unicode import Unicode
 from fontTools.agl import AGL2UV, toUnicode  # import AGL2UV
-from fontTools.encodings import MacRoman
-from engine.pdf_renderer import BaseRenderer
 from engine.pdf_question_renderer import QuestionRenderer
 from os.path import sep
 import os
@@ -43,6 +41,16 @@ def main(pages):
             .debug_original_stream()
             .execute_stream_extract_question(max_show=5000, expected_next=next)
         )
+
+    questions: list[Question] = engine.renderer.question_detector.question_list
+    if len(questions) == 0:
+        print("No question found on this page ")  # [{self.current_page}]")
+    else:
+        print(
+            "found the following questions on page "  # [{self.current_page}]"
+        )
+        for q in questions:
+            print(q)
 
 
 def draw_page(page):

@@ -1,13 +1,18 @@
 # import enum
 # from math import isnan
 # import re
+import time
 from engine.create_cairo_font import open_image_in_irfan
 from .pdf_operator import PdfOperator
 from .engine_state import EngineState
 from .pdf_renderer import BaseRenderer
 import cairo
 from .pdf_utils import get_segments
-from .pdf_detectors import Question, QuestionDetector, Sequence, Symbol
+from .pdf_detectors import (
+    QuestionDetector,
+    Sequence,
+    BaseDetector,
+)
 import os
 from os.path import sep
 
@@ -15,11 +20,11 @@ from os.path import sep
 class QuestionRenderer(BaseRenderer):
 
     def __init__(
-        self, state: EngineState, question_detector: QuestionDetector
+        self, state: EngineState, main_detector: BaseDetector
     ) -> None:
-        super().__init__(state)
+        super().__init__(state, main_detector)
+        self.question_detector: QuestionDetector = main_detector
         self.mode = 1
-        self.question_detector: QuestionDetector = question_detector
         # self.tolerance = 20
         # self.left_most_list: list[Tuple] = []
         # self.left_most_x: int = 1000
@@ -30,18 +35,17 @@ class QuestionRenderer(BaseRenderer):
         # self.curr_miny = 0
 
     def draw_string_array(self, cmd: PdfOperator, is_single=False):
-        glyph_array, char_array, update_text_position = self.get_glyph_array(
+        glyph_array, char_seq, update_text_position = self.get_glyph_array(
             cmd, is_single
         )
-        if len(glyph_array) == 0:
+        char_seq: Sequence = char_seq
+        if self.should_skip_sequence(char_seq):
             return
-        if self.skip_footer and char_array[0][2] >= self.footer_y:
-            return
-
-        count = self.count_dots(char_array)
-        if count < 20:
+        if self.count_dots(char_seq) < 20:
             if self.mode == 1:
-                self.find_left_most(char_array)
+                self.question_detector.handle_sequence(
+                    char_seq, self.page_number
+                )
             else:
                 self.draw_glyph_array(glyph_array)
         update_text_position()
