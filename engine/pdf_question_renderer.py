@@ -9,6 +9,7 @@ from .pdf_renderer import BaseRenderer
 import cairo
 from .pdf_utils import get_segments
 from .pdf_detectors import (
+    Question,
     QuestionDetector,
     Sequence,
     BaseDetector,
@@ -42,12 +43,10 @@ class QuestionRenderer(BaseRenderer):
         if self.should_skip_sequence(char_seq):
             return
         if self.count_dots(char_seq) < 20:
-            if self.mode == 1:
-                self.question_detector.handle_sequence(
-                    char_seq, self.page_number
-                )
-            else:
-                self.draw_glyph_array(glyph_array)
+            # if self.mode == 1:
+            self.question_detector.handle_sequence(char_seq, self.page_number)
+
+            self.draw_glyph_array(glyph_array)
         update_text_position()
 
     def execute_command(self, cmd: PdfOperator):
@@ -65,7 +64,10 @@ class QuestionRenderer(BaseRenderer):
         os.makedirs(folder, exist_ok=True)
         q_nr = [ml[0] for ml in self.left_most_list]
 
-        for i, lm in enumerate(self.left_most_list):
+        for i, q in enumerate(self.question_detector.question_list):
+            q: Question = q
+            if self.page_number not in q.pages:
+                continue
             filename = f"{folder}{sep}Question-{str(q_nr[i])}.png"
             _, _, y0, d = lm
             if i + 1 < len(self.left_most_list):

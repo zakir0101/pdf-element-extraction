@@ -1,9 +1,4 @@
-
-
-
-
-class PdfOperator():
-
+class PdfOperator:
     """
     Represents a PDF operator, managing operator names and their associated arguments.
 
@@ -44,14 +39,15 @@ class PdfOperator():
         get_path_operators() -> dict:
             Retrieves the dictionary of path operators.
     """
+
     NEED_SCALING = 0x01
     NEED_TRANSLATION = 0x02
-    
-    def __init__(self, op_name, arguements:list):
+
+    def __init__(self, op_name, arguements: list):
         self.name = op_name
         self.args = arguements
-         
-        args_string = list(map(str,arguements))
+
+        args_string = list(map(str, arguements))
         context = {f"operands{i}": str(op) for i, op in enumerate(arguements)}
         context["operands"] = ", ".join(args_string)
         explaination = self.OPERATORS.get(op_name)
@@ -59,56 +55,60 @@ class PdfOperator():
 
             # print(context)
             # print(explaination)
-            self.explaination =   (explaination % context) 
+            self.explaination = explaination % context
         else:
             raise ValueError("operator not found")
 
-    def get_explanation(self,*args):
+    def get_explanation(self, *args):
 
-        args_string = list(map(str,args))
+        args_string = list(map(str, args))
         context = {f"operands{i}": str(op) for i, op in enumerate(args)}
         context["operands"] = ", ".join(args_string)
         explaination = PdfOperator.OPERATORS.get(self.name)
         if explaination:
-            return   (explaination % context) 
+            return explaination % context
 
-        return "Operator not found" 
-
+        return "Operator not found"
 
     def __str__(self):
         return f"{self.name} // {self.explaination}"
 
     def get_modification_flags(self):
         flag = 0
-        if self.name in {"Ts","TL","Tz","Tw","Tc",'"',"'","T*", "TD","Td"}:
+        if self.name in {
+            "Ts",
+            "TL",
+            "Tz",
+            "Tw",
+            "Tc",
+            '"',
+            "'",
+            "T*",
+            "TD",
+            "Td",
+        }:
             flag |= PdfOperator.NEED_SCALING
-        if self.name in {"TD","Td","T*","'","''"}:
+        if self.name in {"TD", "Td", "T*", "'", "''"}:
             flag |= PdfOperator.NEED_TRANSLATION
 
         return flag
 
     @staticmethod
     def is_operator_valid(operator_name):
-        return operator_name in PdfOperator.OPERTORS_SET 
-
-
-
-
+        return operator_name in PdfOperator.OPERTORS_SET
 
     @staticmethod
     def get_graphics_operator():
-        return   {
+        return {
             # --------------------------------------------------
             # Graphics State Operators (Chapter 4/5 in full spec)
             # --------------------------------------------------
-
             "q": "Save current graphics state (no parameters)",
             "Q": "Restore most recent graphics state from stack (no parameters)",
             "cm": (
                 "Concatenate CTM matrix [a=%(operands0)s, b=%(operands1)s, c=%(operands2)s, "
                 "d=%(operands3)s, e=%(operands4)s, f=%(operands5)s] (6 numbers)"
             ),
-
             "gs": "Set graphics state [dict=%(operands)s]",
             "d": (
                 "Set dash pattern [dash_array=%(operands0)s, phase=%(operands1)s] "
@@ -119,14 +119,11 @@ class PdfOperator():
             "J": "Set line cap style [mode=%(operands)s] (0=butt, 1=round, 2=square)",
             "M": "Set miter limit [limit=%(operands)s] (≥1, default=10)",
             "w": "Set line width [width=%(operands)s] (default=1)",
-            
         }
 
+    GRAPHICS_OPERATORS = get_graphics_operator()
+    GRAPHICS_OPERATORS_SET = set(GRAPHICS_OPERATORS.keys())
 
-    GRAPHICS_OPERATORS =  get_graphics_operator()
-    GRAPHICS_OPERATORS_SET =  set( GRAPHICS_OPERATORS.keys())
-
-    
     @staticmethod
     def get_inline_image_operators():
         return {
@@ -139,19 +136,18 @@ class PdfOperator():
             "/W": "Set image width [width=%(operands)s] (positive integer)",
             "/H": "Set image height [height=%(operands)s] (positive integer)",
             "/IM": "Set image interpolation [interp=%(operands)s] (true or false)",
-
             "/BPC": "Set bits per component [bpc=%(operands)s] (1, 2, 4, 8, 16, 32)",
             "/CS": "Set color space [colorSpace=%(operands)s] (name or array)",
             "/F": "Set filter [filter=%(operands)s] (name or array)",
         }
 
-    INLINE_IMAGE_OPERATORS =  get_inline_image_operators()
-    INLINE_IMAGE_OPERATORS_SET = set( INLINE_IMAGE_OPERATORS.keys())
+    INLINE_IMAGE_OPERATORS = get_inline_image_operators()
+    INLINE_IMAGE_OPERATORS_SET = set(INLINE_IMAGE_OPERATORS.keys())
     INLINE_IMAGE_OPERATORS_REGEX = r"^(?P<operator>\/(?:W|H|IM|BPC|CS))\s+(?P<value>\d+|true|false|\[.*?\])$"
+
     @staticmethod
     def get_text_operators():
-        return    {
-
+        return {
             # --------------------------------------------------
             # Text Operators (from previous answer, kept for completeness)
             # --------------------------------------------------
@@ -181,25 +177,21 @@ class PdfOperator():
                 "[string=%(operands2)s] (additional spacing)"
             ),
             "TJ": "Show text array with kerning [elements=%(operands)s] (numbers=position adjustments)",
-
             # XObject/Image Operators
             "Do": "Draw XObject [name=%(operands)s] (image/form)",
             # "BI": "Begin inline image (header parameters follow)",
             # "ID": "Begin image data (raw bytes follow)",
             # "EI": "End inline image (no parameters)",
-
             # Marked Content
             "EMC": "End marked content sequence (no parameters)",
         }
 
-
-    TEXT_OPERATORS =  get_text_operators()
-    TEXT_OPERATORS_SET = set( TEXT_OPERATORS.keys())
-
+    TEXT_OPERATORS = get_text_operators()
+    TEXT_OPERATORS_SET = set(TEXT_OPERATORS.keys())
 
     @staticmethod
     def get_color_operators():
-        return  {
+        return {
             # --------------------------------------------------
             # Color Operators (Section 7.4)
             # --------------------------------------------------
@@ -220,18 +212,19 @@ class PdfOperator():
             "RG": (
                 "Set stroke color to RGB [red=%(operands0)s, green=%(operands1)s, "
                 "blue=%(operands2)s] (0-1 per component)"
-            )
-        } 
+            ),
+            # ← new entries below →
+            "cs": "Set fill color space to             [colorspace=%(operands0)s]",
+            "sc": "Set fill color in current space      [components=%(operands)s]",
+            "scn": "Set fill color or pattern/shading   [components=%(operands)s]",
+        }
 
-
-
-    COLOR_OPERATORS =  get_color_operators()
-    COLOR_OPERATORS_SET = set( COLOR_OPERATORS.keys())
+    COLOR_OPERATORS = get_color_operators()
+    COLOR_OPERATORS_SET = set(COLOR_OPERATORS.keys())
 
     @staticmethod
     def get_path_operators():
-        return { 
-
+        return {
             # --------------------------------------------------
             # Path Segment Operators (Section 7.5.1)
             # --------------------------------------------------
@@ -254,7 +247,6 @@ class PdfOperator():
                 "width=%(operands2)s, height=%(operands3)s]"
             ),
             "h": "Close current subpath (draw line to starting point)",
-
             # --------------------------------------------------
             # Path Painting Operators (Section 7.5.2)
             # --------------------------------------------------
@@ -267,18 +259,27 @@ class PdfOperator():
             "b": "Close path, fill, and stroke (no parameters)",
             "B*": "Fill (even-odd) and stroke path (no parameters)",
             "b*": "Close path, fill (even-odd), and stroke (no parameters)",
-
             # --------------------------------------------------
             # Clipping Operators (Section 7.5.3)
             # --------------------------------------------------
             "W": "Set clipping path using non-zero winding rule (no parameters)",
             "W*": "Set clipping path using even-odd rule (no parameters)",
-
         }
 
-    
-    PATH_OPERATORS =  get_path_operators()
-    PATH_OPERATORS_SET = set( PATH_OPERATORS.keys())
+    PATH_OPERATORS = get_path_operators()
+    PATH_OPERATORS_SET = set(PATH_OPERATORS.keys())
 
-    OPERATORS =  GRAPHICS_OPERATORS |  TEXT_OPERATORS |  COLOR_OPERATORS |  PATH_OPERATORS | INLINE_IMAGE_OPERATORS
-    OPERTORS_SET =  GRAPHICS_OPERATORS_SET |  TEXT_OPERATORS_SET |  COLOR_OPERATORS_SET |  PATH_OPERATORS_SET | INLINE_IMAGE_OPERATORS_SET
+    OPERATORS = (
+        GRAPHICS_OPERATORS
+        | TEXT_OPERATORS
+        | COLOR_OPERATORS
+        | PATH_OPERATORS
+        | INLINE_IMAGE_OPERATORS
+    )
+    OPERTORS_SET = (
+        GRAPHICS_OPERATORS_SET
+        | TEXT_OPERATORS_SET
+        | COLOR_OPERATORS_SET
+        | PATH_OPERATORS_SET
+        | INLINE_IMAGE_OPERATORS_SET
+    )

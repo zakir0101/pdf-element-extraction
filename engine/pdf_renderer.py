@@ -54,6 +54,7 @@ class BaseRenderer:
         self.height = height
         self.page_number = page
         self.footer_y = height * 0.95
+        self.header_y = height * 0.06
         self.surface = cairo.ImageSurface(
             cairo.FORMAT_ARGB32, self.width, self.height
         )
@@ -136,7 +137,9 @@ class BaseRenderer:
     def should_skip_sequence(self, char_seq):
         if len(char_seq) == 0:
             return True
-        if self.skip_footer and char_seq[0].y >= self.footer_y:
+        if self.skip_footer and (
+            char_seq[0].y >= self.footer_y or char_seq[0].y <= self.header_y
+        ):
             return True
 
     def draw_string_array(self, cmd: PdfOperator, is_single=False):
@@ -221,7 +224,7 @@ class BaseRenderer:
                 raise ValueError("Invalid text element")
 
         def update_on_finish():
-            if is_single:
+            if is_single or True:
                 self.state.text_position = [x, y]
 
         return glyph_array, Sequence(char_array), update_on_finish
@@ -231,6 +234,7 @@ class BaseRenderer:
         char = char_or.group("char")
         symbol = char_or.group("symbol")
         if char:
+            # print("is_char", char)
             if not font.is_composite:
                 char_width = font.get_char_width(char)
                 glyph_id = font.char_to_gid.get(char)
@@ -238,20 +242,27 @@ class BaseRenderer:
                 if glyph_id is None:
                     if char == "p":
                         print("correcting p")
+                        # char = "π"
+                        # char_width = font.get_char_width(char)
+                        # glyph_id = font.char_to_gid.get(char)
                         glyph_id = font.symbol_to_gid.get("pi")
                         char = "pi"
             else:
                 glyph_id = ord(char)
-                char_width = font.widths[glyph_id]
+                char_width = font.widths.get(glyph_id) or font.default_width
 
         elif symbol:
+            # print("is_symbol", symbol, "font,", font.font_path)
             char_code, char_width = font.get_char_code(symbol)
-            symbol = font.diff_map.get(char_code, "").replace("/", "")
-            if not symbol:
-                symbol = font.get_symbol_name_from_char_code(char_code)
-            glyph_id = font.symbol_to_gid.get(symbol)
+            if not font.is_composite:
+                symbol = font.diff_map.get(char_code, "").replace("/", "")
+                if not symbol:
+                    symbol = font.get_symbol_name_from_char_code(char_code)
+                glyph_id = font.symbol_to_gid.get(symbol)
+            else:
+                glyph_id = char_code
+                char_width = font.widths.get(glyph_id) or font.default_width
             char = symbol
-
         char_width = self.state.convert_em_to_ts(char_width)
         return glyph_id, char_width, char
 

@@ -157,7 +157,7 @@ ALPHAPET = 2
 ROMAN = 3
 
 FIRST_MAP = {NUMERIC: "1", ALPHAPET: "a", ROMAN: "i"}
-
+FACTORS = [1, 2, 5]
 LEVEL_QUESTION = 0
 LEVEL_PART = 1
 LEVEL_SUBPART = 2
@@ -183,14 +183,14 @@ class Question(Box):
         self.h: int = h
 
     def __str__(self):
-        in_page = f" In Page {self.pages[0]}" if self.level == 0 else ""
+        # in_page = f" In Page {self.pages[0]}" if self.level == 0 else ""
         rep = (
             " " * self.level * 4
             + TITLE_DICT[self.level]
             + " "
             + self.label
-            + in_page
-            + f"(x={self.x}, y={self.y})"
+            # + in_page
+            + f"(x={self.x}, y={self.y}, page={self.pages})"
             + "\n"
         )
         for p in self.parts:
@@ -202,8 +202,10 @@ class QuestionDetector(BaseDetector):
     def __init__(self) -> None:
         super().__init__()
         self.curr_page = -1
+        self.is_first_detection = True
         self.allowed_skip_chars = [" ", "(", "[", "", ")", "]" "."]
         self.allowed_chars_startup = ["1", "a", "i"]
+
         self.tolerance = 20
         self.question_list: list[Question] = []
 
@@ -225,18 +227,25 @@ class QuestionDetector(BaseDetector):
             self.current[0].parts = []
         elif level == 2 and self.current[1]:
             self.current[1].parts = []
-        else:
-            raise Exception
+        # else:
+        #     raise Exception
 
         self.current[level:] = [None] * (3 - level)
 
     def set_question(self, q: Question, level: int):
+        if self.is_first_detection:
+            self.is_first_detection = False
+            if level > 0:
+                self.current[0].pages.append(self.curr_page)
+            if level > 1:
+                self.current[1].pages.append(self.curr_page)
+
         old_cur = self.current[level]
         if old_cur and len(old_cur.parts) < 2:
             self.reset(level + 1)
         if level < 2:
             self.current[level + 1 :] = [None] * (3 - level + 1)
-            # self.type[level+1:] = [UNKNOWN] * (3 - level)
+            self.type[level + 1 :] = [UNKNOWN] * (3 - level)
 
         if level == 0:
             self.question_list.append(q)
@@ -273,8 +282,6 @@ class QuestionDetector(BaseDetector):
             if level > 0:
                 used = FIRST_MAP[self.type[level - 1]]
             res = [i for i in self.allowed_chars_startup if i != used]
-            # print("************************************")
-            # print(res)
             return res
         return get_next_label(curr.label, n_type)
 
@@ -297,6 +304,7 @@ class QuestionDetector(BaseDetector):
     def handle_sequence(self, seq: Sequence, page: int):
         if page != self.curr_page:
             self.curr_page = page
+            self.is_first_detection = True
             # self.left_most_x = [1000] * 3
         for level in range(3):
             found = self.__handle_sequence(seq, level)
@@ -318,16 +326,12 @@ class QuestionDetector(BaseDetector):
                 h = y1 - y
                 self.tolerance = x1 - x
                 diff = x - self.left_most_x[level]
-                # upper_x = (
-                #     self.left_most_x[level - 1]
-                #     if (level > 0 and self.current[level - 1])
-                #     else 0
-                # )
-                # diff_upper = upper_x - x
 
                 if self.is_char_skip(char, level):
                     continue
                 if not self.is_char_valid(char, level):
+
+                    # if level == 2:
                     # print("char ", char, ", is not valid for level", level)
                     is_candidate = False
                     # if diff < -self.tolerance:  # and diff_upper > 0:
@@ -335,27 +339,21 @@ class QuestionDetector(BaseDetector):
                     #     self.left_most_x[level] = x
                     break
 
-                # if diff_upper > 0:
-                #     print("too much left for this level=", level)
-                #     print("x=", x, ", upper_x=", upper_x)
-                #     is_candidate = False
-                #     break
-
-                if diff > self.tolerance:
-                    print(f"too low value for level {level} , ignoring it")
-                    print("x=", x, ", diff=", diff)
+                if diff > FACTORS[level] * self.tolerance:
+                    # if level == 2:
+                    #     print(f"too low value for level {level} , ignoring it")
+                    #     print("x=", x, ", diff=", diff, ", char", char)
                     is_candidate = False
                     break
 
-                # first_valid = sym
                 prev_valid = sym
                 is_candidate = True
                 char_all = char
-                if level == 1:
-                    print("aim here ,char is ", char)
+                # if level == 2:
+                #     print("aim here ,char is ", char)
             else:
-                if level == 1:
-                    print("aim here 2 ,char is ", char)
+                # if level == 2:
+                #     print("aim here 2 ,char is ", char)
                 if not self.is_valid_neighbours(sym, prev_valid):
                     break
                 else:
@@ -370,11 +368,11 @@ class QuestionDetector(BaseDetector):
                     char_all += char
 
         if is_candidate:
-            print("found candidates for level :", level, "and char", char_all)
-            print("diff is ", diff, ", tolerence is ", self.tolerance)
+            # print("found candidates for level :", level, "and char", char_all)
+            # print("diff is ", diff, ", tolerence is ", self.tolerance)
             new_q = Question(char_all, self.curr_page, level, x, y, 2 * h)
-            if diff < -self.tolerance:
-                print("resetting to char ", char_all)
+            if diff < FACTORS[level] * -self.tolerance:
+                # print("resetting to char ", char_all)
                 self.reset(level)
             self.set_question(new_q, level)
             return True

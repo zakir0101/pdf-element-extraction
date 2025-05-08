@@ -116,8 +116,24 @@ class PdfEngine:
                 res = self.reader.get_object(res)
             self.print_fonts(f, res)
             self.print_external_g_state(f, res)
+            self.print_color_space(f, res)
             f.write(self.current_stream)
         return self
+
+    def print_color_space(self, f, res):
+
+        colorSpace = {}
+        cs = res.get("/ColorSpace")
+        if isinstance(cs, IndirectObject):
+            cs = self.reader.get_object(cs)
+        if not cs:
+            return
+        for key, value in cs.items():
+            obj = self.reader.get_object(value)
+            colorSpace[key] = obj
+
+        f.write("\n\n### Color Space\n")
+        pprint.pprint(colorSpace, f)
 
     def print_external_g_state(self, f, res):
         exgtate = {}
@@ -130,6 +146,23 @@ class PdfEngine:
 
         f.write("\n\n### External Graphics State\n")
         pprint.pprint(exgtate, f)
+
+    def print_fonts(self, f, res):
+        reader = self.reader
+        f.write("\n\n### Fonts\n")
+        output_dict = {}
+        for font_name, indir_obj in res.get("/Font").items():
+            obj = reader.get_object(indir_obj)
+            output_dict[font_name] = {}
+            for key, value in obj.items():
+                if isinstance(value, list):
+                    for v in value:
+                        self.update_sub_obj(key, v, output_dict, font_name)
+                else:
+                    self.update_sub_obj(key, value, output_dict, font_name)
+        f.write("\n```python\n")
+        pprint.pprint(output_dict, f)
+        f.write("\n```\n")
 
     def execute_stream(
         self,
@@ -226,23 +259,6 @@ class PdfEngine:
         canvas.create_image(0, 0, anchor=NW, image=img)
 
         mainloop()
-
-    def print_fonts(self, f, res):
-        reader = self.reader
-        f.write("\n\n### Fonts\n")
-        output_dict = {}
-        for font_name, indir_obj in res.get("/Font").items():
-            obj = reader.get_object(indir_obj)
-            output_dict[font_name] = {}
-            for key, value in obj.items():
-                if isinstance(value, list):
-                    for v in value:
-                        self.update_sub_obj(key, v, output_dict, font_name)
-                else:
-                    self.update_sub_obj(key, value, output_dict, font_name)
-        f.write("\n```python\n")
-        pprint.pprint(output_dict, f)
-        f.write("\n```\n")
 
     def update_sub_obj(self, key, value, output_dict, font_name):
         if isinstance(value, IndirectObject):

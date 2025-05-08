@@ -23,12 +23,14 @@ def main(pages):
     file2 = "9709_m23_qp_32.pdf"
     file3 = "9709_m23_qp_22.pdf"
     file4 = "9709_m23_qp_12.pdf"
+    file5 = "9709_w23_qp_31.pdf"
+    file6 = "9702_m23_qp_22.pdf"
 
     # for f in os.listdir("output"):
     #     dir = f"output{sep+f}"
     #     if os.path.isdir(dir):
     #         print(f)
-    engine: PdfEngine = PdfEngine(f"PDFs{sep}{file4}", scaling=8, debug=True)
+    engine: PdfEngine = PdfEngine(f"PDFs{sep}{file6}", scaling=8, debug=True)
     next = 1
     page_count = len(engine.pages)
 
@@ -58,7 +60,8 @@ def draw_page(page):
     file2 = "9709_m23_qp_32.pdf"
     file3 = "9709_m23_qp_22.pdf"
     file4 = "9709_m23_qp_12.pdf"
-    engine: PdfEngine = PdfEngine(f"PDFs{sep}{file4}", scaling=8, debug=True)
+    file6 = "9702_m23_qp_22.pdf"
+    engine: PdfEngine = PdfEngine(f"PDFs{sep}{file6}", scaling=8, debug=True)
     engine.get_page_stream(
         page, BaseRenderer
     ).debug_original_stream().execute_stream(1000)

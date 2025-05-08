@@ -55,10 +55,13 @@ class PdfFont:
         if "/DescendantFonts" in font_dict:
             self.is_composite = True
             des = font_dict.get("/DescendantFonts")
+            if not isinstance(des, list):
+                des = reader.get_object(des)
             for d in des:
                 if d and isinstance(d, IndirectObject):
-                    font_dict.update(reader.get_object(d))
-                    # pprint.pprint(font_dict)
+                    d = reader.get_object(d)
+                    # print(d)
+                    font_dict.update(d)
 
         self.font_object = font_dict
         self.font_name: str = font_name
@@ -68,9 +71,21 @@ class PdfFont:
         self.last_char: int = int(font_dict.get("/LastChar", -1))
 
         if not self.is_composite:
-            widths = font_dict.get("/Widths", [])
-            self.widths: list[int] = [int(x) for x in widths]
+            widths = font_dict.get("/Widths")
+            self.font_widths = None
+            if isinstance(widths, list):
+                if len(widths) > 1:
+                    # print("width is LIST for font ", self.font_name, widths)
+                    self.widths: list[int] = [int(x) for x in widths]
+                else:
+                    widths = widths[0]
+            if isinstance(widths, int):
+                # print("width is int for font ", self.font_name)
+                self.widths = widths
+            if self.widths is None:
+                raise Exception
         else:
+            self.default_width = font_dict.get("/DW", 0)
             widths = font_dict.get("/W", [])
             key = 0
             self.widths = {}
@@ -218,6 +233,7 @@ class PdfFont:
             char = chr(cp)
 
             gname0 = self.diff_map.get(cp, "").replace("/", "")
+            gname = None
             if self.ft_face._has_glyph_names():
                 try:
                     gname = self.ft_face.get_glyph_name(raw_gid).decode(
@@ -357,6 +373,8 @@ class PdfFont:
         return self.get_char_width_from_code(char_code)
 
     def get_char_width_from_code(self, char_code: int):
+        if not isinstance(self.widths, list):
+            return self.widths
         if char_code >= self.first_char and char_code <= self.last_char:
             return self.widths[char_code - self.first_char]
         return None
