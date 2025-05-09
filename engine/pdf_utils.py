@@ -1,13 +1,13 @@
 import numpy as np
-
-OPAQUE_WHITE = 0xFFFFFFFF
-ANY_ALPHA0_WHITE = 0x00FFFFFF  # alpha 0 + white RGB
+import cairo
+import subprocess
+import os
 
 
 import numpy as np  # speeds things up; pure-Python fallback shown later
 
 
-def _surface_as_uint32(surface):
+def _surface_as_uint32(surface: cairo.ImageSurface):
     """
     Return a (h, stride//4) view where each element is one ARGB32 pixel
     exactly as Cairo stores it (premultiplied, native endian).
@@ -18,12 +18,48 @@ def _surface_as_uint32(surface):
     return np.frombuffer(buf, dtype=np.uint32).reshape(h, stride // 4)
 
 
+OPAQUE_WHITE = 0xFFFFFFFF
+ANY_ALPHA0_WHITE = 0x00FFFFFF  # alpha 0 + white RGB
+
+
 def row_is_blank(
     row, usable_cols, white=OPAQUE_WHITE, twhite=ANY_ALPHA0_WHITE
 ):
     # all() on the first width pixels; ignore the padding on the right edge
     part = row[:usable_cols]
     return np.all((part == white) | (part == twhite))
+
+
+def row_is_blank_new(
+    row,
+    usable_cols,
+    *,  # ← star makes kwargs only
+    alpha_thresh=5,
+    white_thresh=200,
+    tolerate=0.2,
+):
+    """
+    Return True if <= `tolerate` fraction of the inspected pixels are
+    non-blank (tolerate small dirt).
+    """
+    part = row[:usable_cols]
+
+    alpha = (part >> 24) & 0xFF
+    red = (part >> 16) & 0xFF
+    green = (part >> 8) & 0xFF
+    blue = part & 0xFF
+
+    transparent = alpha <= alpha_thresh
+    nearly_white = (
+        (alpha >= 255 - alpha_thresh)
+        & (red >= white_thresh)
+        & (green >= white_thresh)
+        & (blue >= white_thresh)
+    )
+
+    blank_mask = transparent | nearly_white
+    n_bad = (~blank_mask).sum()  # how many “dirty” pixels
+    return n_bad <= tolerate * usable_cols
 
 
 def build_blank_mask(surface):
@@ -34,29 +70,58 @@ def build_blank_mask(surface):
     )
 
 
-def get_segments(surface, min_y, max_y, min_h):
-    gaps = find_horizontal_gaps(surface, min_y, min_h)
+def get_segments(surface, min_y, max_y, d0, factor=0.1):
+    min_g = d0 * factor
+    min_h = 0
+    gaps, norm_gaps = find_horizontal_gaps(surface, min_y, d0, min_g)
+    print("gaps_count ( normal/filterd) = ", len(norm_gaps), len(gaps))
+    print(norm_gaps)
     segments = []
     cursor = min_y
-    for gy, gh in gaps:
+    for gy, gh in norm_gaps:
         if gy > cursor:  # rows before the gap
-            segments.append((cursor, gy - cursor))
+            h_curr = gy - cursor
+            segments.append((cursor, h_curr, d0))
         cursor = gy + gh  # skip the gap
 
     if cursor < max_y:  # rows after the last gap
-        segments.append((cursor, max_y - cursor))
+        # try:
+        h_curr = max_y - cursor
+        segments.append((cursor, h_curr, d0))
+
+        # except Exception as e:
+        #     print(max_y, cursor)
+        #     segments.append((cursor, (max_y) - cursor))
+
     return segments
 
 
-def find_horizontal_gaps(surface, min_y, min_h):
+def find_horizontal_gaps(surface, min_y, char_h, min_h):
     mask = build_blank_mask(surface)  # True ↔ blank
     gaps, h_px = [], len(mask)
-
+    MIN_COUNT = round(0.1 * char_h)  # int(0.5 * char_h)
     start = None
+    not_blanck_count = 0
+    blanck_count = 0
+    is_blank_mode = True
+    # if min_y == 0:
+    start = min_y
     for y, blank in enumerate(mask):
-        if blank and start is None:
+        if blank:
+            blanck_count += 1
+            not_blanck_count = 0
+        else:
+            not_blanck_count += 1
+            blanck_count = 0
+
+        if blanck_count > MIN_COUNT:
+            is_blank_mode = True
+        elif not_blanck_count > MIN_COUNT:
+            is_blank_mode = False
+
+        if is_blank_mode and start is None:
             start = y
-        elif not blank and start is not None:
+        elif not is_blank_mode and start is not None:
             gaps.append((start, y - start))
             start = None
     if start is not None:  # ran off bottom still in blank
@@ -65,9 +130,9 @@ def find_horizontal_gaps(surface, min_y, min_h):
     # translate back to PDF user-space if you like
     # scale = dpi / 72.0
     # page_h_pt = h_px / scale
-    gaps = [(y, h) for y, h in gaps if h > min_h and y > min_y]
+    fgaps = [(y, h) for y, h in gaps if h > min_h and y > min_y]
     # return gaps[-1] if len(gaps) > 0 else (None, 0)
-    return gaps
+    return fgaps, gaps
 
 
 def get_alphabet(number):
@@ -217,6 +282,29 @@ def get_next_label(prev, system):
 
 def is_first_label(input: str):
     return input == "i" or input == "a"
+
+
+SEP = os.path.sep
+
+
+def open_image_in_irfan(img_path):
+    c_prefix = "C:" if os.name == "nt" else "/mnt/c"
+    png_full_path = "\\\\wsl.localhost\\Ubuntu" + os.path.abspath(img_path)
+    if os.name != "nt":  # Windows
+        png_full_path = png_full_path.replace("/", "\\")
+    subprocess.Popen(
+        args=[
+            f"{c_prefix}{SEP}Program Files{SEP}IrfanView{SEP}i_view64.exe",
+            png_full_path,
+        ]
+    )
+
+
+def kill_with_taskkill():
+    """Use Windows’ native taskkill (works from Windows or WSL)."""
+    TARGET = "i_view64.exe"
+    cmd = ["taskkill.exe", "/IM", TARGET, "/F"]
+    subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
 
 if __name__ == "__main__":

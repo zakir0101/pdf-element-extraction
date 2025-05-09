@@ -1,7 +1,7 @@
 import re
 import string
 
-from engine.create_cairo_font import open_image_in_irfan
+from engine.pdf_utils import open_image_in_irfan, kill_with_taskkill
 from .pdf_operator import PdfOperator
 from .engine_state import EngineState
 import cairo
@@ -47,6 +47,7 @@ class BaseRenderer:
         self.skip_footer = True
         self.page_number = -1
         self.main_detector: BaseDetector = main_detector
+        self.max_dots = 70
 
     def initialize(self, width: int, height: int, page: int) -> None:
         """Initialize the Cairo surface and context."""
@@ -149,7 +150,7 @@ class BaseRenderer:
         char_seq: Sequence = char_seq
         if self.should_skip_sequence(char_seq):
             return
-        if self.count_dots(char_seq) < 20:
+        if self.count_dots(char_seq) < self.max_dots:
             self.draw_glyph_array(glyph_array)
         update_text_position()
 
@@ -213,10 +214,10 @@ class BaseRenderer:
                         glyph_obj = cairo.Glyph(glyph_id, x, y)
                         glyph_array.append(glyph_obj)
                         x0, y0 = m_c.transform_point(x, y)
-                        char_height = self.ctx.glyph_extents(
-                            [glyph_obj]
-                        ).y_bearing
-                        w, h = m_c.transform_distance(char_width, char_height)
+                        # char_height = self.ctx.glyph_extents(
+                        #     [glyph_obj]
+                        # ).y_advance
+                        w, h = m_c.transform_distance(char_width, char_width)
                         char_array.append(Symbol(char, x0, y0, w, h))
                         x += char_width + c_spacing
 
@@ -438,29 +439,29 @@ class BaseRenderer:
         if func:
             func(cmd)
 
-    def kill_with_taskkill(self):
-        """Use Windows’ native taskkill (works from Windows or WSL)."""
-        TARGET = "i_view64.exe"
-        cmd = ["taskkill.exe", "/IM", TARGET, "/F"]
-        subprocess.run(
-            cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
-        )
+    # def kill_with_taskkill(self):
+    #     """Use Windows’ native taskkill (works from Windows or WSL)."""
+    #     TARGET = "i_view64.exe"
+    #     cmd = ["taskkill.exe", "/IM", TARGET, "/F"]
+    #     subprocess.run(
+    #         cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+    #     )
 
-    def open_image_in_irfan(self, img_path):
-        c_prefix = "C:" if os.name == "nt" else "/mnt/c"
-        png_full_path = "\\\\wsl.localhost\\Ubuntu" + os.path.abspath(img_path)
-        if os.name != "nt":  # Windows
-            png_full_path = png_full_path.replace("/", "\\")
-        subprocess.Popen(
-            args=[
-                f"{c_prefix}{SEP}Program Files{SEP}IrfanView{SEP}i_view64.exe",
-                png_full_path,
-            ]
-        )
+    # def open_image_in_irfan(self, img_path):
+    #     c_prefix = "C:" if os.name == "nt" else "/mnt/c"
+    #     png_full_path = "\\\\wsl.localhost\\Ubuntu" + os.path.abspath(img_path)
+    #     if os.name != "nt":  # Windows
+    #         png_full_path = png_full_path.replace("/", "\\")
+    #     subprocess.Popen(
+    #         args=[
+    #             f"{c_prefix}{SEP}Program Files{SEP}IrfanView{SEP}i_view64.exe",
+    #             png_full_path,
+    #         ]
+    #     )
 
     def save_to_png(self, filename: str) -> None:
         """Save the rendered content to a PNG file."""
-        self.kill_with_taskkill()
+        kill_with_taskkill()
         print("saving image")
         if self.surface is None:
             raise ValueError("Renderer is not initialized")

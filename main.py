@@ -1,8 +1,10 @@
 import json
 import cairo
+import time
 from engine.pdf_renderer import BaseRenderer
 from engine.pdf_engine import PdfEngine
 from argparse import ArgumentParser
+from engine.pdf_utils import open_image_in_irfan, kill_with_taskkill
 
 from engine.pdf_detectors import Question
 from fontTools.unicode import Unicode
@@ -25,26 +27,29 @@ def main(pages):
     file4 = "9709_m23_qp_12.pdf"
     file5 = "9709_w23_qp_31.pdf"
     file6 = "9702_m23_qp_22.pdf"
-
+    curr_file = file6
     # for f in os.listdir("output"):
     #     dir = f"output{sep+f}"
     #     if os.path.isdir(dir):
     #         print(f)
-    engine: PdfEngine = PdfEngine(f"PDFs{sep}{file6}", scaling=8, debug=True)
-    next = 1
+    engine: PdfEngine = PdfEngine(f"PDFs{sep}{file6}", scaling=4, debug=True)
+    detector = engine.question_detector
     page_count = len(engine.pages)
-
     sp = pages.split("-")
-    st = int(sp[0]) - 1
-    e = int(sp[1]) if len(sp) == 2 else page_count - 1
-    for page in range(st, e):
-        next = (
-            engine.get_page_stream(page + 1, QuestionRenderer)
-            .debug_original_stream()
-            .execute_stream_extract_question(max_show=5000, expected_next=next)
+    st = int(sp[0])
+    e = int(sp[1]) if len(sp) == 2 else page_count
+    surfs_dict = {}
+    for page in range(st, e + 1):
+        engine.get_page_stream(
+            page, QuestionRenderer
+        ).debug_original_stream().execute_stream_extract_question(
+            max_show=5000, mode=1
         )
+        curr_surf = engine.renderer.surface
+        surfs_dict[page] = curr_surf
+        detector.calc_page_segments_and_height(curr_surf, page)
 
-    questions: list[Question] = engine.renderer.question_detector.question_list
+    questions: list[Question] = detector.question_list
     if len(questions) == 0:
         print("No question found on this page ")  # [{self.current_page}]")
     else:
@@ -53,6 +58,18 @@ def main(pages):
         )
         for q in questions:
             print(q)
+    filename = detector.draw_all_pages_to_single_png(surfs_dict, curr_file)
+
+    open_image_in_irfan(filename)
+    time.sleep(5)
+    _ = input("Press Enter to continue...")
+    kill_with_taskkill()
+    # for page in range(st,e):
+    #     engine.get_page_stream(
+    #         page + 1, QuestionRenderer
+    #     ).debug_original_stream().execute_stream_extract_question(
+    #         max_show=5000,mode=2
+    #     )
 
 
 def draw_page(page):
@@ -61,7 +78,7 @@ def draw_page(page):
     file3 = "9709_m23_qp_22.pdf"
     file4 = "9709_m23_qp_12.pdf"
     file6 = "9702_m23_qp_22.pdf"
-    engine: PdfEngine = PdfEngine(f"PDFs{sep}{file6}", scaling=8, debug=True)
+    engine: PdfEngine = PdfEngine(f"PDFs{sep}{file6}", scaling=1, debug=True)
     engine.get_page_stream(
         page, BaseRenderer
     ).debug_original_stream().execute_stream(1000)

@@ -3,6 +3,7 @@ from math import isnan
 import cairo
 import freetype
 import os
+from .pdf_utils import open_image_in_irfan, kill_with_taskkill
 import pprint
 from fontTools.agl import UV2AGL
 import sys
@@ -426,31 +427,11 @@ def draw_first_n_glyphs(font_path, gids, out_png="glyphs.png"):
     open_image_in_irfan(out_png)
 
 
-def open_image_in_irfan(img_path):
-    c_prefix = "C:" if os.name == "nt" else "/mnt/c"
-    png_full_path = "\\\\wsl.localhost\\Ubuntu" + os.path.abspath(img_path)
-    if os.name != "nt":  # Windows
-        png_full_path = png_full_path.replace("/", "\\")
-    subprocess.Popen(
-        args=[
-            f"{c_prefix}{SEP}Program Files{SEP}IrfanView{SEP}i_view64.exe",
-            png_full_path,
-        ]
-    )
-
-
 def in_wsl() -> bool:
     """True if running under Windows Subsystem for Linux."""
     return os.name == "posix" and (
         "WSL_DISTRO_NAME" in os.environ or "WSL_INTEROP" in os.environ
     )
-
-
-def kill_with_taskkill():
-    """Use Windows’ native taskkill (works from Windows or WSL)."""
-    TARGET = "i_view64.exe"
-    cmd = ["taskkill.exe", "/IM", TARGET, "/F"]
-    subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
 
 if __name__ == "__main__":

@@ -5,7 +5,6 @@
 # import string
 # import sys
 # from typing import Tuple
-# from .create_cairo_font import open_image_in_irfan
 # from .pdf_operator import PdfOperator
 # from .engine_state import EngineState
 # from .pdf_renderer import BaseRenderer
@@ -19,7 +18,10 @@
 
 
 from collections import UserList
-from .pdf_utils import get_next_label, checkIfRomanNumeral
+import enum
+from os.path import sep
+import cairo
+from .pdf_utils import get_next_label, checkIfRomanNumeral, get_segments
 
 
 class Box:
@@ -170,7 +172,13 @@ class Question(Box):
     TITLE_DICT = ["Question", "PART", "SUBPART"]
 
     def __init__(
-        self, label: int | str, page: int, level: int, x: int, y: int, h: int
+        self,
+        label: int | str,
+        page: int,
+        level: int,
+        x: float,
+        y: float,
+        h: float,
     ):
         super().__init__()
         self.parts: Question = []
@@ -178,9 +186,9 @@ class Question(Box):
         self.pages: int = [page]
         self.level: int = level
         self.contents: list[Box] = []
-        self.x: int = x
-        self.y: int = y
-        self.h: int = h
+        self.x: int = float(x)
+        self.y: int = float(y)
+        self.h: int = float(h)
 
     def __str__(self):
         # in_page = f" In Page {self.pages[0]}" if self.level == 0 else ""
@@ -198,11 +206,31 @@ class Question(Box):
         return rep
 
 
+def find_questions_part_in_page(q: Question, page: int) -> list[Question]:
+    parts: list[Question] = []
+    if page not in q.pages:
+        return []
+
+    if len(q.pages) == 1:
+        parts.append(q)
+    else:
+        for p in q.parts:
+            parts.extend(find_questions_part_in_page(p, page))
+    return parts
+
+
 class QuestionDetector(BaseDetector):
     def __init__(self) -> None:
         super().__init__()
         self.curr_page = -1
+        self.height = 100
+        self.width = 100
         self.is_first_detection = True
+        self.out_surf: cairo.ImageSurface | None = None
+        self.out_ctx: cairo.Context | None = None
+        self.page_segments: dict[int, list[tuple]] = {}
+        self.page_parts: dict[int, list[Question]] = {}
+        self.page_heights: dict[int, int] = {}
         self.allowed_skip_chars = [" ", "(", "[", "", ")", "]" "."]
         self.allowed_chars_startup = ["1", "a", "i"]
 
@@ -378,6 +406,111 @@ class QuestionDetector(BaseDetector):
             return True
         else:
             return False
+
+    def set_height(self, new_width, new_height):
+        self.height = new_height
+        self.width = new_width
+
+    def calc_page_segments_and_height(
+        self, surface: cairo.ImageSurface, page_number: int
+    ):
+        if not self.question_list:
+            raise Exception("no Question Found")
+        parts = []
+        for i, q in enumerate(self.question_list):
+            q: Question = q
+            if page_number not in q.pages:
+                continue
+            parts.extend(find_questions_part_in_page(q, page_number))
+
+        out_height = 0
+        self.page_parts[page_number] = parts
+        self.page_segments[page_number] = []
+
+        if len(parts) == 0:
+            return
+
+        # for i, p in enumerate(parts):
+        # y0, d0 = p.y, p.h
+        # if i + 1 < len(parts):
+        #     n_p = parts[i + 1]
+        #     y1 = n_p.y
+        # else:
+        #     y1 = self.height
+        d0 = parts[0].h
+        segments = get_segments(surface, 0, self.height, d0, factor=0.5)
+        # print(segments)
+        # segments = [(y0,h) for y0,h in segments if h]
+        self.page_segments[page_number] = segments
+        print("number of segs = ", len(segments))
+        out_height += sum(seg_h + 2 * d2 for _, seg_h, d2 in segments)
+        out_height += 2 * d0
+        self.page_heights[page_number] = out_height
+
+    def draw_all_pages_to_single_png(
+        self, surf_dict: dict[int, cairo.ImageSurface], pdf_file: str
+    ):
+        total_height = sum(self.page_heights.values())
+        if total_height == 0:
+            raise Exception("Total Height = 0")
+
+        out_surf = cairo.ImageSurface(
+            cairo.FORMAT_ARGB32, self.width, int(total_height)
+        )
+        out_ctx = cairo.Context(out_surf)
+
+        out_ctx.set_source_rgb(1, 1, 1)  # White
+        out_ctx.paint()
+        out_ctx.set_source_rgb(0, 0, 0)  # Black
+        self.dest_y = 0
+        self.default_d0 = None
+        for page, surf in surf_dict.items():
+            d0 = self.__draw_page_content(page, surf, out_ctx)
+
+        exam_name = pdf_file.split(".")[0]
+        filename = f"output{sep}{exam_name}.png"
+        out_surf = out_surf.create_for_rectangle(
+            0, 0, self.width, self.dest_y + 4 * self.default_d0
+        )
+        out_surf.write_to_png(filename)
+        return filename
+
+    def __draw_page_content(
+        self, page: int, page_surf: cairo.ImageSurface, out_ctx: cairo.Context
+    ):
+        if not self.page_segments.get(page) or not self.page_parts.get(page):
+            print(f"WARN: skipping page {page}, no Questions found")
+            return
+        segments = self.page_segments[page]
+        parts = self.page_parts[page]
+
+        # d0 = parts[0].h
+        for i, (src_y, seg_h, d0) in enumerate(segments):
+            if not self.default_d0:
+                self.default_d0 = d0
+            factor = 2
+            if len(segments) == i + 1:
+                factor = 4
+            # print(src_y, seg_h, d0)
+            """subtract 0.20 , why ?? 0.1 for shifting by 0.1 * h0 pixel , because the detecting 
+            has some delayed response by this ammount , and +0.1 for padding"""
+            y0 = round(src_y - 0.20 * d0)
+            """only the 0.2 correspond to the padding , so in practice we shift up by 0.1 and padd by 0.1 from up and down"""
+            h0 = round(seg_h + 0.20 * d0)  # + factor * d0
+            # print(y0, y1, d0)
+
+            sub = page_surf.create_for_rectangle(0, y0, self.width, h0)
+            """Read the doc string below : this is for padding the top most line from above"""
+            if self.dest_y == 0:
+                self.dest_y = self.dest_y + (1 * d0)
+            out_ctx.set_source_surface(sub, 0, self.dest_y)
+            out_ctx.paint()
+            """this 0.25 is for spacing between lines, it require the surface to
+            be paint white at beginning"""
+            self.dest_y += h0 + (0.25 * d0)
+        return d0
+
+    # def export_whole_surface_to_png(self,pdf_file)
 
 
 if __name__ == "__main__":

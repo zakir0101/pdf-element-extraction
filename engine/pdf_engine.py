@@ -72,7 +72,10 @@ class PdfEngine:
         self.state = EngineState(
             self.font_map, self.scaling, self.default_height, self.debug
         )
-
+        self.question_detector.set_height(
+            int(self.default_width) * self.scaling,
+            int(self.default_height) * self.scaling,
+        )
         self.renderer = rendererClass(self.state, self.question_detector)
 
         contents = page.get_contents()
@@ -206,7 +209,7 @@ class PdfEngine:
     def execute_stream_extract_question(
         self,
         max_show=100,
-        expected_next=1,
+        mode=1,
         stream: str | None = None,
         width=None,
         height=None,
@@ -223,6 +226,7 @@ class PdfEngine:
         stream = stream or self.current_stream
 
         renderer: QuestionRenderer = self.renderer
+        renderer.mode = mode
         self.renderer.initialize(
             int(width) * self.scaling,
             int(height) * self.scaling,
@@ -234,7 +238,7 @@ class PdfEngine:
             renderer.execute_command(cmd)
         # self.renderer.save_to_png(f"output{sep}output.png")
         # renderer.save_questions_to_pngs(os.path.basename(self.pdf_path))
-        return expected_next
+        return
         # self.renderer.start_partioning()
         # for cmd in self.parser.parse_stream(stream).iterate():
         #     explanation = self.state.execute_command(cmd)
