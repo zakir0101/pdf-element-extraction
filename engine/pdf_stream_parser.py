@@ -19,6 +19,16 @@ class PDFStreamParser:
         self.SPLIT_REGEX = r"\s+"  # r"(?:\r\n)|\n| |\s"
         self.ID_REGEX = r"ARRAY___\d+|NUMBER___\d+|STRING___\d+|NAME___\d+|BINARY___\d+|HEX___\d+"
         self.BOOL_REGEX = r"true|false"
+        # self.HAS_HEX_3 = r"(?P<hex>\\(?:\d{3})(?:\\(?:\d{3})|(?:[^\\])))"
+        self.HAS_HEX_3 = (
+            r"\\(?P<hex1>\d{3})(?:\\(?P<hex2>\d{3})|(?P<char>(?:\\)?.))"
+        )
+        self.HEX_ITERATE = r"\\(?P<hex>\d{3})|(?P<char>.)"
+        self.HEX_ITERATE_V2 = (
+            r"\\(?P<hex>\d{3})|(?P<char>.*?(?:(?=\\\d{3})|$))"
+        )
+        self.HEX_ITERATE_V3 = r"\\(?P<hex1>\d{3})(?:\\(?P<hex2>\d{3})|(?P<char>(?:\\)?.(?:(?=\\\d{3})|$)))"
+        "\\(?P<hex1>\d{3})(?:\\(?P<hex2>\d{3})|(?P<char>(?:.|\\\\)(?:(?=\\\d{3})|$)))"
 
         self.primatives_counter = 0
         self.arrays_counter = 0
@@ -54,17 +64,10 @@ class PDFStreamParser:
 
     PRINTABLE = string.ascii_letters + string.digits + string.punctuation + " "
 
-    def pdf_hex_to_str(self, hex_text: str) -> str:
-        cleaned = "".join(hex_text.split())
-        if len(cleaned) % 2 == 1:
-            cleaned += "0"
-
-        if len(cleaned) == 4:
-            cleaned = cleaned[2:]
-        raw_bytes = bytes.fromhex(cleaned)
-        result = raw_bytes.decode("latin-1")
-        # print("result is " + result)
-        return result
+    # def clean_hex_in_string(self, text: str) -> str:
+    #     matches = re.findall(self.HAS_HEX_3,text,re.DOTALL)
+    #     if len(matches) >= 2:
+    #         for m in re.it
 
     def hex_escape(self, s):
         return "".join(
@@ -183,6 +186,36 @@ class PDFStreamParser:
 
         return new_string
 
+    def __replace_hex_in_string(self, match: re.Match):
+        int1, int2 = 0, 0
+        hex1 = match.groupdict().get("hex1", "").strip("\\")
+        high_byte = int(hex1, 8)
+
+        char = match.group("char")
+        hex2 = match.group("hex2")
+        if char:
+            if len(char) == 2 and char.startswith("\\"):
+                char = char[1:]
+            low_byte = ord(char)
+        elif hex2:
+            low_byte = int(hex2, 8)
+        else:
+            raise Exception("hex is not valid")
+        cid = (high_byte << 8) | low_byte
+
+        return chr(cid)  # f"\\{cid:03d}"
+
+    def pdf_hex_to_str(self, hex_text: str) -> str:
+        cleaned = "".join(hex_text.split())
+        if len(cleaned) % 2 == 1:
+            cleaned += "0"
+
+        if len(cleaned) == 4:
+            cleaned = cleaned[2:]
+        raw_bytes = bytes.fromhex(cleaned)
+        result = raw_bytes.decode("latin-1")
+        return result
+
     def __replace_primatives(self, match, primatives_array):
         self.primatives_counter += 1
         for p_type, p_value in match.groupdict().items():
@@ -193,6 +226,15 @@ class PDFStreamParser:
             value = self.TYPES_MAP[p_type](p_value)
             if p_type == "hex":
                 value = self.pdf_hex_to_str(value)
+            if p_type.startswith("string") and re.match(self.HAS_HEX_3, value):
+                # print("string=", value)
+                value = re.sub(
+                    self.HEX_ITERATE_V3,
+                    self.__replace_hex_in_string,
+                    value,
+                    flags=re.DOTALL | re.MULTILINE,
+                )
+                # print("new_string=", value)
             primative_id = f"{p_type.upper()}___{self.primatives_counter}"
             if primatives_array is not None:
                 primatives_array.append(value)

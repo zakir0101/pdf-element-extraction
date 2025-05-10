@@ -74,8 +74,8 @@ def get_segments(surface, min_y, max_y, d0, factor=0.1):
     min_g = d0 * factor
     min_h = 0
     gaps, norm_gaps = find_horizontal_gaps(surface, min_y, d0, min_g)
-    print("gaps_count ( normal/filterd) = ", len(norm_gaps), len(gaps))
-    print(norm_gaps)
+    # print("gaps_count ( normal/filterd) = ", len(norm_gaps), len(gaps))
+    # print(norm_gaps)
     segments = []
     cursor = min_y
     for gy, gh in norm_gaps:

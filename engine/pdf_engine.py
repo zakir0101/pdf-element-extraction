@@ -203,7 +203,9 @@ class PdfEngine:
                     counter += 1
                     if counter > max_show:
                         break
-        self.renderer.save_to_png(f"output{sep}output.png")
+        filename = f"output{sep}output.png"
+        self.renderer.save_to_png(filename)
+        return filename
         # self.show_image("output\output.png")
 
     def execute_stream_extract_question(

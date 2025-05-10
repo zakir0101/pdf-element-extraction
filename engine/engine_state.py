@@ -153,7 +153,6 @@ class EngineState:
             cc1 = cairo.Matrix(1, 0, 0, -1, 0, 0)
             return cc1.multiply(tm.multiply(cm.multiply(cc0)))
         else:
-
             cc1 = cairo.Matrix(1, 0, 0, 1, 0, 0)
             return cc1.multiply(cm.multiply(cc0))
 
@@ -387,6 +386,7 @@ class EngineState:
             return  # Ignore text matrix operations outside text blocks
         self.tm_matrix = Matrix(*command.args)
         self.text_position = [0.0, 0.0]
+        # self.text_position = [self.tm_matrix.x0, self.tm_matrix.y0]
         if self.debug:
             return [*self.tm_matrix]
 
@@ -453,6 +453,7 @@ class EngineState:
 
     def clear_text_position_after_tj(self, _: PdfOperator):
         self.text_position = [0, 0]
+        pass
 
     def set_text_rize(self, command: PdfOperator):
         self.tm_matrix.translate(0, self.text_rize)

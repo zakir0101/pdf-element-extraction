@@ -87,13 +87,27 @@ class PdfFont:
         else:
             self.default_width = font_dict.get("/DW", 0)
             widths = font_dict.get("/W", [])
-            key = 0
+            # key = 0
             self.widths = {}
-            for el in widths:
-                if isinstance(el, list):
-                    self.widths[key] = el[0]
-                else:
-                    key = int(el)
+            i = 0
+            while i < len(widths) - 1:
+                el = int(widths[i])
+                n_el = widths[i + 1]
+                if isinstance(n_el, list):
+                    for j in range(len(n_el)):
+                        self.widths[el + j] = n_el[j]
+                    i = i + 2
+                elif i + 2 < len(widths):
+                    n_el = int(n_el)
+                    n2_el = widths[i + 2]
+                    if isinstance(n2_el, list):
+                        if len(n2_el) == 1:
+                            n2_el = n2_el[0]
+                        else:
+                            raise Exception
+                    for j in range(el, n_el + 1):
+                        self.widths[j] = n2_el
+                    i = i + 3
 
         self.encoding = font_dict.get("/Encoding")
         self.ft_encoding = None
@@ -118,6 +132,8 @@ class PdfFont:
             + str(self.first_char)
             + ".ttf"
         )
+        # if "C2_0" in font_path:
+        #     print("width is ", self.default_width, "\nall width ", self.widths)
         self.font_path = font_path
         if not os.path.exists(self.temp_dir):
             os.mkdir(self.temp_dir)

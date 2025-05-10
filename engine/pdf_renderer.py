@@ -164,9 +164,12 @@ class BaseRenderer:
         x, y = state.text_position
         font_size = state.font_size
 
-        char_regex = r"(?:(?:^|[^\\])\\(?P<symbol>\d{3}))|(?P<char>.)"
-
         font = self.state.font
+
+        char_regex1 = r"(?:\\(?P<symbol>\d{3}))|(?P<char>.)"
+        # char_regex2 = r"(?:(?:^|[^\\])\\(?P<symbol>\d{3}))|(?P<char>.)"
+        # char_regex2 = r"\\(?P<symbol>\d{3})(?!\d{3})|(?:\\(?P<symbol_long>\d{6})|(?P<char>(?:\\)?.))"
+        # char_regex2 = r"(?P<symbol>\d{6})|(?P<char>dontFinDMeHere)"
 
         cairo_font_face = None
         try:
@@ -200,12 +203,15 @@ class BaseRenderer:
                 x -= dx
             elif isinstance(element, str):
                 element = self.clean_text(element)
+
                 for word in re.split(
                     r"([ ]+)", element, flags=re.DOTALL | re.MULTILINE
                 ):
                     if word.isspace():
                         x += w_spacing
-                    for char_or in re.finditer(char_regex, word):
+
+                    for char_or in re.finditer(char_regex1, word):
+                        char_or: re.Match = char_or
                         glyph_id, char_width, char = (
                             self.get_glyph_id_for_char(char_or)
                         )
@@ -214,9 +220,6 @@ class BaseRenderer:
                         glyph_obj = cairo.Glyph(glyph_id, x, y)
                         glyph_array.append(glyph_obj)
                         x0, y0 = m_c.transform_point(x, y)
-                        # char_height = self.ctx.glyph_extents(
-                        #     [glyph_obj]
-                        # ).y_advance
                         w, h = m_c.transform_distance(char_width, char_width)
                         char_array.append(Symbol(char, x0, y0, w, h))
                         x += char_width + c_spacing
@@ -234,8 +237,9 @@ class BaseRenderer:
         font = self.state.font
         char = char_or.group("char")
         symbol = char_or.group("symbol")
-        if char:
-            # print("is_char", char)
+        if char is not None:
+            if not char:
+                return None, None, None
             if not font.is_composite:
                 char_width = font.get_char_width(char)
                 glyph_id = font.char_to_gid.get(char)
@@ -251,18 +255,28 @@ class BaseRenderer:
             else:
                 glyph_id = ord(char)
                 char_width = font.widths.get(glyph_id) or font.default_width
+                # print("is char")
 
-        elif symbol:
-            # print("is_symbol", symbol, "font,", font.font_path)
-            char_code, char_width = font.get_char_code(symbol)
+        elif symbol is not None:
             if not font.is_composite:
+                char_code, char_width = font.get_char_code(symbol)
                 symbol = font.diff_map.get(char_code, "").replace("/", "")
                 if not symbol:
                     symbol = font.get_symbol_name_from_char_code(char_code)
                 glyph_id = font.symbol_to_gid.get(symbol)
             else:
-                glyph_id = char_code
-                char_width = font.widths.get(glyph_id) or font.default_width
+
+                glyph_id = int(symbol.lstrip("\\0"))
+                char_width = font.widths.get(glyph_id)
+                # if char_width is None:
+                #     print(
+                #         "didn't find widht for composite symbol",
+                #         f"{symbol[:2]}-{symbol[3:]}",
+                #         "ord =",
+                #         glyph_id,
+                #     )
+                #     char_width = font.default_width
+                # print("is symbole")
             char = symbol
         char_width = self.state.convert_em_to_ts(char_width)
         return glyph_id, char_width, char
@@ -461,13 +475,12 @@ class BaseRenderer:
 
     def save_to_png(self, filename: str) -> None:
         """Save the rendered content to a PNG file."""
-        kill_with_taskkill()
         print("saving image")
         if self.surface is None:
             raise ValueError("Renderer is not initialized")
         self.surface.write_to_png(filename)
-        open_image_in_irfan(filename)
-        input("Press Enter to continue...")
-        self.kill_with_taskkill()
+        # open_image_in_irfan(filename)
+        # input("Press Enter to continue...")
+        # kill_with_taskkill()
 
     # regex = r"(?:^|[^\\])\\(?P<symbol>\d{3})"

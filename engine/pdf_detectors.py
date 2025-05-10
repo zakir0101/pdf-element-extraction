@@ -19,6 +19,7 @@
 
 from collections import UserList
 import enum
+import os
 from os.path import sep
 import cairo
 from .pdf_utils import get_next_label, checkIfRomanNumeral, get_segments
@@ -300,25 +301,62 @@ class QuestionDetector(BaseDetector):
         self.type[level] = n_type
         self.left_most_x[level] = q.x
 
+    def get_allowed_startup_chars(self,level:int):
+        used = None
+        if level > 0:
+            used = FIRST_MAP[self.type[level - 1]]
+        res = [i for i in self.allowed_chars_startup if i != used]
+        return res
+
+    def get_alternative_allowed(self, level):
+        # TODO: fix this
+        n_type = self.type[level]
+        curr:Question = self.current[level]
+        """we can assume that this function will only be called if curr is already set
+        following condition can be commented (if everything else is logically correct)
+        I will leave it for debugging purposes uncommented"""
+        if n_type == UNKNOWN and curr is not None:
+            raise Exception("non sense : debug")
+
+        if n_type == UNKNOWN or curr.label in self.allowed_chars_startup : 
+            return self.get_allowed_startup_chars(level)
+        return str(curr.label) 
+
     def get_next_allowed(self, level):
         n_type = self.type[level]
         curr = self.current[level]
-        if n_type == UNKNOWN or curr is None:
-            if curr is not None:
-                raise Exception
-            used = None
-            if level > 0:
-                used = FIRST_MAP[self.type[level - 1]]
-            res = [i for i in self.allowed_chars_startup if i != used]
-            return res
+        if n_type == UNKNOWN and curr is not None:
+            raise Exception("non sense : debug")
+        if n_type == UNKNOWN: 
+            return self.get_allowed_startup_chars(level)
         return get_next_label(curr.label, n_type)
 
-    def is_char_valid(self, char, level):
+    def is_char_valid_as_next(self, char, level):
         next = self.get_next_allowed(level)
         if type(next) == list:
             return char in next
         next = str(next)
         return next.startswith(char)
+
+    def is_char_valid_as_alternative(self, char, level):
+        # TODO: fix this
+        """this is a dummy implementation, real implementation should allow rolling back
+        into any breakpoint (prev question/part) in the past and continue from there,
+        but here for simplicity we only allow rolling back one step , or completly discard 
+        everything ( logic in other code place )"""
+        alternatives = self.get_alternative_allowed(level)
+        if type(alternatives) == list:
+            return char in alternatives
+        alternatives = str(alternatives)
+        return alternatives.startswith(char)
+    def is_char_x_weak_enought_to_ignore(self,diff):
+        return diff > FACTORS[level] * self.tolerance
+
+    def is_char_x_strong_enough_to_override(self,diff):
+        return diff < FACTORS[level] * -self.tolerance:
+
+    def is_char_x_close_enough_to_consider(self,diff):
+        return diff <= FACTORS[level] * self.tolerance
 
     def is_char_skip(self, char, level):
         if level > 0:
@@ -333,6 +371,8 @@ class QuestionDetector(BaseDetector):
         if page != self.curr_page:
             self.curr_page = page
             self.is_first_detection = True
+            if len(self.question_list) == 0:
+                self.reset(0)
             # self.left_most_x = [1000] * 3
         for level in range(3):
             found = self.__handle_sequence(seq, level)
@@ -342,7 +382,8 @@ class QuestionDetector(BaseDetector):
     def __handle_sequence(self, seq: Sequence, level: int):
         # first_valid : Symbol | None = None
         prev_valid: Symbol | None = None
-        is_candidate = False
+        is_next_candidate = False
+        is_alternative_candidate = False
         char_all = ""
         char, x, y, h, diff = "", 0, 0, 0, 0
         for _, sym in enumerate(seq):
@@ -354,54 +395,54 @@ class QuestionDetector(BaseDetector):
                 h = y1 - y
                 self.tolerance = x1 - x
                 diff = x - self.left_most_x[level]
-
+                
                 if self.is_char_skip(char, level):
                     continue
-                if not self.is_char_valid(char, level):
 
-                    # if level == 2:
-                    # print("char ", char, ", is not valid for level", level)
-                    is_candidate = False
-                    # if diff < -self.tolerance:  # and diff_upper > 0:
-                    #     self.reset(level)
-                    #     self.left_most_x[level] = x
+                if self.is_char_x_close_enough_to_consider():
+                    if self.is_char_valid_as_next(char, level):
+                        prev_valid = sym
+                        is_next_candidate = True
+                        char_all = char
+                        pass
+
+                    elif self.is_char_valid_as_alternative(char,level):
+                        prev_valid = sym
+                        is_alternative_candidate = True
+                        char_all = char
+                        pass
+                    else:
+                        is_next_candidate = is_alternative_candidate = False
+                        # if diff < -self.tolerance:  # and diff_upper > 0:
+                        #     self.reset(level)
+                        #     self.left_most_x[level] = x
+                        break
+                else: # 
+                    is_next_candidate = is_alternative_candidate = False
                     break
-
-                if diff > FACTORS[level] * self.tolerance:
-                    # if level == 2:
-                    #     print(f"too low value for level {level} , ignoring it")
-                    #     print("x=", x, ", diff=", diff, ", char", char)
-                    is_candidate = False
-                    break
-
-                prev_valid = sym
-                is_candidate = True
-                char_all = char
-                # if level == 2:
-                #     print("aim here ,char is ", char)
             else:
-                # if level == 2:
-                #     print("aim here 2 ,char is ", char)
                 if not self.is_valid_neighbours(sym, prev_valid):
                     break
                 else:
                     if self.is_char_skip(char, level):
                         continue
-                    if not self.is_char_valid(char_all + sym.ch, level):
-                        is_candidate = False
+                    if not self.is_char_valid_as_next(char_all + sym.ch, level):
+                        is_next_candidate = False
                         break
 
                     prev_valid = sym
-                    is_candidate = True
+                    is_next_candidate = True
                     char_all += char
 
-        if is_candidate:
+        if is_next_candidate:
             # print("found candidates for level :", level, "and char", char_all)
             # print("diff is ", diff, ", tolerence is ", self.tolerance)
             new_q = Question(char_all, self.curr_page, level, x, y, 2 * h)
-            if diff < FACTORS[level] * -self.tolerance:
+            if self.is_char_x_strong_enough_to_override(diff) 
                 # print("resetting to char ", char_all)
+                print("resetting before set")
                 self.reset(level)
+            print("about to set")
             self.set_question(new_q, level)
             return True
         else:
@@ -415,7 +456,8 @@ class QuestionDetector(BaseDetector):
         self, surface: cairo.ImageSurface, page_number: int
     ):
         if not self.question_list:
-            raise Exception("no Question Found")
+            # raise Exception("no Question Found")
+            print("skipping empty page :", page_number)
         parts = []
         for i, q in enumerate(self.question_list):
             q: Question = q
@@ -467,7 +509,7 @@ class QuestionDetector(BaseDetector):
         for page, surf in surf_dict.items():
             d0 = self.__draw_page_content(page, surf, out_ctx)
 
-        exam_name = pdf_file.split(".")[0]
+        exam_name = os.path.basename(pdf_file).split(".")[0]
         filename = f"output{sep}{exam_name}.png"
         out_surf = out_surf.create_for_rectangle(
             0, 0, self.width, self.dest_y + 4 * self.default_d0
