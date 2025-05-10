@@ -19,28 +19,30 @@ from os.path import sep
 
 class PdfEngine:
 
-    def __init__(self, pdf_path, scaling=1, debug=False):
-        self.pdf_path = pdf_path
+    def __init__(self, scaling=1, debug=False):
         self.scaling = scaling
         self.debug = debug
-        self.reader: PdfReader = PdfReader(pdf_path)
 
-        first_page: PageObject = self.reader.pages[0]
-        self.default_width: float = float(first_page.mediabox.width) * scaling
-        self.default_height: float = (
-            float(first_page.mediabox.height) * scaling
-        )
+    def initialize_file(self, pdf_path):
         self.current_stream: str | None = None
+        self.pdf_path = pdf_path
+        self.reader: PdfReader = PdfReader(pdf_path)
+        first_page: PageObject = self.reader.pages[0]
+        self.default_width: float = (
+            float(first_page.mediabox.width) * self.scaling
+        )
+        self.default_height: float = (
+            float(first_page.mediabox.height) * self.scaling
+        )
 
-        self.pages = self.reader.pages
         self.font_map: dict[str, PdfFont] | None = None
-        self.scale = 1
         self.parser = PDFStreamParser()
+        self.question_detector: QuestionDetector = QuestionDetector()
 
         self.state: EngineState | None = None
         self.renderer: BaseRenderer | None = None
         self.current_page = 1
-        self.question_detector: QuestionDetector = QuestionDetector()
+        self.pages = self.reader.pages
 
     def get_fonts(self, reader: PdfReader, page_number: int = 0) -> dict:
         fonts = {}

@@ -5,7 +5,9 @@
 #!/usr/bin/env python
 
 import argparse
+import sys
 import argcomplete
+import re
 import json
 from subprocess import call
 import cairo
@@ -52,8 +54,16 @@ class CmdArgs:
                 self.end = int(sp[1]) if len(sp) == 2 else None
             self.wait_time = args.wait
             self.curr_file = None
-            self.exampath = args.exampath
+            self.exampaths: list[str] = args.exampath
             self.max_tj = args.max_tj
+            self.q_nr: str = self.convet_range_string_to_list(
+                args.questions_nr
+            )
+            self.f_indecies = self.convet_range_string_to_list(
+                args.file_indecies
+            )
+            # if self.f_indecies is not None and not self.f_indecies.digits():
+            #     raise Exception("file-indecies must be integer values")
 
         if self.mode in ["test_module"]:
             self.test = args.test_module
@@ -64,6 +74,28 @@ class CmdArgs:
             self.year = args.year
             self.exam = args.exam
             self.full = args.full
+            self.row = args.row
+
+    def convet_range_string_to_list(self, string: str):
+        if string is None:
+            return None
+        sp = string.split(",")
+        output = []
+        for el in sp:
+            if el.isdigit():
+                output.append(int(el))
+            else:
+                sp2 = el.split("-")
+                if len(sp2) != 2:
+                    raise Exception(f"invalid range {el}")
+                e1, e2 = sp2[0], sp2[1]
+                if not e1.isdigit() or not e2.isdigit():
+                    raise Exception(f"invalid range {el}")
+                e1, e2 = int(e1), int(e2)
+                for i in range(e1, e2 + 1):
+                    output.append(i)
+
+        return sorted(output)
 
     def set_engine(self, engine: PdfEngine):
         self.engine = engine
@@ -82,7 +114,11 @@ class CmdArgs:
         view.add_argument(
             "--type", type=str, choices=["page", "p", "question", "q", "pdf"]
         )
-        view.add_argument("--exampath", "--path", type=str, default=None)
+        view.add_argument(
+            "--exampath", "--path", type=str, default=None, nargs="*"
+        )
+        view.add_argument("--questions_nr", type=str, default=None)
+        view.add_argument("--file-indecies", type=str, default=None)
         view.add_argument("--pages", type=str, default="1")
         view.add_argument(
             "--wait",
@@ -127,6 +163,7 @@ class CmdArgs:
         )
         li.add_argument("--exam", "-ex", type=str, default=None)
         li.add_argument("--full", "-f", action="store_true", default=None)
+        li.add_argument("--row", "-r", action="store_true", default=True)
         li.set_defaults(func=list_items)
 
     @classmethod
@@ -176,9 +213,10 @@ def list_exams(args: CmdArgs):
             (f, spath + sep + f) for f in os.listdir(spath) if filter_exam(f)
         ]
         exams.extend(sexams)
+    seperator = " " if args.row else "\n"
     for ex in exams:
         full = args.full or False
-        print(ex[int(full)])
+        print(ex[int(full)], end=seperator)
 
 
 def list_subjects(args: CmdArgs):
@@ -195,24 +233,37 @@ def view_element(args: CmdArgs):
         "9709_w23_qp_31.pdf",
         "9702_m23_qp_22.pdf",
     ]
-    args.curr_file = args.exampath or f"PDFs{sep}{test_files[-1]}"
-    engine: PdfEngine = PdfEngine(args.curr_file, scaling=4, debug=True)
-    args.set_engine(engine)
-
-    if "pdf".startswith(args.type):
-        show_pdf(args)
-    elif "page".startswith(args.type):
-        show_page(args)
+    engine: PdfEngine = PdfEngine(scaling=4, debug=True)
+    args.exampaths = args.exampaths or [
+        f"PDFs{sep}{f}" for f in test_files
+    ]  #  []
+    if args.f_indecies:
+        args.exampaths = [
+            f for i, f in enumerate(args.exampaths) if i in args.f_indecies
+        ]
+    for i, curr_file in enumerate(args.exampaths):
+        engine.initialize_file(curr_file)
+        args.set_engine(engine)
+        args.curr_file = curr_file
+        if "pdf".startswith(args.type):
+            show_pdf(args)
+        elif "page".startswith(args.type):
+            show_page(args)
 
 
 def show_pdf(args: CmdArgs):
+
     engine: PdfEngine = args.engine
     detector = engine.question_detector
     surfs_dict = {}
+    # sys.stdout = open(f"output{sep}detector_output.md", "w", encoding="utf-8")
+
     for page in args.get_page_range():
-        engine.get_page_stream(
-            page, QuestionRenderer
-        ).debug_original_stream().execute_stream_extract_question(
+        engine.get_page_stream(page, QuestionRenderer)
+        width = engine.default_width * engine.scaling
+        height = engine.default_height * engine.scaling
+
+        engine.debug_original_stream().execute_stream_extract_question(
             max_show=args.max_tj, mode=1
         )
         curr_surf = engine.renderer.surface
@@ -220,24 +271,14 @@ def show_pdf(args: CmdArgs):
         detector.calc_page_segments_and_height(curr_surf, page)
 
     questions: list[Question] = detector.question_list
-    if len(questions) == 0:
-        print(
-            f"No question found on this exam ({args.curr_file}) "
-        )  # [{self.current_page}]")
 
-        # print(detector.type)
-        # print(detector.left_most_x)
-        # print(detector.current)
-    else:
-        print(
-            f"found the following questions on pdf {args.curr_file} "  # [{self.current_page}]"
-        )
-        for q in questions:
-            print(q)
+    detector.print_final_results(args.curr_file)
+    if len(questions) > 0:
         filename = detector.draw_all_pages_to_single_png(
             surfs_dict, args.curr_file
         )
         preview_image(filename, args.wait_time)
+        kill_with_taskkill()
 
 
 def show_page(args: CmdArgs):
@@ -269,7 +310,6 @@ def preview_image(imgpath, waiting_time):
         time.sleep(waiting_time)
     else:
         _ = input("Press Enter to continue...")
-    # kill_with_taskkill()
 
 
 def test_image_cairo():

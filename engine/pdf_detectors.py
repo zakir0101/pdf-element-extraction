@@ -90,6 +90,14 @@ class Sequence(Box):
             rep += "   " + str(sym) + "\n"
         return rep  #
 
+    def get_text(self) -> str:
+        rep = ""
+        for sym in self.data:
+            rep += sym.ch
+        return (
+            f"Sequence(lenght={len(self.data)}, content={rep}, box={self.box})"
+        )
+
     def size(self):
         return self.data.__len__()
 
@@ -159,7 +167,7 @@ NUMERIC = 1
 ALPHAPET = 2
 ROMAN = 3
 
-FIRST_MAP = {NUMERIC: "1", ALPHAPET: "a", ROMAN: "i"}
+FIRST_MAP = {UNKNOWN: "0", NUMERIC: "1", ALPHAPET: "a", ROMAN: "i"}
 FACTORS = [1, 2, 5]
 LEVEL_QUESTION = 0
 LEVEL_PART = 1
@@ -206,6 +214,17 @@ class Question(Box):
             rep += str(p)
         return rep
 
+    def get_title(self):
+        return (
+            " " * self.level * 4
+            + TITLE_DICT[self.level]
+            + " "
+            + self.label
+            # + in_page
+            + f"(x={self.x}, y={self.y}, page={self.pages})"
+            + ""
+        )
+
 
 def find_questions_part_in_page(q: Question, page: int) -> list[Question]:
     parts: list[Question] = []
@@ -218,6 +237,15 @@ def find_questions_part_in_page(q: Question, page: int) -> list[Question]:
         for p in q.parts:
             parts.extend(find_questions_part_in_page(p, page))
     return parts
+
+
+file = open(f"output{sep}detector_output.md", "w", encoding="utf-8")
+
+
+def print(*args):
+    args = [str(a) for a in args]
+    file.write("".join(args) + "\n")
+    file.flush()
 
 
 class QuestionDetector(BaseDetector):
@@ -238,17 +266,35 @@ class QuestionDetector(BaseDetector):
         self.tolerance = 20
         self.question_list: list[Question] = []
 
-        self.left_most_x: list[int] = [200000, 200000, 200000]
+        self.left_most_x: list[int] = [0] * 3
         self.current: list[Question] = [None, None, None]
         self.type: list[int] = [UNKNOWN, UNKNOWN, UNKNOWN]
         pass
+
+    def set_height(self, new_width, new_height):
+        self.height = new_height
+        self.width = new_width
+        if len(self.question_list) == 0:
+            self.reset_left_most()
+
+    def reset_left_most(self, level=None):
+        if level:
+            self.left_most_x[level:] = [self.width / 3] * (3 - level)
+        else:
+            self.left_most_x = [self.width / 3] * 3
+
+    def reset_types(self, level):
+        self.type[level:] = [UNKNOWN] * (3 - level)
+
+    def reset_current(self, level):
+        self.current[level:] = [None] * (3 - level)
 
     def reset(
         self,
         level: int,
     ):
-        self.left_most_x[level:] = [200200] * (3 - level)
-        self.type[level:] = [UNKNOWN] * (3 - level)
+        self.reset_left_most(level)
+        self.reset_types(level)
 
         if level == 0:
             self.question_list = []
@@ -260,21 +306,66 @@ class QuestionDetector(BaseDetector):
         #     raise Exception
 
         self.current[level:] = [None] * (3 - level)
+        self.reset_current(level)
+
+    def replace_question(self, q: Question, level: int):
+        old_curr = self.current[level]
+        if old_curr and len(old_curr.parts) > 1:
+            print(
+                "Can not replace old question because it already has detected 2+ parts"
+            )
+            return
+        elif (
+            old_curr
+            and len(old_curr.parts) > 0
+            and len(old_curr.parts[0].parts) > 1
+        ):
+            print(
+                "Can not replace old question because it already has detected a part with 2+ sub-parts"
+            )
+            return
+        elif not old_curr:
+            self.set_question(q, level)
+            return
+
+        print("trying to replace old question")
+
+        self.set_page_number_for_first_detection(level)
+        if level < 2:
+            self.reset(level + 1)
+        # if level < 2:
+        #     self.current[level + 1 :] = [None] * (3 - level + 1)
+        #     self.type[level + 1 :] = [UNKNOWN] * (3 - level)
+        print(q)
+        print([str(f) for f in self.question_list])
+
+        if level == 0:
+            self.question_list[-1] = q
+
+        elif level == 1 and self.current[0]:
+            self.current[0].parts[-1] = q
+        elif level == 2 and self.current[1]:
+            self.current[1].parts[-1] = q
+        else:
+            raise Exception
+
+        print(q)
+        print([f.get_title() for f in self.question_list])
+
+        n_type = self.get_question_type(q)
+        self.type[level] = n_type
+        self.left_most_x[level] = q.x
+        self.current[level] = q
 
     def set_question(self, q: Question, level: int):
-        if self.is_first_detection:
-            self.is_first_detection = False
-            if level > 0:
-                self.current[0].pages.append(self.curr_page)
-            if level > 1:
-                self.current[1].pages.append(self.curr_page)
-
+        print(f"trying to set question ..(level={level})")
+        self.set_page_number_for_first_detection(level)
         old_cur = self.current[level]
         if old_cur and len(old_cur.parts) < 2:
             self.reset(level + 1)
         if level < 2:
-            self.current[level + 1 :] = [None] * (3 - level + 1)
-            self.type[level + 1 :] = [UNKNOWN] * (3 - level)
+            self.reset_current(level + 1)
+            self.reset_types(level + 1)
 
         if level == 0:
             self.question_list.append(q)
@@ -288,6 +379,22 @@ class QuestionDetector(BaseDetector):
         else:
             raise Exception
 
+        print(q)
+        print([f.get_title() for f in self.question_list])
+
+        n_type = self.get_question_type(q)
+        self.type[level] = n_type
+        self.left_most_x[level] = q.x
+
+    def set_page_number_for_first_detection(self, level):
+        if self.is_first_detection:
+            self.is_first_detection = False
+            if level > 0:
+                self.current[0].pages.append(self.curr_page)
+            if level > 1:
+                self.current[1].pages.append(self.curr_page)
+
+    def get_question_type(self, q: Question):
         n_type = ALPHAPET
         if type(q.label) is int or q.label.isdigit():
             n_type = NUMERIC
@@ -297,11 +404,9 @@ class QuestionDetector(BaseDetector):
             n_type = ALPHAPET
         else:
             raise Exception
+        return n_type
 
-        self.type[level] = n_type
-        self.left_most_x[level] = q.x
-
-    def get_allowed_startup_chars(self,level:int):
+    def get_allowed_startup_chars(self, level: int):
         used = None
         if level > 0:
             used = FIRST_MAP[self.type[level - 1]]
@@ -311,52 +416,57 @@ class QuestionDetector(BaseDetector):
     def get_alternative_allowed(self, level):
         # TODO: fix this
         n_type = self.type[level]
-        curr:Question = self.current[level]
+        curr: Question = self.current[level]
         """we can assume that this function will only be called if curr is already set
         following condition can be commented (if everything else is logically correct)
         I will leave it for debugging purposes uncommented"""
         if n_type == UNKNOWN and curr is not None:
             raise Exception("non sense : debug")
 
-        if n_type == UNKNOWN or curr.label in self.allowed_chars_startup : 
+        if n_type == UNKNOWN or curr.label in self.allowed_chars_startup:
             return self.get_allowed_startup_chars(level)
-        return str(curr.label) 
+        return str(curr.label)
 
     def get_next_allowed(self, level):
         n_type = self.type[level]
         curr = self.current[level]
         if n_type == UNKNOWN and curr is not None:
             raise Exception("non sense : debug")
-        if n_type == UNKNOWN: 
+        if n_type == UNKNOWN:
             return self.get_allowed_startup_chars(level)
         return get_next_label(curr.label, n_type)
 
-    def is_char_valid_as_next(self, char, level):
+    def is_char_valid_as_next(self, char, level, strict=False):
         next = self.get_next_allowed(level)
         if type(next) == list:
             return char in next
         next = str(next)
+        if strict:
+            return next == char
         return next.startswith(char)
 
-    def is_char_valid_as_alternative(self, char, level):
+    def is_char_valid_as_alternative(self, char, level, strict=False):
         # TODO: fix this
         """this is a dummy implementation, real implementation should allow rolling back
         into any breakpoint (prev question/part) in the past and continue from there,
-        but here for simplicity we only allow rolling back one step , or completly discard 
+        but here for simplicity we only allow rolling back one step , or completly discard
         everything ( logic in other code place )"""
         alternatives = self.get_alternative_allowed(level)
         if type(alternatives) == list:
             return char in alternatives
         alternatives = str(alternatives)
+        if strict:
+            return alternatives == char
         return alternatives.startswith(char)
-    def is_char_x_weak_enought_to_ignore(self,diff):
+
+    def is_char_x_weak_enough_to_ignore(self, diff, level):
         return diff > FACTORS[level] * self.tolerance
 
-    def is_char_x_strong_enough_to_override(self,diff):
-        return diff < FACTORS[level] * -self.tolerance:
+    def is_char_x_strong_enough_to_override(self, diff, level):
+        return diff < FACTORS[level] * -self.tolerance
 
-    def is_char_x_close_enough_to_consider(self,diff):
-        return diff <= FACTORS[level] * self.tolerance
+    def is_char_x_close_enough_to_append(self, diff, level):
+        return abs(diff) <= FACTORS[level] * self.tolerance
 
     def is_char_skip(self, char, level):
         if level > 0:
@@ -367,13 +477,40 @@ class QuestionDetector(BaseDetector):
     def is_valid_neighbours(self, sym: Symbol, n_sym: Symbol):
         return sym.is_connected_with(n_sym)
 
+    def print_internal_status(self, title):
+        print(title)
+        print("current left most = ", self.left_most_x)
+        print("current types = ", self.type)
+        print(
+            "current types = ",
+            [self.get_next_allowed(l) for l in range(3)],
+        )
+
+    def print_final_results(self, curr_file):
+        print("\n\n")
+        print("****************** Final Result ********************\n")
+        if len(self.question_list) == 0:
+            print(f"No question found on this exam ({curr_file}) ")
+        else:
+            print(
+                f"found the following questions on pdf {curr_file} "  # [{self.current_page}]"
+            )
+            for q in self.question_list:
+                print(q)
+
     def handle_sequence(self, seq: Sequence, page: int):
         if page != self.curr_page:
+
+            self.print_internal_status("Befor:")
+            print(
+                f"\n***************** page {page} ({self.width},{self.height})**********************\n"
+            )
             self.curr_page = page
             self.is_first_detection = True
             if len(self.question_list) == 0:
                 self.reset(0)
-            # self.left_most_x = [1000] * 3
+                self.reset_left_most(0)
+            self.print_internal_status("After:")
         for level in range(3):
             found = self.__handle_sequence(seq, level)
             if self.current[level] is None:
@@ -384,73 +521,89 @@ class QuestionDetector(BaseDetector):
         prev_valid: Symbol | None = None
         is_next_candidate = False
         is_alternative_candidate = False
+
         char_all = ""
-        char, x, y, h, diff = "", 0, 0, 0, 0
+        char, x, y, h, diff, old_diff = "", 0, 0, 0, 0, 10000
+        can_append, can_overwrite = None, None
+        # is_alternative_better = False
+
+        if self.current[level]:
+            old_diff = self.current[level].x - self.left_most_x[level]
         for _, sym in enumerate(seq):
             sym: Symbol = sym
             char = sym.ch
-            if prev_valid is None:
+            if self.is_char_skip(char, level):
+                continue
+            if prev_valid and not self.is_valid_neighbours(sym, prev_valid):
+                break
+            prev_valid = sym
 
+            if diff == 0:
                 x, y, x1, y1 = sym.get_box()
                 h = y1 - y
                 self.tolerance = x1 - x
                 diff = x - self.left_most_x[level]
-                
-                if self.is_char_skip(char, level):
-                    continue
 
-                if self.is_char_x_close_enough_to_consider():
-                    if self.is_char_valid_as_next(char, level):
-                        prev_valid = sym
-                        is_next_candidate = True
-                        char_all = char
-                        pass
+                if self.is_char_x_weak_enough_to_ignore(diff, level):
+                    return False
+                # is_alternative_better = abs(diff) < abs(old_diff)
+                # if can_append is None:
+                can_append = self.is_char_x_close_enough_to_append(diff, level)
+                can_overwrite = self.is_char_x_strong_enough_to_override(
+                    diff, level
+                )
 
-                    elif self.is_char_valid_as_alternative(char,level):
-                        prev_valid = sym
-                        is_alternative_candidate = True
-                        char_all = char
-                        pass
-                    else:
-                        is_next_candidate = is_alternative_candidate = False
-                        # if diff < -self.tolerance:  # and diff_upper > 0:
-                        #     self.reset(level)
-                        #     self.left_most_x[level] = x
-                        break
-                else: # 
-                    is_next_candidate = is_alternative_candidate = False
-                    break
-            else:
-                if not self.is_valid_neighbours(sym, prev_valid):
-                    break
-                else:
-                    if self.is_char_skip(char, level):
-                        continue
-                    if not self.is_char_valid_as_next(char_all + sym.ch, level):
-                        is_next_candidate = False
-                        break
+            valid_as_next = self.is_char_valid_as_next(char_all + char, level)
+            valid_as_alt = self.is_char_valid_as_alternative(
+                char_all + char, level
+            )
 
-                    prev_valid = sym
-                    is_next_candidate = True
-                    char_all += char
+            if valid_as_next:
+                char_all += char
+                is_next_candidate = True
+                continue
 
-        if is_next_candidate:
-            # print("found candidates for level :", level, "and char", char_all)
-            # print("diff is ", diff, ", tolerence is ", self.tolerance)
-            new_q = Question(char_all, self.curr_page, level, x, y, 2 * h)
-            if self.is_char_x_strong_enough_to_override(diff) 
-                # print("resetting to char ", char_all)
-                print("resetting before set")
-                self.reset(level)
-            print("about to set")
-            self.set_question(new_q, level)
-            return True
-        else:
+            elif valid_as_alt:
+                char_all += char
+                is_alternative_candidate = True
+                continue
+
+            elif can_overwrite:
+
+                print(f"\nL{level}: Ignored 'OVERRIDE' Seq: " + seq.get_text())
+                pass
+                # TODO: only adjust left_most_x , but don't set any thing new
+                # if diff < -self.tolerance:  # and diff_upper > 0:
+                #     self.reset(level)
+                #     self.left_most_x[level] = x
+            elif can_append:
+                print(f"\nL{level}: Ignored 'APPEND' Seq: " + seq.get_text())
+            elif valid_as_next or valid_as_alt:
+                pass
+
+            is_next_candidate = is_alternative_candidate = False
             return False
 
-    def set_height(self, new_width, new_height):
-        self.height = new_height
-        self.width = new_width
+        if is_next_candidate and self.is_char_valid_as_next(
+            char_all, level, strict=True
+        ):
+
+            print("\n" + seq.get_text())
+            new_q = Question(char_all, self.curr_page, level, x, y, 2 * h)
+            self.set_question(new_q, level)
+            return True
+
+        elif is_alternative_candidate and self.is_char_valid_as_alternative(
+            char_all, level, strict=True
+        ):
+
+            print("\n" + seq.get_text())
+            new_q = Question(char_all, self.curr_page, level, x, y, 2 * h)
+            self.replace_question(new_q, level)
+            return True
+
+        else:
+            return False
 
     def calc_page_segments_and_height(
         self, surface: cairo.ImageSurface, page_number: int
