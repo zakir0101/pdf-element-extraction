@@ -1,44 +1,4 @@
 class PdfOperator:
-    """
-    Represents a PDF operator, managing operator names and their associated arguments.
-
-    Attributes:
-        name (str): The name of the PDF operator.
-        args (list): A list of arguments passed to the operator.
-        explaination (str): A detailed explanation of the operator's functionality.
-        OPERATORS (dict): A dictionary containing all available PDF operators.
-        OPERTORS_SET (set): A set of all valid operator names.
-        GRAPHICS_OPERATORS (dict): A dictionary of graphics-related PDF operators.
-        GRAPHICS_OPERATORS_SET (set): A set of graphics operator names.
-        TEXT_OPERATORS (dict): A dictionary of text-related PDF operators.
-        TEXT_OPERATORS_SET (set): A set of text operator names.
-        COLOR_OPERATORS (dict): A dictionary of color-related PDF operators.
-        COLOR_OPERATORS_SET (set): A set of color operator names.
-        PATH_OPERATORS (dict): A dictionary of path-related PDF operators.
-        PATH_OPERATORS_SET (set): A set of path operator names.
-
-    Methods:
-        __init__(self, op_name: str, arguments: list):
-            Initializes the PdfOperator with a name and a list of arguments.
-
-        __str__(self) -> str:
-            Returns a string representation of the operator and its explanation.
-
-        is_operator_valid(operator_name: str) -> bool:
-            Checks if the given operator name is valid.
-
-        get_graphics_operator() -> dict:
-            Retrieves the dictionary of graphics operators.
-
-        get_text_operators() -> dict:
-            Retrieves the dictionary of text operators.
-
-        get_color_operators() -> dict:
-            Retrieves the dictionary of color operators.
-
-        get_path_operators() -> dict:
-            Retrieves the dictionary of path operators.
-    """
 
     NEED_SCALING = 0x01
     NEED_TRANSLATION = 0x02
@@ -184,6 +144,7 @@ class PdfOperator:
             # "EI": "End inline image (no parameters)",
             # Marked Content
             "EMC": "End marked content sequence (no parameters)",
+            "BDC": "set marked Content [Content=%(operands)s]",
         }
 
     TEXT_OPERATORS = get_text_operators()
@@ -214,9 +175,13 @@ class PdfOperator:
                 "blue=%(operands2)s] (0-1 per component)"
             ),
             # ← new entries below →
+            # TODO: implement logic for the following operators ! ( if needed )
             "cs": "Set fill color space to             [colorspace=%(operands0)s]",
+            "CS": "Set fill color space to             [colorspace=%(operands0)s]",
             "sc": "Set fill color in current space      [components=%(operands)s]",
+            "SC": "Set fill color in current space      [components=%(operands)s]",
             "scn": "Set fill color or pattern/shading   [components=%(operands)s]",
+            "SCN": "Set fill color or pattern/shading   [components=%(operands)s]",
         }
 
     COLOR_OPERATORS = get_color_operators()

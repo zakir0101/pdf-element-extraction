@@ -1,10 +1,10 @@
 import os
-from PyPDF2.generic import (
+from pypdf.generic import (
     IndirectObject,
     EncodedStreamObject,
     ArrayObject,
 )
-from PyPDF2 import PdfReader, PageObject
+from pypdf import PdfReader, PageObject
 import pprint
 
 from engine.pdf_question_renderer import QuestionRenderer
@@ -15,13 +15,15 @@ from .pdf_stream_parser import PDFStreamParser
 from .pdf_detectors import Question, QuestionDetector
 from tkinter import Tk, Canvas, PhotoImage, NW, mainloop, BOTH
 from os.path import sep
+from .pdf_encoding import PdfEncoding as pnc
 
 
 class PdfEngine:
 
-    def __init__(self, scaling=1, debug=False):
+    def __init__(self, scaling=1, debug=False, clean: bool = True):
         self.scaling = scaling
         self.debug = debug
+        self.clean = clean
 
     def initialize_file(self, pdf_path):
         self.current_stream: str | None = None
@@ -36,7 +38,7 @@ class PdfEngine:
         )
 
         self.font_map: dict[str, PdfFont] | None = None
-        self.parser = PDFStreamParser()
+
         self.question_detector: QuestionDetector = QuestionDetector()
 
         self.state: EngineState | None = None
@@ -61,7 +63,7 @@ class PdfEngine:
                     )
         return fonts
 
-    def get_page_stream(self, page_number: int, rendererClass):
+    def perpare_page_stream(self, page_number: int, rendererClass):
 
         if page_number < 1 or page_number > len(self.reader.pages):
             raise ValueError("Invalid page number")
@@ -79,14 +81,14 @@ class PdfEngine:
             int(self.default_height) * self.scaling,
         )
         self.renderer = rendererClass(self.state, self.question_detector)
+        self.renderer.skip_footer = self.clean
 
-        contents = page.get_contents()
+        contents = page.get("/Contents")
 
         streams_data = []
         if contents is None:
             raise ValueError("No content found in the page")
-
-        # Resolve if indirect
+        data_count = 0
         if hasattr(contents, "get_object"):
             contents = contents.get_object()
         if isinstance(contents, EncodedStreamObject):
@@ -102,15 +104,16 @@ class PdfEngine:
                     if data:
                         streams_data.append(data)
 
-        streams_data = [
-            data.decode("latin1", "replace") for data in streams_data
-        ]
+        if len(streams_data) == 0:
+            raise Exception("no data found in this pdf !!!")
+        streams_data = [pnc.bytes_to_string(data) for data in streams_data]
         self.current_stream = "\n".join(streams_data)
         return self
 
     def debug_original_stream(
         self, filename=f"output{sep}original_stream.txt"
     ):
+        # print("saving debug info into file")
         with open(filename, "w", encoding="utf-8") as f:
             f.write("# page number " + str(self.current_page) + "\n\n")
             pprint.pprint(self.pages[self.current_page - 1], f)
@@ -134,7 +137,9 @@ class PdfEngine:
         if not cs:
             return
         for key, value in cs.items():
-            obj = self.reader.get_object(value)
+            if isinstance(value, IndirectObject):
+                value = self.reader.get_object(value)
+            obj = value
             colorSpace[key] = obj
 
         f.write("\n\n### Color Space\n")
@@ -193,10 +198,20 @@ class PdfEngine:
             self.current_page,
         )
         counter = 0
+
+        self.parser = PDFStreamParser()
         with open(f"output{sep}output.md", "w", encoding="utf-8") as f:
             for cmd in self.parser.parse_stream(stream).iterate():
                 f.write(f"{cmd}\n")
+
                 explanation = self.state.execute_command(cmd)
+                # try:
+                #     explanation = self.state.execute_command(cmd)
+                # except Exception as e:
+                #     print("STATE_ERROR: while executing command")
+                #     print(cmd.name, cmd.args)
+                #     raise Exception(e)
+
                 if self.debug and explanation:
                     f.write(f"{explanation}\n")
                 self.renderer.execute_command(cmd)
@@ -237,9 +252,29 @@ class PdfEngine:
             self.current_page,
         )
         counter = 0
-        for cmd in self.parser.parse_stream(stream).iterate():
-            explanation = self.state.execute_command(cmd)
-            renderer.execute_command(cmd)
+
+        self.parser = PDFStreamParser()
+        with open(f"output{sep}output.md", "w", encoding="utf-8") as f:
+            f.write("FILE: " + os.path.basename(self.pdf_path) + "\n")
+            f.write("PAGE: " + str(self.current_page) + "\n\n\n")
+            for cmd in self.parser.parse_stream(stream).iterate():
+                f.write(f"{cmd}\n")
+                explanation = self.state.execute_command(cmd)
+                # try:
+                #     explanation = self.state.execute_command(cmd)
+                # except Exception as e:
+                #     print("STATE_ERROR: while executing command")
+                #     print(cmd.name, cmd.args)
+                #     raise Exception(e)
+
+                if self.debug and explanation:
+                    f.write(f"{explanation}\n")
+                renderer.execute_command(cmd)
+                if cmd.name in ["Tj", "TJ", "'", '"']:
+                    f.write(f"\n\n")
+                    counter += 1
+                    if counter > max_show:
+                        break
         # self.renderer.save_to_png(f"output{sep}output.png")
         # renderer.save_questions_to_pngs(os.path.basename(self.pdf_path))
         return
@@ -287,6 +322,6 @@ class PdfEngine:
 if __name__ == "__main__":
     pdf_path = "9702_m23_qp_12.pdf"
     pdf_engine = PdfEngine(pdf_path)
-    data = pdf_engine.get_page_stream(3)
+    data = pdf_engine.perpare_page_stream(3)
     # pdf_engine.execute_stream(stream)
     pass

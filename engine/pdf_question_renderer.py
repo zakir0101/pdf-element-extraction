@@ -42,14 +42,12 @@ class QuestionRenderer(BaseRenderer):
         )
         char_seq: Sequence = char_seq
         if self.should_skip_sequence(char_seq):
+            update_text_position()
             return
-        if self.count_dots(char_seq) < self.max_dots:
-            if self.mode == 1:
-                self.question_detector.handle_sequence(
-                    char_seq, self.page_number
-                )
+        if self.mode == 1:
+            self.question_detector.handle_sequence(char_seq, self.page_number)
 
-            self.draw_glyph_array(glyph_array)
+        self.draw_glyph_array(glyph_array)
         update_text_position()
 
     def execute_command(self, cmd: PdfOperator):

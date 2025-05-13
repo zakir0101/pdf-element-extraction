@@ -1,6 +1,9 @@
 #! ./venv/bin/python
 # PYTHON_ARGCOMPLETE_OK
 
+import pprint
+import traceback
+from collections import defaultdict
 
 #!/usr/bin/env python
 
@@ -21,9 +24,9 @@ from engine.pdf_detectors import Question
 from fontTools.unicode import Unicode
 from fontTools.agl import AGL2UV, toUnicode  # import AGL2UV
 from engine.pdf_question_renderer import QuestionRenderer
-from os.path import sep
+from os.path import basename, sep
 import os
-
+import random as rand
 
 if os.name == "nt":  # Windows
     ansi = "ansi"
@@ -46,27 +49,49 @@ class CmdArgs:
 
         self.mode = args.mode
         if self.mode in ["view"]:
-            self.pages = args.pages
             self.type = args.type
-            if self.pages:
-                sp = self.pages.split("-")
-                self.start = int(sp[0])
-                self.end = int(sp[1]) if len(sp) == 2 else None
             self.wait_time = args.wait
             self.curr_file = None
+            self.single = args.single
             self.exampaths: list[str] = args.exampath
             self.max_tj = args.max_tj
-            self.q_nr: str = self.convet_range_string_to_list(
-                args.questions_nr
+            self.range: list[int] = self.convet_range_string_to_list(
+                args.range
             )
             self.f_indecies = self.convet_range_string_to_list(
                 args.file_indecies
             )
-            # if self.f_indecies is not None and not self.f_indecies.digits():
-            #     raise Exception("file-indecies must be integer values")
+            self.clean = not args.no_clean
 
-        if self.mode in ["test_module"]:
-            self.test = args.test_module
+        self.TEST_SIZE = {
+            "tiny": 1,
+            "small": 3,
+            "meduim": 7,
+            "large": 11,
+            "all": None,
+        }
+        if self.mode in ["test"]:
+            self.test = (
+                args.test_type
+            )  # parser , detector-count , detector-full,
+            self.group = args.group
+            self.data = (
+                [(os.path.basename(f), f) for f in args.data]
+                if args.data
+                else None
+            )
+
+            self.pause = args.pause
+            self.size = self.TEST_SIZE.get(args.size) or None
+            self.subjects = args.subjects or all_subjects
+            self.max = args.max
+
+            if self.test == "font":
+                if not self.data:
+                    raise Exception("missing data for test-type font")
+                self.pages = self.convet_range_string_to_list(args.pages)
+            else:
+                self.build_test_data()
 
         if self.mode in ["list"]:
             self.item = args.item
@@ -100,32 +125,104 @@ class CmdArgs:
     def set_engine(self, engine: PdfEngine):
         self.engine = engine
         self.page_count = len(engine.pages)
-        if self.end is None:
-            self.end = self.page_count
+        # if self.range and
+        #     self.end = self.page_count
 
-    def get_page_range(self):
-        return range(self.start, self.end + 1)
+    def build_test_data(
+        self,
+    ):
+        if self.data is not None:
+            self.data = [(os.path.basename(d), d) for d in self.data]
+            return
+        files = []
+        if self.size is None:
+            self.size = 12
+        self.years = self.get_test_years()
+        self.year_dict = {}
+        for sub in self.subjects:
+            if self.max and len(files) >= self.max:
+                break
+            spath = igcse_path + sep + sub + sep + "exams"
+            sexams = [
+                (f, spath + sep + f)
+                for f in os.listdir(spath)
+                if self.filter_exam(f, sub)
+            ]
+            if self.group == "random":
+                rand.shuffle(sexams)
+            if self.max and len(files) + len(sexams) > self.max:
+                files.extend(sexams[: self.max - len(sexams)])
+            else:
+                files.extend(sexams)
+        if self.test != "list":
+            print(self.subjects)
+            print("size = ", self.size)
+            print("years", self.years)
+            print("exams len =", len(files))
+        self.data = files
+
+    def filter_exam(self, ex_name: str, sub: str):
+        if "qp" not in ex_name or not ex_name.endswith(".pdf"):
+            return False
+        ye = ex_name.split("_")[1][1:]
+        if int(ye) not in self.years:
+            return False
+
+        if not self.year_dict.get(sub + ye):
+            self.year_dict[sub + ye] = 1
+            return True
+        if self.year_dict[sub + ye] < self.size:
+            self.year_dict[sub + ye] += 1
+            return True
+        return False
+
+    def get_test_years(self):
+
+        gr = self.group
+        if gr == "latest":
+            year = [23]
+        elif gr == "oldest":
+            year = [11]
+        elif gr.startswith("gap"):
+            period = gr[-1]
+            if not period.isdigit():
+                raise Exception("group gap period is not defiend")
+            year = [i for i in range(23, 10, -int(period))]
+        elif gr == "random":
+            all = [i for i in range(11, 24)]
+            # year = []
+            # for i in range(6):
+            year = rand.sample(all, k=6)
+        elif gr.startswith("year"):
+            ye = gr[4:]
+            year = [int(ye)]
+        else:
+            raise Exception("group is not correctly defined")
+
+        return year
 
     @classmethod
     def add_view_subparser(cls, subparsers: argparse._SubParsersAction):
         view: argparse.ArgumentParser = subparsers.add_parser(
             "view", help="view a a page/question/pdf"
         )
-        view.add_argument(
-            "--type", type=str, choices=["page", "p", "question", "q", "pdf"]
-        )
+        view.add_argument("type", type=str, choices=["pages", "questions"])
         view.add_argument(
             "--exampath", "--path", type=str, default=None, nargs="*"
         )
-        view.add_argument("--questions_nr", type=str, default=None)
-        view.add_argument("--file-indecies", type=str, default=None)
-        view.add_argument("--pages", type=str, default="1")
+        view.add_argument("--range", type=str, default=None)
+        view.add_argument("--file-indecies", "-f", type=str, default=None)
+        # view.add_argument("--pages", type=str, default="1")
         view.add_argument(
             "--wait",
             type=int,
             help="time to wait before viewing the next image",
         )
         view.add_argument("--max-tj", type=int, default=10000)
+        view.add_argument("--single", "-r", action="store_true", default=False)
+        view.add_argument(
+            "--no-clean", "-nc", action="store_true", default=False
+        )
         view.set_defaults(func=view_element)
 
     @classmethod
@@ -172,10 +269,168 @@ class CmdArgs:
             "test", help="run test on a set of exam pdfs"
         )
         test.add_argument(
-            "test_module",
+            "test_type",
             type=str,
-            choices=["detector"],
+            choices=[
+                "list",
+                "font",
+                "parser",
+                "questions-count",
+                "questions-match",
+            ],
         )
+
+        test.add_argument("--data", type=str, default=None, nargs="*")
+        years = []
+        for i in range(11, 24):
+            years.append(f"year{str(i)}")
+        groups = [
+            "latest",
+            "oldest",
+            "gap2",
+            "gap4",
+            "gap6",
+            "random",
+        ] + years
+        test.add_argument(
+            "--group",
+            type=str,
+            choices=groups,
+        )
+
+        test.add_argument("--pages", type=str, default=None)
+        test.add_argument(
+            "--size",
+            type=str,
+            choices=["tiny", "small", "medium", "large", "all"],
+        )
+
+        test.add_argument("--max", type=int)
+
+        test.add_argument("--pause", action="store_true", default=False)
+        test.add_argument(
+            "--subjects",
+            "-s",
+            type=str,
+            nargs="*",
+            choices=all_subjects,
+            default=None,
+        )
+        test.set_defaults(func=do_tests)
+
+
+def do_tests(args: CmdArgs):
+
+    callbacks = {
+        "list": do_list,
+        "font": do_test_font,
+        "parser": do_test_parser,
+        "questions-count": lambda x: do_test_question(x, True),
+        "questions-match": (lambda x: do_test_question(x, False)),
+    }
+    if callbacks.get(args.test):
+        callbacks[args.test](args)
+
+
+def do_list(args: CmdArgs):
+    for f in args.data:
+        print(f[1], end=" ")
+
+
+def do_test_font(args: CmdArgs):
+    engine: PdfEngine = PdfEngine(scaling=4, debug=True, clean=False)
+    for pdf in args.data:
+        args.curr_file = pdf[1]
+        args.max_tj = 4000
+        engine.initialize_file(pdf[1])
+        args.set_engine(engine)
+        # bad_pages[pdf[1]] = []
+        cur_range = args.pages or range(1, args.page_count + 1)
+        for page in cur_range:
+            engine.perpare_page_stream(page, QuestionRenderer)
+            for font in engine.font_map.values():
+                font.debug_font()
+
+
+def do_test_parser(args: CmdArgs):
+
+    engine: PdfEngine = PdfEngine(scaling=4, debug=True, clean=False)
+    errors_dict = {}
+    bad_pages: dict[str, list[int]] = []
+    exception_stats = {}  # defaultdict(lambda: (0, "empty", []))
+    total_pages = 0
+    total_passed = 0
+    stop = False
+    for pdf in args.data:
+        if stop:
+            break
+        args.curr_file = pdf[1]
+        args.max_tj = 4000
+        engine.initialize_file(pdf[1])
+        args.set_engine(engine)
+        # bad_pages[pdf[1]] = []
+        for page in range(1, args.page_count + 1):
+            total_pages += 1
+            try:
+                engine.perpare_page_stream(page, QuestionRenderer)
+                engine.debug_original_stream()
+                engine.execute_stream_extract_question(
+                    max_show=args.max_tj, mode=1
+                )
+                total_passed += 1
+            except Exception as e:
+                # bad_pages[pdf[1]] = []
+                exception_key = get_exception_key(e)
+                if exception_key not in exception_stats:
+                    full_traceback = traceback.format_exc()
+                    exception_stats[exception_key] = {
+                        "count": 1,
+                        "msg": full_traceback,
+                        "location": [f"{pdf[1]}:{page}"],
+                    }
+                else:
+                    exception_stats[exception_key]["count"] += 1
+                    # exception_stats[exception_key]["files"].append(
+                    # os.path.basename(pdf[0])
+                    # )
+                if args.pause:
+                    stop = True
+                    break
+    print("\n**********************************")
+    print("Total number of Pages = ", total_pages)
+    print("Passt percent", round(total_passed / total_pages * 100), "%")
+
+    for key, value in exception_stats.items():
+        print("\n**********************************\n")
+        print(key)
+        print("count = ", value["count"])
+        print("percent = ", round(value["count"] / total_pages * 100), "%")
+        print(value["msg"])
+        print(value["location"])
+        print("\n\n\n")
+        # pprint.pprint(exception_stats)
+
+
+def get_exception_key(e: Exception):
+
+    exc_type = type(e).__name__
+    exc_msg = str(e)
+    _, _, exc_traceback = sys.exc_info()
+    if exc_traceback:
+        tb_frames = traceback.extract_tb(exc_traceback)
+        # Get the origin frame (where the exception was raised)
+        origin_frame = tb_frames[0]
+        filename = origin_frame.filename
+        line_no = origin_frame.lineno
+    else:
+        filename, line_no = "unknown", 0
+
+    exception_key = (exc_type, exc_msg, filename, line_no)
+    return exception_key
+
+
+def do_test_question(args: CmdArgs, only_count=True):
+    pass
 
 
 def list_items(args: CmdArgs):
@@ -191,6 +446,7 @@ def list_items(args: CmdArgs):
 
 
 def list_questions(args: CmdArgs):
+
     pass
 
 
@@ -233,7 +489,7 @@ def view_element(args: CmdArgs):
         "9709_w23_qp_31.pdf",
         "9702_m23_qp_22.pdf",
     ]
-    engine: PdfEngine = PdfEngine(scaling=4, debug=True)
+    engine: PdfEngine = PdfEngine(scaling=4, debug=True, clean=args.clean)
     args.exampaths = args.exampaths or [
         f"PDFs{sep}{f}" for f in test_files
     ]  #  []
@@ -245,47 +501,65 @@ def view_element(args: CmdArgs):
         engine.initialize_file(curr_file)
         args.set_engine(engine)
         args.curr_file = curr_file
-        if "pdf".startswith(args.type):
-            show_pdf(args)
-        elif "page".startswith(args.type):
-            show_page(args)
+        show_single_image(args)
 
 
-def show_pdf(args: CmdArgs):
-
+def show_single_image(args: CmdArgs):
+    exam_name = os.path.basename(args.curr_file)
+    print("***************  exam  ******************")
+    print(f"*********** ({exam_name}) ************")
     engine: PdfEngine = args.engine
     detector = engine.question_detector
     surfs_dict = {}
-    # sys.stdout = open(f"output{sep}detector_output.md", "w", encoding="utf-8")
-
-    for page in args.get_page_range():
-        engine.get_page_stream(page, QuestionRenderer)
-        width = engine.default_width * engine.scaling
-        height = engine.default_height * engine.scaling
-
-        engine.debug_original_stream().execute_stream_extract_question(
-            max_show=args.max_tj, mode=1
-        )
-        curr_surf = engine.renderer.surface
-        surfs_dict[page] = curr_surf
-        detector.calc_page_segments_and_height(curr_surf, page)
+    per_page = args.type == "pages"
+    per_questions = args.type == "questions"
+    if per_page and not args.range:
+        args.range = [i for i in range(1, args.page_count + 1)]
+    for page in range(1, args.page_count + 1):
+        if per_questions or page in args.range:
+            engine.perpare_page_stream(page, QuestionRenderer)
+            engine.debug_original_stream()
+            engine.execute_stream_extract_question(
+                max_show=args.max_tj, mode=1
+            )
+            curr_surf = engine.renderer.surface
+            surfs_dict[page] = curr_surf
+            detector.calc_page_segments_and_height(curr_surf, page, args)
 
     questions: list[Question] = detector.question_list
+    print("Page Numbers :", args.page_count)
+    print("Question Numbers :", len(questions))
+
+    if per_questions and len(questions) == 0:
+        print(f"no Question detected in File {exam_name}")
+        return
 
     detector.print_final_results(args.curr_file)
-    if len(questions) > 0:
-        filename = detector.draw_all_pages_to_single_png(
-            surfs_dict, args.curr_file
-        )
+    # if len(questions) > 0:
+
+    if args.single:
+        draw_and_preview(args, args.range, surfs_dict)
+    else:
+        for i in args.range:
+            draw_and_preview(args, [i], surfs_dict)
+
+
+def draw_and_preview(args: CmdArgs, range: list, surfs_dict):
+    filename = args.engine.question_detector.draw_all_pages_to_single_png(
+        surfs_dict, args, range, args.type == "questions"
+    )
+    if filename:
         preview_image(filename, args.wait_time)
         kill_with_taskkill()
+    else:
+        print("no image genrated !!")
 
 
-def show_page(args: CmdArgs):
+def show_image_per_range_item(args: CmdArgs):
     engine: PdfEngine = args.engine
     for page in args.get_page_range():
         imgpath = (
-            engine.get_page_stream(page, BaseRenderer)
+            engine.perpare_page_stream(page, BaseRenderer)
             .debug_original_stream()
             .execute_stream(max_show=args.max_tj)
         )

@@ -3,7 +3,7 @@ import string
 
 from .pdf_operator import PdfOperator
 from .pdf_font import PdfFont
-from PyPDF2.filters import (
+from pypdf.filters import (
     ASCII85Decode,
     ASCIIHexDecode,
     LZWDecode,
@@ -11,6 +11,7 @@ from PyPDF2.filters import (
     decompress,
 )
 from cairo import Matrix
+from .pdf_encoding import PdfEncoding as pnc
 import copy
 
 
@@ -208,7 +209,7 @@ class EngineState:
         data = operator.args[0]
         # Convert string data to bytes if needed
         if isinstance(data, str):
-            data = data.encode("utf-8")
+            data = pnc.string_to_bytes(data)
 
         # Apply each filter in sequence
         decoded_data = data
@@ -265,7 +266,7 @@ class EngineState:
             "word_spacing": copy.copy(self.word_spacing),
             # "horizontal_scaling": copy.copy(self.horizontal_scaling),
             "leading": copy.copy(self.leading),
-            "font_name": copy.copy(self.font),
+            "font_name": copy.copy(self.font.font_name),
             "font_size": copy.copy(self.font_size),
             # "text_rize": copy.copy(self.text_rize),
             "line_width": copy.copy(self.line_width),
@@ -296,8 +297,11 @@ class EngineState:
         for key, value in state.items():
             if key == "cm_matrix" or key == "tm_matrix":
                 setattr(self, key, Matrix(*value))
+            elif key == "font_name":
+                self.font = self.font_map[value]
             else:
                 setattr(self, key, value)
+
         return None
 
     def set_line_width(self, command: PdfOperator):
@@ -314,7 +318,6 @@ class EngineState:
 
     def set_fill_color_gray(self, command: PdfOperator):
         grayscale = float(command.args[0])
-        # print("fill color = ", grayscale)
         self.fill_color = [grayscale, grayscale, grayscale]
         if self.debug:
             return None
@@ -354,7 +357,6 @@ class EngineState:
             return None
 
     def set_font(self, command: PdfOperator):
-        # print(command.args)
         fontname, font_size = command.args
         self.font = self.font_map[fontname]
         self.font_size = float(font_size)
@@ -472,35 +474,3 @@ class EngineState:
                 return command.get_explanation(*args_scaled)
 
         return ""
-
-    # def convert_ts_to_us(self, x, y, is_translation=True):
-    #     """
-    #     convert text-space to user space
-    #     """
-    #     return (
-    #         self.tm_matrix.transform_point(x, y)
-    #         if is_translation
-    #         else self.tm_matrix.transform_distance(x, y)
-    #     )
-    #
-    # def convert_us_to_ds(self, x, y, is_translation=True):
-    #     """
-    #     convert user-space to device space
-    #     """
-    #     return (
-    #         self.cm_matrix.transform_point(x, y)
-    #         if is_translation
-    #         else self.cm_matrix.transform_distance(x, y)
-    #     )
-    #
-    # def convert_ts_to_ds(self, x, y, is_translation=True):
-    #     """
-    #     convert text-space to device-space
-    #     """
-    #     am = self.tm_matrix.multiply(self.cm_matrix)
-    #
-    #     return (
-    #         am.transform_point(x, y)
-    #         if is_translation
-    #         else am.transform_distance(x, y)
-    #     )

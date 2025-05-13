@@ -22,6 +22,7 @@ import enum
 import os
 from os.path import sep
 import cairo
+
 from .pdf_utils import get_next_label, checkIfRomanNumeral, get_segments
 
 
@@ -103,6 +104,8 @@ class Sequence(Box):
 
     def __set_box__(self):
         # maxx,maxy , maxw,maxh =
+        if len(self.box) == 0:
+            return
         x0, y0, x1, y1 = self.data[0].get_box()
         for d in self.data[1:]:
             nx0, ny0, nx1, ny1 = d.get_box()
@@ -195,8 +198,9 @@ class Question(Box):
         self.pages: int = [page]
         self.level: int = level
         self.contents: list[Box] = []
-        self.x: int = float(x)
-        self.y: int = float(y)
+        self.x: float = float(x)
+        self.y: float = float(y)
+        self.y1: float | None = None
         self.h: int = float(h)
 
     def __str__(self):
@@ -207,7 +211,7 @@ class Question(Box):
             + " "
             + self.label
             # + in_page
-            + f"(x={self.x}, y={self.y}, page={self.pages})"
+            + f"(x={self.x}, y={self.y}, y1={self.y1 or "None"}, page={self.pages})"
             + "\n"
         )
         for p in self.parts:
@@ -221,7 +225,7 @@ class Question(Box):
             + " "
             + self.label
             # + in_page
-            + f"(x={self.x}, y={self.y}, page={self.pages})"
+            + f"(x={self.x}, y={self.y}, y1={self.y1 or 'None'}, page={self.pages})"
             + ""
         )
 
@@ -259,6 +263,7 @@ class QuestionDetector(BaseDetector):
         self.out_ctx: cairo.Context | None = None
         self.page_segments: dict[int, list[tuple]] = {}
         self.page_parts: dict[int, list[Question]] = {}
+        self.page_parts_per_question: dict[int, dict[int, Question]] = {}
         self.page_heights: dict[int, int] = {}
         self.allowed_skip_chars = [" ", "(", "[", "", ")", "]" "."]
         self.allowed_chars_startup = ["1", "a", "i"]
@@ -361,8 +366,13 @@ class QuestionDetector(BaseDetector):
         print(f"trying to set question ..(level={level})")
         self.set_page_number_for_first_detection(level)
         old_cur = self.current[level]
-        if old_cur and len(old_cur.parts) < 2:
-            self.reset(level + 1)
+        if old_cur:
+            if len(old_cur.parts) < 2:
+                self.reset(level + 1)
+            if level == 0:
+                old_cur.y1 = (
+                    q.y if self.curr_page in old_cur.pages else self.height
+                )
         if level < 2:
             self.reset_current(level + 1)
             self.reset_types(level + 1)
@@ -606,52 +616,73 @@ class QuestionDetector(BaseDetector):
             return False
 
     def calc_page_segments_and_height(
-        self, surface: cairo.ImageSurface, page_number: int
+        self, surface: cairo.ImageSurface, page_number: int, args
     ):
-        if not self.question_list:
-            # raise Exception("no Question Found")
-            print("skipping empty page :", page_number)
-        parts = []
-        for i, q in enumerate(self.question_list):
-            q: Question = q
-            if page_number not in q.pages:
-                continue
-            parts.extend(find_questions_part_in_page(q, page_number))
 
         out_height = 0
-        self.page_parts[page_number] = parts
         self.page_segments[page_number] = []
+        if args.type == "questions":
+            if len(self.question_list) == 0:
+                print("skipping empty page :", page_number)
+                return
+            d0 = self.question_list[0].h
+        else:
+            d0 = self.height * 0.01
 
-        if len(parts) == 0:
-            return
+        if args.clean:
+            segments = get_segments(surface, 0, self.height, d0, factor=0.5)
+        else:
+            segments = [(0, self.height, d0)]
 
-        # for i, p in enumerate(parts):
-        # y0, d0 = p.y, p.h
-        # if i + 1 < len(parts):
-        #     n_p = parts[i + 1]
-        #     y1 = n_p.y
-        # else:
-        #     y1 = self.height
-        d0 = parts[0].h
-        segments = get_segments(surface, 0, self.height, d0, factor=0.5)
-        # print(segments)
-        # segments = [(y0,h) for y0,h in segments if h]
-        self.page_segments[page_number] = segments
-        print("number of segs = ", len(segments))
         out_height += sum(seg_h + 2 * d2 for _, seg_h, d2 in segments)
         out_height += 2 * d0
+
+        # ********************************************
+        # parts = []
+        # first_question = None
+        # for i, q in enumerate(self.question_list):
+        #     q: Question = q
+        #     if page_number not in q.pages:
+        #         continue
+        #     if not first_question:
+        #         first_question = q
+        #     q_parts_in_page = find_questions_part_in_page(q, page_number)
+        #     parts.extend(q_parts_in_page)
+        # self.page_parts[page_number] = parts
+
+        # *********************************************
+
+        self.page_segments[page_number] = segments
         self.page_heights[page_number] = out_height
 
     def draw_all_pages_to_single_png(
-        self, surf_dict: dict[int, cairo.ImageSurface], pdf_file: str
+        self,
+        surf_dict: dict[int, cairo.ImageSurface],
+        args,
+        t_range: list[int],
+        per_question: bool,
     ):
+        pdf_file = args.curr_file
+        if per_question:
+            self.question_list[-1].y1 = self.height
+
         total_height = sum(self.page_heights.values())
+
         if total_height == 0:
             raise Exception("Total Height = 0")
+            return None
+        i = 0
+        while True:
 
-        out_surf = cairo.ImageSurface(
-            cairo.FORMAT_ARGB32, self.width, int(total_height)
-        )
+            height = total_height - (i / 10) * total_height
+            try:
+                out_surf = cairo.ImageSurface(
+                    cairo.FORMAT_ARGB32, self.width, int(height)
+                )
+                break
+            except Exception as e:
+                print(f"reducing suface height form {height} to ")
+                i += 1
         out_ctx = cairo.Context(out_surf)
 
         out_ctx.set_source_rgb(1, 1, 1)  # White
@@ -659,29 +690,70 @@ class QuestionDetector(BaseDetector):
         out_ctx.set_source_rgb(0, 0, 0)  # Black
         self.dest_y = 0
         self.default_d0 = None
-        for page, surf in surf_dict.items():
-            d0 = self.__draw_page_content(page, surf, out_ctx)
+        if per_question:
+            for nr in t_range:
+                if nr > len(self.question_list):
+                    continue
+                q = self.question_list[nr - 1]
+                for page in q.pages:
+                    segments = self.page_segments.get(page) or []
+                    q_segments = self.filter_question_segments(
+                        q, segments, page
+                    )
+                    if not segments:
+                        print(f"WARN: skipping page {page}, no Segments found")
+                        continue
+                    self.__draw_page_content(
+                        q_segments, surf_dict[page], out_ctx
+                    )
 
+            pass
+        else:
+            for page, surf in surf_dict.items():
+                if page in t_range:
+                    segments = self.page_segments.get(page)
+                    if not segments:
+                        print(f"WARN: skipping page {page}, no Segments found")
+                        continue
+                    self.__draw_page_content(segments, surf, out_ctx)
+        if self.dest_y == 0:
+            return None
         exam_name = os.path.basename(pdf_file).split(".")[0]
         filename = f"output{sep}{exam_name}.png"
         out_surf = out_surf.create_for_rectangle(
-            0, 0, self.width, self.dest_y + 4 * self.default_d0
+            0, 0, self.width, self.dest_y + 2 * (self.default_d0)
         )
         out_surf.write_to_png(filename)
         return filename
 
-    def __draw_page_content(
-        self, page: int, page_surf: cairo.ImageSurface, out_ctx: cairo.Context
+    def filter_question_segments(
+        self, q: Question, segments: list[tuple], curr_page
     ):
-        if not self.page_segments.get(page) or not self.page_parts.get(page):
-            print(f"WARN: skipping page {page}, no Questions found")
-            return
-        segments = self.page_segments[page]
-        parts = self.page_parts[page]
+        q_segs = []
+        q_pages = q.pages
+        y0, y1 = 0, self.height
+        if q_pages[0] == curr_page:
+            y0 = q.y - 1.5 * q.h
+        if q_pages[-1] == curr_page:
+            y1 = q.y1 - 1.5 * q.h
+        # print(y0, "   ", y1, "for debugging")
+        # print("seq length = ", len(segments))
+        for sy, sh, d0 in segments:
+            if not self.default_d0 and d0:
+                self.default_d0 = d0
+            if sy < y1 and sy >= y0:
+                q_segs.append((sy, sh, d0))
+        return q_segs
 
-        # d0 = parts[0].h
+    def __draw_page_content(
+        self,
+        segments: list,
+        page_surf: cairo.ImageSurface,
+        out_ctx: cairo.Context,
+    ):
+        d0 = None
         for i, (src_y, seg_h, d0) in enumerate(segments):
-            if not self.default_d0:
+            if not self.default_d0 and d0:
                 self.default_d0 = d0
             factor = 2
             if len(segments) == i + 1:

@@ -1,12 +1,16 @@
+import pprint
 import re
 from .pdf_operator import PdfOperator
 import string
+import os
+from .pdf_encoding import PdfEncoding as pnc
 
 
 class PDFStreamParser:
 
     def __init__(self):
-        self.PRIMATIVE_REGEX = r"<(?P<hex>\S+?)>|(?P<name>/\S+)|\((?P<stringO>)(?=\))|(?:\((?P<string>(?:.*?[^\\]))(?=\)))|(?:(?:[^_\-\n\d]|^)(?P<number>[\d.]+))|(?P<numberO>-[\d.]+)"
+        self.PRIMATIVE_REGEX = r"<(?P<hex>[0-9a-f]+)>|(?P<name>/\S+)|\((?P<stringO>)(?=\))|(?:\((?P<string>(?:.*?[^\\]))(?=\)))|(?:(?:[^_\-\n\d]|^)(?P<number>[\d.]+))|(?P<numberO>-[\d.]+)"
+        self.DICT_CONTENT = r"(?P<key>/\S+)\s+(?P<value><(?:\S+?)>|(?:/\S+)|\((?P<stringO>)(?=\))|(?:\((?:(?:.*?[^\\]))(?=\)))|(?:(?:[^_\-\n\d]|^)(?:[\d.]+))|(?:-[\d.]+))"
         self.TYPES_MAP = {
             "number": float,
             "hex": str,
@@ -14,14 +18,22 @@ class PDFStreamParser:
             "name": str,
             "binary": str,
         }
-
+        self.TRUNCATED_TOKEN_REGEX = re.compile(
+            r"(?:<[^>]*$)",
+            re.MULTILINE,
+        )
+        self.INVALID_ESCAPE = re.compile(
+            r"(?:[^\\]|^)\\(?![()\\rntb0-7])", re.MULTILINE | re.DOTALL  # f
+        )
         self.ARRAY_REGEX = r"(?:(?P<pre>[^\\\n]|^)\[(?P<array>.*[^\\])?\])"
+        self.DICT_REGEX = r"(?P<name>/\w+)?\s*<<(?P<obj>.*?)>>"
         self.SPLIT_REGEX = r"\s+"  # r"(?:\r\n)|\n| |\s"
-        self.ID_REGEX = r"ARRAY___\d+|NUMBER___\d+|STRING___\d+|NAME___\d+|BINARY___\d+|HEX___\d+"
+        self.ID_REGEX = r"ARRAY___\d+|DICT___\d+|NUMBER___\d+|STRING___\d+|NAME___\d+|BINARY___\d+|HEX___\d+"
         self.BOOL_REGEX = r"true|false"
         # self.HAS_HEX_3 = r"(?P<hex>\\(?:\d{3})(?:\\(?:\d{3})|(?:[^\\])))"
-        self.HAS_HEX_3 = (
-            r"\\(?P<hex1>\d{3})(?:\\(?P<hex2>\d{3})|(?P<char>(?:\\)?.))"
+        # self.HAS_HEX_3 = ( r"\\(?P<hex1>\d{3})(?:\\(?P<hex2>\d{3})|(?P<char>(?:\\)?\D))")
+        self.HAS_HEX_3 = re.compile(
+            r"(?:\\(?:\d{3})(?:\\(?:\d{3})|(?:(?:\\)?.)))+$", re.MULTILINE
         )
         self.HEX_ITERATE = r"\\(?P<hex>\d{3})|(?P<char>.)"
         self.HEX_ITERATE_V2 = (
@@ -32,6 +44,7 @@ class PDFStreamParser:
 
         self.primatives_counter = 0
         self.arrays_counter = 0
+        self.dict_counter = 0
         self.variables_dict = {}
         # self.variables_dict = {}
         # self.prim_
@@ -50,55 +63,53 @@ class PDFStreamParser:
             elif not token or token == ")":
                 continue
             if re.match(self.ID_REGEX, token):
-                arguements.append(self.variables_dict[token])
-
+                try:
+                    arguements.append(self.variables_dict[token])
+                except Exception as e:
+                    pprint.pprint(self.variables_dict)
+                    raise Exception(e)
             elif token.lstrip(")") in PdfOperator.OPERTORS_SET:
                 cmd = token.lstrip(")")
                 command = PdfOperator(cmd, arguements)
-                # print(f"{cmd} ( {', '.join(list(map(str,arguements)))} )")
                 arguements = []
                 yield command
             else:
                 print("----", token)
         self.tokens = []
 
-    PRINTABLE = string.ascii_letters + string.digits + string.punctuation + " "
-
-    # def clean_hex_in_string(self, text: str) -> str:
-    #     matches = re.findall(self.HAS_HEX_3,text,re.DOTALL)
-    #     if len(matches) >= 2:
-    #         for m in re.it
-
-    def hex_escape(self, s):
-        return "".join(
-            (
-                c
-                if c in PDFStreamParser.PRINTABLE
-                else r"\x{0:02x}".format(ord(c))
-            )
-            for c in s
-        )
+    # PRINTABLE = string.ascii_letters + string.digits + string.punctuation + " "
+    #
+    # def hex_escape(self, s):
+    #     return "".join(
+    #         (
+    #             c
+    #             if c in PDFStreamParser.PRINTABLE
+    #             else r"\x{0:02x}".format(ord(c))
+    #         )
+    #         for c in s
+    #     )
 
     def parse_stream(self, lines: str):
+        # lines = lines.replace("\r", "")
         self.variables_dict = {}
         self.arrays_counter = 0
         self.primatives_counter = 0
 
-        lines_list = lines.replace("\r", "").split("\n")
+        lines_list = lines.replace("\\\r", "").split(
+            "\n"
+        )  # lines.replace("\\\r", "")
         i = 0
+        prev_line = ""
         while i < len(lines_list):
             line = lines_list[i]
-            if line.strip().endswith("ID"):
-                self.__process_line(line.rstrip("ID"))
-                # print("found image data")
-                binary_data = []
+            if line.strip(" ").endswith("ID") or line.startswith("ID"):
+                line1, line2 = line.split("ID", maxsplit=2)
+                self.__process_line(line1)
+                binary_data = [line2]
                 i += 1
                 while i < len(lines_list):
                     sub_line = lines_list[i]
                     if sub_line.startswith("EI"):
-                        # print(
-                        #     self.hex_escape("".join(binary_data)), "ID", "EI"
-                        # )
                         self.primatives_counter += 1
                         name = f"BINARY___{self.primatives_counter}"
                         self.variables_dict[name] = "".join(binary_data)
@@ -107,8 +118,13 @@ class PDFStreamParser:
                         break
                     binary_data.append(lines_list[i])
                     i += 1
+            elif self.TRUNCATED_TOKEN_REGEX.match(line):
+                prev_line += line
+                i += 1
+                continue
             else:
-                self.__process_line(line)
+                self.__process_line(prev_line + line)
+            prev_line = ""
             i += 1
 
         return self
@@ -120,7 +136,6 @@ class PDFStreamParser:
         )
         if m:
             self.__extract_special_operators(m)
-            # print("catched operator", m.group("operator"))
         else:
             self.__extract_variables(line)
 
@@ -136,8 +151,10 @@ class PDFStreamParser:
 
     def __extract_variables(self, line: str):
         self.data = line
+        self.data = self.__extrat_dicts()
         self.data = self.__extract_arrays()
         self.data = self.__extract_primatives()
+
         self.tokens.extend(
             re.split(
                 self.SPLIT_REGEX, self.data, flags=re.MULTILINE | re.DOTALL
@@ -154,10 +171,18 @@ class PDFStreamParser:
         )
         return new_string
 
+    def __extrat_dicts(self):
+
+        new_string = re.sub(
+            self.DICT_REGEX,
+            lambda m: self.__replace_dicts(m),
+            self.data,
+            flags=re.MULTILINE | re.DOTALL,
+        )
+        return new_string
+
     def __replace_arrays(self, match):
         self.arrays_counter += 1
-
-        # print(match.groupdict())
         array_id = f"ARRAY___{self.arrays_counter}"
 
         array = match.group("array")
@@ -170,13 +195,34 @@ class PDFStreamParser:
         self.variables_dict[array_id] = parsed_array
         return f"{pre}  {array_id}  "
 
+    def __replace_dicts(self, match):
+        self.dict_counter += 1
+        dict_id = f"DICT___{self.dict_counter}"
+        dict_name = match.group("name") or "UNKOWN"
+        dict_str = match.group("obj")
+        output_dict = self.__extract_dict_object(dict_str)
+        self.variables_dict[dict_id] = output_dict  # {dict_name: output_dict}
+        return f" {dict_name} {dict_id} "
+
+    def __extract_dict_object(self, content: str):
+        output: dict = {}
+        for match in re.finditer(
+            self.DICT_CONTENT,
+            content,
+            flags=re.MULTILINE | re.DOTALL,
+        ):
+            key = match.group("key")
+            value = match.group("value")
+            if key and value:
+                output[key] = value
+
+        return output
+
     def __extract_primatives(
         self, data: str | None = None, primatives_array=None
     ):
         if data is None:
             data = self.data
-        # self.primatives_counter = 0
-        # self.variables_dict = {}
         new_string = re.sub(
             self.PRIMATIVE_REGEX,
             lambda m: self.__replace_primatives(m, primatives_array),
@@ -187,38 +233,51 @@ class PDFStreamParser:
         return new_string
 
     def __replace_hex_in_string(self, match: re.Match):
+        # print("hex replace was called")
         int1, int2 = 0, 0
         hex1 = match.groupdict().get("hex1", "").strip("\\")
-        high_byte = int(hex1, 8)
 
-        char = match.group("char")
         hex2 = match.group("hex2")
+        char = match.group("char")
         if char:
             if len(char) == 2 and char.startswith("\\"):
                 char = char[1:]
-            low_byte = ord(char)
-        elif hex2:
-            low_byte = int(hex2, 8)
-        else:
-            raise Exception("hex is not valid")
-        cid = (high_byte << 8) | low_byte
-
-        return chr(cid)  # f"\\{cid:03d}"
+            byte_data = pnc.char_to_byte(char)
+            byte_string = pnc.byte_to_octal(byte_data)
+            # "".join(f"\\{b:03o}" for b in byte_data)
+            hex2 = byte_string.lstrip("0o").lstrip("\\")
+        final = f"\\{hex1}\\{hex2}"
+        return final
 
     def pdf_hex_to_str(self, hex_text: str) -> str:
+        # print("pdf hex was called")
         cleaned = "".join(hex_text.split())
-        if len(cleaned) % 2 == 1:
-            cleaned += "0"
-
-        if len(cleaned) == 4:
-            cleaned = cleaned[2:]
-        raw_bytes = bytes.fromhex(cleaned)
-        result = raw_bytes.decode("latin-1")
-        return result
+        length = len(cleaned)
+        i = 0
+        byte_string = ""
+        while i < length:
+            prefix = ""
+            j = i + 4
+            if j > length:
+                j = length - i
+                prefix = "0" * (4 - j)
+            try:
+                raw_bytes = bytes.fromhex(prefix + cleaned[i:j])
+            except Exception as e:
+                print(e)
+                print(prefix + cleaned[i:j])
+                print(hex_text)
+                raise Exception(e)
+            byte_string += "".join(f"\\{b:03o}" for b in raw_bytes)
+            i += 4
+        return byte_string
 
     def __replace_primatives(self, match, primatives_array):
-        self.primatives_counter += 1
         for p_type, p_value in match.groupdict().items():
+
+            if primatives_array is None:
+                self.primatives_counter += 1
+
             if p_value is None:
                 continue
 
@@ -226,16 +285,21 @@ class PDFStreamParser:
             value = self.TYPES_MAP[p_type](p_value)
             if p_type == "hex":
                 value = self.pdf_hex_to_str(value)
-            if p_type.startswith("string") and re.match(self.HAS_HEX_3, value):
-                # print("string=", value)
-                value = re.sub(
-                    self.HEX_ITERATE_V3,
-                    self.__replace_hex_in_string,
-                    value,
-                    flags=re.DOTALL | re.MULTILINE,
+            if p_type.startswith("string"):
+                # if self.INVALID_ESCAPE.match(value):
+                #     print("invalid excape char found !!")
+                #     print(value)
+                value = self.INVALID_ESCAPE.sub(
+                    lambda m: m.string.replace("\\", ""), value
                 )
-                # print("new_string=", value)
-            primative_id = f"{p_type.upper()}___{self.primatives_counter}"
+                if self.HAS_HEX_3.match(value):
+                    value = re.sub(
+                        self.HEX_ITERATE_V3,
+                        self.__replace_hex_in_string,
+                        value,
+                        flags=re.DOTALL | re.MULTILINE,
+                    )
+            primative_id = f"{p_type.upper()}___{self.primatives_counter:06}"
             if primatives_array is not None:
                 primatives_array.append(value)
             else:
@@ -251,41 +315,3 @@ if __name__ == "__main__":
 
     parser = PDFStreamParser()
     parser.parse_stream(test.strip())
-
-    """
-    Parses PDF streams into executable commands by tokenizing and interpreting PDF syntax.
-
-    Attributes:
-        PRIMATIVE_REGEX (str): Regular expression to identify primitive PDF elements such as names, strings, and numbers.
-        TYPES_MAP (dict): Mapping of primitive types to their corresponding Python types.
-        ARRAY_REGEX (str): Regular expression to detect arrays within the PDF stream.
-        SPLIT_REGEX (str): Regular expression used to split the PDF stream into individual tokens.
-        ID_REGEX (str): Regular expression to identify variable IDs within the tokenized stream.
-        primatives_counter (int): Counter for tracking the number of primitives processed.
-        arrays_counter (int): Counter for tracking the number of arrays processed.
-        variables_dict (dict): Dictionary storing variables and their corresponding values extracted from the stream.
-        data (str): The raw PDF stream data to be parsed.
-        tokens (list): List of tokens extracted from the PDF stream after splitting.
-
-    Methods:
-        __init__(self):
-            Initializes the PDFStreamParser with default regex patterns and counters.
-
-        iterate(self):
-            Iterates through the token list, yielding PdfOperator commands based on the parsed tokens.
-
-        jkparse_stream(self, data: str) -> 'PDFStreamParser':
-            Parses the provided PDF stream data, extracts arrays and primitives, and tokenizes the stream for processing.
-
-        __extract_arrays(self) -> str:
-            Identifies and extracts arrays from the PDF stream, replacing them with unique identifiers and storing them in variables_dict.
-
-        __replace_arrays(self, match) -> str:
-            Helper method to replace matched arrays with unique IDs and update variables_dict accordingly.
-
-        __extract_primatives(self, data: str | None = None, primatives_array = None) -> str:
-            Extracts primitive elements from the data, replacing them with unique identifiers and storing them as needed.
-
-        __replace_primatives(self, match, primatives_array) -> str:
-            Helper method to replace matched primitives with unique IDs and update the relevant storage structures.
-    """

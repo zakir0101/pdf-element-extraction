@@ -1,5 +1,7 @@
+import enum
 import re
 import string
+
 
 from engine.pdf_utils import open_image_in_irfan, kill_with_taskkill
 from .pdf_operator import PdfOperator
@@ -11,6 +13,8 @@ import os
 from .pdf_detectors import Sequence, Symbol, BaseDetector
 
 SEP = os.path.sep
+
+doty = -30
 
 
 class BaseRenderer:
@@ -40,6 +44,7 @@ class BaseRenderer:
             "c": self.curve_to,
             "k": self.set_cmyk_color,
             "ET": self.end_text,
+            "BDC": self.set_markded_content,
         }
 
         self.surface: ImageSurface | None = None
@@ -47,7 +52,7 @@ class BaseRenderer:
         self.skip_footer = True
         self.page_number = -1
         self.main_detector: BaseDetector = main_detector
-        self.max_dots = 70
+        self.max_dots = 20
 
     def initialize(self, width: int, height: int, page: int) -> None:
         """Initialize the Cairo surface and context."""
@@ -85,6 +90,10 @@ class BaseRenderer:
     def end_text(self, _: PdfOperator):
         """End text object"""
         # Most of the work is handled by EngineState
+        pass
+
+    def set_markded_content(self, cmd: PdfOperator):
+        # print(cmd.args)
         pass
 
     def draw_clip(self, _: PdfOperator):
@@ -132,16 +141,34 @@ class BaseRenderer:
         self.draw_string_array(cmd, is_single=True)
 
     def count_dots(self, char_seq):
+        global doty
+        sym: Symbol = char_seq[0]
+        if abs(sym.y - doty) < sym.h * 0.6:
+            return True
         dot = "."
-        return len([sym for sym in char_seq if dot in sym.ch])
+        is_dot_only = (
+            len([sym for sym in char_seq if dot in sym.ch]) > self.max_dots
+        )
+        if is_dot_only:
+            doty = sym.y
+        else:
+            doty = -30
+
+        return is_dot_only
 
     def should_skip_sequence(self, char_seq):
+
+        if char_seq is None:
+            return True
         if len(char_seq) == 0:
             return True
         if self.skip_footer and (
             char_seq[0].y >= self.footer_y or char_seq[0].y <= self.header_y
         ):
             return True
+        if self.count_dots(char_seq):
+            return True
+        return False
 
     def draw_string_array(self, cmd: PdfOperator, is_single=False):
         glyph_array, char_seq, update_text_position = self.get_glyph_array(
@@ -149,9 +176,10 @@ class BaseRenderer:
         )
         char_seq: Sequence = char_seq
         if self.should_skip_sequence(char_seq):
+            update_text_position()
             return
-        if self.count_dots(char_seq) < self.max_dots:
-            self.draw_glyph_array(glyph_array)
+        # if self.count_dots(char_seq) < self.max_dots:
+        self.draw_glyph_array(glyph_array)
         update_text_position()
 
     def get_glyph_array(self, cmd: PdfOperator, is_single=False):
@@ -204,17 +232,32 @@ class BaseRenderer:
             elif isinstance(element, str):
                 element = self.clean_text(element)
 
+                last_char = None
                 for word in re.split(
                     r"([ ]+)", element, flags=re.DOTALL | re.MULTILINE
                 ):
                     if word.isspace():
                         x += w_spacing
-
-                    for char_or in re.finditer(char_regex1, word):
+                    for i, char_or in enumerate(
+                        re.finditer(char_regex1, word)
+                    ):
                         char_or: re.Match = char_or
-                        glyph_id, char_width, char = (
-                            self.get_glyph_id_for_char(char_or)
-                        )
+                        if font.is_composite and char_or.group("symbol"):
+                            if i % 2 == 1:
+                                glyph_id, char_width, char = (
+                                    self.get_glyph_id_for_char(
+                                        char_or, last_char
+                                    )
+                                )
+                                last_char = None
+                            else:
+                                last_char = char_or
+                                continue
+                        else:
+                            glyph_id, char_width, char = (
+                                self.get_glyph_id_for_char(char_or, None)
+                            )
+
                         if glyph_id is None:
                             continue
                         glyph_obj = cairo.Glyph(glyph_id, x, y)
@@ -231,53 +274,62 @@ class BaseRenderer:
             if is_single or True:
                 self.state.text_position = [x, y]
 
+        if len(glyph_array) == 0:
+            return None, None, update_on_finish
+
         return glyph_array, Sequence(char_array), update_on_finish
 
-    def get_glyph_id_for_char(self, char_or):
+    def get_glyph_id_for_char(
+        self, char_or, prev_char: re.Match | None = None
+    ):
         font = self.state.font
         char = char_or.group("char")
         symbol = char_or.group("symbol")
-        if char is not None:
-            if not char:
-                return None, None, None
-            if not font.is_composite:
-                char_width = font.get_char_width(char)
-                glyph_id = font.char_to_gid.get(char)
+        prev_symbol = prev_char.group("symbol") if prev_char else None
+        is_symbol = char is None
 
-                if glyph_id is None:
-                    if char == "p":
-                        print("correcting p")
-                        # char = "π"
-                        # char_width = font.get_char_width(char)
-                        # glyph_id = font.char_to_gid.get(char)
-                        glyph_id = font.symbol_to_gid.get("pi")
-                        char = "pi"
-            else:
-                glyph_id = ord(char)
-                char_width = font.widths.get(glyph_id) or font.default_width
-                # print("is char")
+        # +++++++++++++++ for DEBUG ******************
+        if not is_symbol and not char:  # check for empty match
+            return None, None, None
+        if is_symbol and not symbol:  # check for empty match
+            return None, None, None
+        if font.is_composite:
+            if not is_symbol or not symbol or not prev_symbol:
+                raise Exception("missing symbol[prev] for composite font")
+        # ************** END DEBUG ********************
 
-        elif symbol is not None:
-            if not font.is_composite:
-                char_code, char_width = font.get_char_code(symbol)
-                symbol = font.diff_map.get(char_code, "").replace("/", "")
-                if not symbol:
-                    symbol = font.get_symbol_name_from_char_code(char_code)
-                glyph_id = font.symbol_to_gid.get(symbol)
-            else:
+        char_code = font.get_char_code_from_match(char, symbol, prev_symbol)
+        char_width = font.get_char_width_from_code(char_code)
+        glyph_id, glyph_name = font.get_glyph_id_from_char_code(
+            char_code, is_symbol
+        )
 
-                glyph_id = int(symbol.lstrip("\\0"))
-                char_width = font.widths.get(glyph_id)
-                # if char_width is None:
-                #     print(
-                #         "didn't find widht for composite symbol",
-                #         f"{symbol[:2]}-{symbol[3:]}",
-                #         "ord =",
-                #         glyph_id,
-                #     )
-                #     char_width = font.default_width
-                # print("is symbole")
-            char = symbol
+        # if glyph_id is None:
+        #     if char == "p":
+        #         glyph_id = font.symbol_to_gid.get("pi")
+        #         char = "pi"
+        if is_symbol:
+            char = glyph_name
+        if not char_width:
+            pass
+            print(
+                "is_composite:",
+                font.is_composite,
+                "symbol:",
+                symbol,
+                "content: ",
+                char,
+                "last_char",
+                prev_symbol,
+                "glyph_id",
+                glyph_id,
+                "char_code",
+                char_code,
+                "all_widths",
+                font.widths,
+            )
+            raise Exception("char width is None")
+
         char_width = self.state.convert_em_to_ts(char_width)
         return glyph_id, char_width, char
 
@@ -290,7 +342,6 @@ class BaseRenderer:
             self.ctx.move_to(0, 0)
             self.ctx.show_glyphs(glyph_array)
         except:
-            print("error")
             raise ValueError(f"ERROR while drawing Glyph array")
         self.ctx.restore()
 
@@ -447,7 +498,6 @@ class BaseRenderer:
     def execute_command(self, cmd: PdfOperator):
 
         if cmd.name in self.state.do_sync_after:
-            # print("syncing matrix, after ", cmd.name)
             self.sync_matrix()
         func = self.functions_map.get(cmd.name)
         if func:
@@ -475,7 +525,6 @@ class BaseRenderer:
 
     def save_to_png(self, filename: str) -> None:
         """Save the rendered content to a PNG file."""
-        print("saving image")
         if self.surface is None:
             raise ValueError("Renderer is not initialized")
         self.surface.write_to_png(filename)
