@@ -11,9 +11,7 @@ class PdfOperator:
         context = {f"operands{i}": str(op) for i, op in enumerate(arguements)}
         context["operands"] = ", ".join(args_string)
         explaination = self.OPERATORS.get(op_name)
-        if explaination:
-
-            # print(context)
+        if explaination:  # print(context)
             # print(explaination)
             self.explaination = explaination % context
         else:
@@ -79,6 +77,22 @@ class PdfOperator:
             "J": "Set line cap style [mode=%(operands)s] (0=butt, 1=round, 2=square)",
             "M": "Set miter limit [limit=%(operands)s] (≥1, default=10)",
             "w": "Set line width [width=%(operands)s] (default=1)",
+            "/SMask": "EXG: set soft mask !!! [operands=%(operands)s]",
+            "/BM": "EXG: set blend mode !!! [operands=%(operands)s]",
+            "/OP": "EXG: !!! [operands=%(operands)s]",
+            "/op": "EXG: set overprint stroke !!! [operands=%(operands)s]",
+            "/OPM": "EXG: set overprint fill !!! [operands=%(operands)s]",
+            "/SA": "EXG: set stroke adjustments !!! [operands=%(operands)s]",
+            "/Font": "EXG: set font !!! [operands=%(operands)s]",
+            "/OPM": "EXG: set overprint mode !!! [operands=%(operands)s]",
+            "/CA": "EXG: set stroke alpha !!! [operands=%(operands)s]",
+            "/ca": "EXG: set fill apha !!! [operands=%(operands)s]",
+            "/LW": "EXG: set line width !!! [operands=%(operands)s]",
+            "/LC": "EXG: set line cap !!! [operands=%(operands)s]",
+            "/LJ": "EXG: set line Join !!! [operands=%(operands)s]",
+            "/ML": "EXG: set meter limit !!! [operands=%(operands)s]",
+            "/D": "EXG: set dash pattern !!! [operands=%(operands)s]",
+            "Tr": "set rending mode !!! [operands=%(operands)s]",
         }
 
     GRAPHICS_OPERATORS = get_graphics_operator()

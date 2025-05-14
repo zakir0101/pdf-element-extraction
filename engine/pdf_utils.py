@@ -307,6 +307,65 @@ def kill_with_taskkill():
     subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
 
+# ****************** TEMP **********************
+def paeth_predictor(a, b, c):
+    """
+    Calculates the Paeth predictor.
+    a = left, b = above, c = upper-left.
+    """
+    p = a + b - c
+    pa = abs(p - a)
+    pb = abs(p - b)
+    pc = abs(p - c)
+    if pa <= pb and pa <= pc:
+        return a
+    elif pb <= pc:
+        return b
+    else:
+        return c
+
+
+def unfilter_scanline(
+    filter_type, scanline_data, prev_scanline_data, bytes_per_pixel
+):
+    """
+    Applies the inverse of a PNG filter to a scanline.
+    All additions are modulo 256.
+    """
+    recon = bytearray(len(scanline_data))  # Reconstructed scanline
+
+    if filter_type == 0:  # None
+        return scanline_data
+
+    for i in range(len(scanline_data)):
+        filt_x = scanline_data[i]
+
+        if filter_type == 1:  # Sub
+            recon_a = recon[i - bytes_per_pixel] if i >= bytes_per_pixel else 0
+            recon[i] = (filt_x + recon_a) & 0xFF
+        elif filter_type == 2:  # Up
+            prior_b = prev_scanline_data[i] if prev_scanline_data else 0
+            recon[i] = (filt_x + prior_b) & 0xFF
+        elif filter_type == 3:  # Average
+            recon_a = recon[i - bytes_per_pixel] if i >= bytes_per_pixel else 0
+            prior_b = prev_scanline_data[i] if prev_scanline_data else 0
+            recon[i] = (filt_x + ((recon_a + prior_b) // 2)) & 0xFF
+        elif filter_type == 4:  # Paeth
+            recon_a = recon[i - bytes_per_pixel] if i >= bytes_per_pixel else 0
+            prior_b = prev_scanline_data[i] if prev_scanline_data else 0
+            prior_c = (
+                prev_scanline_data[i - bytes_per_pixel]
+                if prev_scanline_data and i >= bytes_per_pixel
+                else 0
+            )
+            paeth_val = paeth_predictor(recon_a, prior_b, prior_c)
+            recon[i] = (filt_x + paeth_val) & 0xFF
+        else:
+            raise ValueError(f"Unknown filter type: {filter_type}")
+
+    return bytes(recon)
+
+
 if __name__ == "__main__":
     roman = get_roman(1)
     alpha = get_alphabet(1)

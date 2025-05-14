@@ -46,20 +46,51 @@ class PdfEngine:
         self.current_page = 1
         self.pages = self.reader.pages
 
-    def get_fonts(self, reader: PdfReader, page_number: int = 0) -> dict:
+    def get_color_space_map(self, res):
+        colorSpace = {}
+        cs = res.get("/ColorSpace")
+        if isinstance(cs, IndirectObject):
+            cs = self.reader.get_object(cs)
+        if not cs:
+            return
+        for key, value in cs.items():
+            # if self.color_map and self.color_map.get(key):
+            #     colorSpace[key] = self.color_map[key]
+
+            if isinstance(value, IndirectObject):
+                value = self.reader.get_object(value)
+            obj = value
+            if isinstance(obj, list):
+                new_list = []
+                for o in obj:
+                    if isinstance(o, IndirectObject):
+                        o = self.reader.get_object(o)
+                    new_list.append(o)
+
+                colorSpace[key] = new_list
+                # func = new_list[3]
+                # func_data = pnc.bytes_to_string(func.get_data())
+                # new_list.append(func_data)
+                pass
+            else:
+                colorSpace[key] = obj
+
+        return colorSpace
+
+    def get_fonts(self, res: dict, depth=0) -> dict:
         fonts = {}
-        resources = self.pages[page_number - 1].get("/Resources")
-        resources = (
-            reader.get_object(resources)
-            if isinstance(resources, IndirectObject)
-            else resources
-        )
+        resources = res
         if resources and resources.get("/Font"):
-            # fonts.update(self.get_fonts_from_resources(resources))
             for font_name, font_object in resources.get("/Font").items():
                 if font_name not in fonts:
+                    # if self.font_map and font_name in self.font_map:
+                    #     fonts[font_name] = self.font_map[font_name]
+                    # else:
                     fonts[font_name] = PdfFont(
-                        font_name, reader.get_object(font_object), reader
+                        font_name,
+                        self.reader.get_object(font_object),
+                        self.reader,
+                        depth,
                     )
         return fonts
 
@@ -69,19 +100,51 @@ class PdfEngine:
             raise ValueError("Invalid page number")
         self.current_page = page_number
         page = self.reader.pages[page_number - 1]
+        res = page.get("/Resources")
+        if isinstance(res, IndirectObject):
+            res = self.reader.get_object(res)
+        self.res = res
+        self.exgtate = self.get_external_g_state(res)
+        self.xobject = self.get_x_object(res)
+        # print(self.xobject)
+
         self.default_width = page.mediabox.width
         self.default_height = page.mediabox.height
 
-        self.font_map = self.get_fonts(self.reader, page_number)
+        self.font_map = self.get_fonts(self.res, 0)
+        self.color_map = self.get_color_space_map(self.res)
+
         self.state = EngineState(
-            self.font_map, self.scaling, self.default_height, self.debug
+            self.font_map,
+            self.color_map,
+            self.res,
+            self.exgtate,
+            self.xobject,
+            None,
+            self.execute_xobject_stream,
+            None,
+            self.scaling,
+            self.default_height,
+            self.debug,
         )
+
+        self.renderer = rendererClass(self.state, self.question_detector)
+        self.renderer.skip_footer = self.clean
+
+        self.state.draw_image = self.renderer.draw_inline_image
+
         self.question_detector.set_height(
             int(self.default_width) * self.scaling,
             int(self.default_height) * self.scaling,
         )
-        self.renderer = rendererClass(self.state, self.question_detector)
-        self.renderer.skip_footer = self.clean
+        streams_data = self.get_page_stream_data(page)
+        if len(streams_data) == 0:
+            raise Exception("no data found in this pdf !!!")
+        streams_data = [pnc.bytes_to_string(data) for data in streams_data]
+        self.current_stream = "\n".join(streams_data)
+        return self
+
+    def get_page_stream_data(self, page):
 
         contents = page.get("/Contents")
 
@@ -103,12 +166,7 @@ class PdfEngine:
                     data = c.get_data()
                     if data:
                         streams_data.append(data)
-
-        if len(streams_data) == 0:
-            raise Exception("no data found in this pdf !!!")
-        streams_data = [pnc.bytes_to_string(data) for data in streams_data]
-        self.current_stream = "\n".join(streams_data)
-        return self
+        return streams_data
 
     def debug_original_stream(
         self, filename=f"output{sep}original_stream.txt"
@@ -119,9 +177,13 @@ class PdfEngine:
             pprint.pprint(self.pages[self.current_page - 1], f)
 
             page = self.pages[self.current_page - 1]
-            res = page.get("/Resources")
-            if isinstance(res, IndirectObject):
-                res = self.reader.get_object(res)
+            res = self.res
+
+            f.write("\n\n### Resource:\n")
+            pprint.pprint(res, f)
+
+            f.write("\n\n### XObject:\n")
+            pprint.pprint(self.get_x_object(res), f)
             self.print_fonts(f, res)
             self.print_external_g_state(f, res)
             self.print_color_space(f, res)
@@ -130,32 +192,34 @@ class PdfEngine:
 
     def print_color_space(self, f, res):
 
-        colorSpace = {}
-        cs = res.get("/ColorSpace")
-        if isinstance(cs, IndirectObject):
-            cs = self.reader.get_object(cs)
-        if not cs:
-            return
-        for key, value in cs.items():
-            if isinstance(value, IndirectObject):
-                value = self.reader.get_object(value)
-            obj = value
-            colorSpace[key] = obj
-
+        colorSpace = self.get_color_space_map(res)
         f.write("\n\n### Color Space\n")
         pprint.pprint(colorSpace, f)
 
     def print_external_g_state(self, f, res):
+        if not self.exgtate:
+            self.exgtate = self.get_external_g_state(res)
+        f.write("\n\n### External Graphics State\n")
+        pprint.pprint(self.exgtate, f)
+
+    def get_external_g_state(self, res):
         exgtate = {}
         ext = res.get("/ExtGState")
+        if not ext:
+            return {}
         if isinstance(ext, IndirectObject):
             ext = self.reader.get_object(ext)
         for key, value in ext.items():
             obj = self.reader.get_object(value)
             exgtate[key] = obj
+        return exgtate
 
-        f.write("\n\n### External Graphics State\n")
-        pprint.pprint(exgtate, f)
+    def get_x_object(self, res):
+        x_obj = res.get("/XObject", {})
+        if isinstance(x_obj, IndirectObject):
+            x_obj = self.reader.get_object(x_obj)
+
+        return x_obj
 
     def print_fonts(self, f, res):
         reader = self.reader
@@ -174,60 +238,135 @@ class PdfEngine:
         pprint.pprint(output_dict, f)
         f.write("\n```\n")
 
-    def execute_stream(
-        self,
-        max_show=100,
-        stream: str | None = None,
-        width=None,
-        height=None,
+    # def execute_stream(
+    #     self,
+    #     max_show=100,
+    #     stream: str | None = None,
+    #     width=None,
+    #     height=None,
+    # ):
+    #     if (
+    #         self.state is None
+    #         or self.font_map is None
+    #         or self.current_stream is None
+    #     ):
+    #         raise ValueError("Engine not initialized properly")
+    #
+    #     width = width or self.default_width
+    #     height = height or self.default_height
+    #     stream = stream or self.current_stream
+    #
+    #     self.renderer.initialize(
+    #         int(width) * self.scaling,
+    #         int(height) * self.scaling,
+    #         self.current_page,
+    #     )
+    #     counter = 0
+    #
+    #     self.parser = PDFStreamParser()
+    #     with open(f"output{sep}output.md", "w", encoding="utf-8") as f:
+    #         for cmd in self.parser.parse_stream(stream).iterate():
+    #             f.write(f"{cmd}\n")
+    #
+    #             explanation = self.state.execute_command(cmd)
+    #
+    #             if self.debug and explanation:
+    #                 f.write(f"{explanation}\n")
+    #             self.renderer.execute_command(cmd)
+    #             if cmd.name in ["Tj", "TJ", "'", '"']:
+    #                 f.write(f"\n\n")
+    #                 counter += 1
+    #                 if counter > max_show:
+    #                     break
+    #     filename = f"output{sep}output.png"
+    #     self.renderer.save_to_png(filename)
+    #     return filename
+
+    def debug_x_stream(
+        self, xres: dict, xstream: str, filename=f"output{sep}xobj_stream.txt"
     ):
-        if (
-            self.state is None
-            or self.font_map is None
-            or self.current_stream is None
-        ):
+        # print("saving debug info into file")
+        with open(filename, "w", encoding="utf-8") as f:
+            f.write("# page number " + str(self.current_page) + "\n\n")
+            # pprint.pprint(self.pages[self.current_page - 1], f)
+
+            # page = self.pages[self.current_page - 1]
+            # res = self.res
+            self.print_fonts(f, xres)
+            self.print_external_g_state(f, xres)
+            self.print_color_space(f, xres)
+            f.write(xstream)
+
+    def execute_xobject_stream(
+        self, data_stream: str, initial_state: dict, xres: dict, depth: int
+    ):
+
+        x_stream = data_stream
+        if self.debug:
+            self.debug_x_stream(xres, x_stream)
+        x_font_map = self.get_fonts(xres, depth)
+        x_state: EngineState | None = None
+        x_exgtate = self.get_external_g_state(xres)
+        x_xobject = self.get_x_object(xres)
+
+        x_state = EngineState(
+            x_font_map,
+            self.color_map,
+            xres,
+            x_exgtate,
+            x_xobject,
+            initial_state,
+            self.execute_xobject_stream,
+            self.renderer.draw_inline_image,
+            self.scaling,
+            self.default_height,
+            self.debug,
+            depth,
+        )
+        old_state = self.renderer.state
+        self.renderer.state = x_state
+
+        if x_font_map is None or x_stream is None:
             raise ValueError("Engine not initialized properly")
 
-        width = width or self.default_width
-        height = height or self.default_height
-        stream = stream or self.current_stream
-
-        self.renderer.initialize(
-            int(width) * self.scaling,
-            int(height) * self.scaling,
-            self.current_page,
-        )
+        x_state.ctx = self.renderer.ctx
         counter = 0
 
-        self.parser = PDFStreamParser()
-        with open(f"output{sep}output.md", "w", encoding="utf-8") as f:
-            for cmd in self.parser.parse_stream(stream).iterate():
-                f.write(f"{cmd}\n")
+        x_parser = PDFStreamParser()
 
-                explanation = self.state.execute_command(cmd)
-                # try:
-                #     explanation = self.state.execute_command(cmd)
-                # except Exception as e:
-                #     print("STATE_ERROR: while executing command")
-                #     print(cmd.name, cmd.args)
-                #     raise Exception(e)
+        f = self.output_file
+        f.write("\n\n\n")
+        f.write(f"X_Stream[{depth}]: " + "\n")
+        f.write("Enter: " + "\n\n\n")
+        # print("\n\nEnter X_FORM\n")
+        for cmd in x_parser.parse_stream(x_stream).iterate():
+            f.write(f"{cmd}\n")
+            explanation, ok = x_state.execute_command(cmd)
+            if self.debug and explanation:
+                f.write(f"{explanation}\n")
+            explanation2, ok2 = self.renderer.execute_command(cmd)
+            if cmd.name in ["Tj", "TJ", "'", '"']:
+                f.write(f"\n\n")
+                counter += 1
+                if counter > self.max_show:
+                    break
+            if not ok and not ok2:
 
-                if self.debug and explanation:
-                    f.write(f"{explanation}\n")
-                self.renderer.execute_command(cmd)
-                if cmd.name in ["Tj", "TJ", "'", '"']:
-                    f.write(f"\n\n")
-                    counter += 1
-                    if counter > max_show:
-                        break
-        filename = f"output{sep}output.png"
-        self.renderer.save_to_png(filename)
-        return filename
-        # self.show_image("output\output.png")
+                print("X_CMD:", cmd)
+                print("Inside XFORM :")
+                s = f"{cmd.name} was not handled \n"
+                s += f"args : {cmd.args}\n"
+                raise Exception("Incomplete Implementaion\n" + s)
+
+        f.write("\n\n")
+        f.write(f"X_Stream[{depth}]: " + "\n")
+        f.write("Exit: " + "\n\n\n")
+        # print("\nExit X_FORM\n\n")
+        self.renderer.state = old_state
 
     def execute_stream_extract_question(
         self,
-        max_show=100,
+        max_show=10000,
         mode=1,
         stream: str | None = None,
         width=None,
@@ -239,7 +378,7 @@ class PdfEngine:
             or self.current_stream is None
         ):
             raise ValueError("Engine not initialized properly")
-
+        self.max_show = max_show
         width = width or self.default_width
         height = height or self.default_height
         stream = stream or self.current_stream
@@ -251,40 +390,35 @@ class PdfEngine:
             int(height) * self.scaling,
             self.current_page,
         )
+        self.state.ctx = self.renderer.ctx
         counter = 0
 
         self.parser = PDFStreamParser()
-        with open(f"output{sep}output.md", "w", encoding="utf-8") as f:
-            f.write("FILE: " + os.path.basename(self.pdf_path) + "\n")
-            f.write("PAGE: " + str(self.current_page) + "\n\n\n")
-            for cmd in self.parser.parse_stream(stream).iterate():
-                f.write(f"{cmd}\n")
-                explanation = self.state.execute_command(cmd)
-                # try:
-                #     explanation = self.state.execute_command(cmd)
-                # except Exception as e:
-                #     print("STATE_ERROR: while executing command")
-                #     print(cmd.name, cmd.args)
-                #     raise Exception(e)
+        f = open(f"output{sep}output.md", "w", encoding="utf-8")
+        self.output_file = f
+        f.write("FILE: " + os.path.basename(self.pdf_path) + "\n")
+        f.write("PAGE: " + str(self.current_page) + "\n\n\n")
+        for cmd in self.parser.parse_stream(stream).iterate():
+            f.write(f"{cmd}\n")
+            explanation, ok = self.state.execute_command(cmd)
 
-                if self.debug and explanation:
-                    f.write(f"{explanation}\n")
-                renderer.execute_command(cmd)
-                if cmd.name in ["Tj", "TJ", "'", '"']:
-                    f.write(f"\n\n")
-                    counter += 1
-                    if counter > max_show:
-                        break
-        # self.renderer.save_to_png(f"output{sep}output.png")
-        # renderer.save_questions_to_pngs(os.path.basename(self.pdf_path))
-        return
-        # self.renderer.start_partioning()
-        # for cmd in self.parser.parse_stream(stream).iterate():
-        #     explanation = self.state.execute_command(cmd)
-        #     renderer.execute_command(cmd)
-        # return expected_next
+            if self.debug and explanation:
+                f.write(f"{explanation}\n")
+            explanation2, ok2 = renderer.execute_command(cmd)
+            if cmd.name in ["Tj", "TJ", "'", '"']:
+                f.write(f"\n\n")
+                counter += 1
+                if counter > max_show:
+                    break
+            if not ok and not ok2:
 
-        # self.show_image("output\output.png")
+                print("CMD:", cmd)
+                s = f"{cmd.name} was not handled \n"
+                s += f"args : {cmd.args}\n"
+                raise Exception("Incomplete Implementaion\n" + s)
+
+        f.flush()
+        f.close()
 
     def show_image(self, file_path):
         root = Tk("pdf_viewer")

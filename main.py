@@ -6,7 +6,7 @@ import traceback
 from collections import defaultdict
 
 #!/usr/bin/env python
-
+import tqdm
 import argparse
 import sys
 import argcomplete
@@ -132,7 +132,8 @@ class CmdArgs:
         self,
     ):
         if self.data is not None:
-            self.data = [(os.path.basename(d), d) for d in self.data]
+            return
+            # self.data = [(os.path.basename(d), d) for d in self.data]
             return
         files = []
         if self.size is None:
@@ -361,7 +362,7 @@ def do_test_parser(args: CmdArgs):
     total_pages = 0
     total_passed = 0
     stop = False
-    for pdf in args.data:
+    for pdf in tqdm.tqdm(args.data):
         if stop:
             break
         args.curr_file = pdf[1]
@@ -574,6 +575,9 @@ def clear_temp_files(args: CmdArgs):
         os.remove(f"temp{sep}{f}")
     for f in os.listdir("output"):
         if f.startswith("glyphs_"):
+            print(f"removing {f}")
+            os.remove(f"output{sep}{f}")
+        if f.endswith("png"):
             print(f"removing {f}")
             os.remove(f"output{sep}{f}")
 

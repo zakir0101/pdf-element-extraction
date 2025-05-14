@@ -23,29 +23,6 @@ class BaseRenderer:
     ) -> None:
         self.state: EngineState = state
         self.default_char_width = 10
-        self.functions_map = {
-            "TJ": self.draw_string_array,
-            "Tj": self.draw_string,
-            "'": self.draw_string,
-            '"': self.draw_string,
-            "m": self.move_line_to,
-            "l": self.draw_line_to,
-            "re": self.draw_rectangle,
-            "f": self.fill_path,
-            "S": self.stroke_path,
-            "EI": self.draw_inline_image,
-            "W": self.draw_clip,
-            "n": self.end_path,
-            "q": self.save_state,
-            "Q": self.restore_state,
-            # "EI": self.test_surface_paint,
-            # Existing operators...
-            "h": self.close_path,
-            "c": self.curve_to,
-            "k": self.set_cmyk_color,
-            "ET": self.end_text,
-            "BDC": self.set_markded_content,
-        }
 
         self.surface: ImageSurface | None = None
         self.ctx: Context | None = None
@@ -53,6 +30,62 @@ class BaseRenderer:
         self.page_number = -1
         self.main_detector: BaseDetector = main_detector
         self.max_dots = 20
+
+        self.functions_map = {
+            "TJ": self.draw_string_array,
+            "Tj": self.draw_string,
+            "'": self.draw_string,
+            '"': self.draw_string,
+            "m": self.move_line_to,
+            "l": self.draw_line_to,
+            "y": self.draw_bezier_y_v,
+            "v": lambda x: self.draw_bezier_y_v(x, is_y_type=False),
+            "c": self.curve_to,
+            "re": self.draw_rectangle,
+            "f": self.fill_path,
+            "f*": lambda x: self.fill_path(x, False, True),
+            "S": self.stroke_path,
+            "s": lambda x: self.stroke_path(x, False, True),
+            "B": lambda x: self.fill_and_stroke(x, False, False),
+            "B*": lambda x: self.fill_and_stroke(x, False, True),
+            "b": lambda x: self.fill_and_stroke(x, True, False),
+            "b*": lambda x: self.fill_and_stroke(x, True, True),
+            "W": lambda x: self.clip_path(x, False),
+            "W*": lambda x: self.clip_path(x, True),
+            "h": self.close_path,
+            "EI": self.draw_inline_image,
+            "W": self.draw_clip,
+            "n": self.end_path,
+            "q": self.save_state,
+            "Q": self.restore_state,
+            # "EI": self.test_surface_paint,
+            # Existing operators...
+            "ET": self.end_text,
+            "BDC": lambda x: ("", True),  # not relevant
+            "EMC": lambda x: ("", True),  # not relevant
+            "i": lambda x: ("", True),  # not supported by cairo
+        }
+
+        self.sync_functions_map = [
+            #     ( [ "cs", "CS", "k", "K", "g", "G", "rg", "RG", "sc", "SC", "scn", "SCN", ], self.sync_color,),
+            (
+                [
+                    "Tm",
+                    "cm",
+                    "BT",
+                    "ET",
+                    "q",
+                    "Td",
+                    "TD",
+                    "T*",
+                    "'",
+                    '"',
+                    "Tz",
+                    "Ts",
+                ],
+                self.sync_matrix,
+            )
+        ]
 
     def initialize(self, width: int, height: int, page: int) -> None:
         """Initialize the Cairo surface and context."""
@@ -74,26 +107,42 @@ class BaseRenderer:
     def close_path(self, _: PdfOperator):
         """Close the current subpath"""
         self.ctx.close_path()
+        return "", True
 
     def curve_to(self, cmd: PdfOperator):
         """Draw a cubic Bezier curve"""
         x1, y1, x2, y2, x3, y3 = cmd.args
         self.ctx.curve_to(x1, y1, x2, y2, x3, y3)
         self.state.position = [x3, y3]
+        return "", True
 
-    def set_cmyk_color(self, cmd: PdfOperator):
+    def draw_bezier_y_v(self, cmd: PdfOperator, is_y_type=True):
+        """Implementation of 'y' PDF operator (curved path segment)"""
+        x1, y1, x3, y3 = cmd.args
+        x2, y2 = (x3, y3) if is_y_type else (x1, y1)
+        self.ctx.curve_to(
+            x1,
+            y1,
+            x2,
+            y2,
+            x3,
+            y3,
+        )
+        self.state.position = [x3, y3]
+        return "", True
+
+    def set_cmyk_color(self, cmd: PdfOperator, is_fill: bool):
         """Set CMYK color"""
         # Color conversion is handled by EngineState
         # Just need to update the context's color
-        self.ctx.set_source_rgb(*self.state.fill_color)
+        color = self.state.fill_color if is_fill else self.state.stroke_color
+        self.ctx.set_source_rgb(*color)
+        return "", True
 
     def end_text(self, _: PdfOperator):
         """End text object"""
         # Most of the work is handled by EngineState
-        pass
-
-    def set_markded_content(self, cmd: PdfOperator):
-        # print(cmd.args)
+        return "", True
         pass
 
     def draw_clip(self, _: PdfOperator):
@@ -102,15 +151,18 @@ class BaseRenderer:
         # we should at least acknowledge the clipping path
         self.ctx.clip()
         self.ctx.new_path()
+        return "", True
 
     def end_path(self, _: PdfOperator):
         # n operator - End path without filling/stroking
         self.ctx.new_path()
+        return "", True
 
     def save_state(self, _: PdfOperator):
         # q operator
         # handled by EngineState
         self.ctx.save()
+        return "", True
         pass
 
     def restore_state(self, _: PdfOperator):
@@ -118,6 +170,7 @@ class BaseRenderer:
         # handled by EngineState
         self.ctx.restore()
         # self.sync_matrix()
+        return "", True
         pass
 
     def get_scale(self, character, width):
@@ -138,7 +191,7 @@ class BaseRenderer:
 
     def draw_string(self, cmd: PdfOperator):
         # print("drawing single text ", text)
-        self.draw_string_array(cmd, is_single=True)
+        return self.draw_string_array(cmd, is_single=True)
 
     def count_dots(self, char_seq):
         global doty
@@ -166,7 +219,7 @@ class BaseRenderer:
             char_seq[0].y >= self.footer_y or char_seq[0].y <= self.header_y
         ):
             return True
-        if self.count_dots(char_seq):
+        if self.skip_footer and self.count_dots(char_seq):
             return True
         return False
 
@@ -177,10 +230,11 @@ class BaseRenderer:
         char_seq: Sequence = char_seq
         if self.should_skip_sequence(char_seq):
             update_text_position()
-            return
+            return "", True
         # if self.count_dots(char_seq) < self.max_dots:
         self.draw_glyph_array(glyph_array)
         update_text_position()
+        return "", True
 
     def get_glyph_array(self, cmd: PdfOperator, is_single=False):
         if is_single:
@@ -205,6 +259,7 @@ class BaseRenderer:
         except Exception as e:
             pass
             print(f"Error loading embedded font face: {e}")
+            raise Exception(f"Error loading embedded font face: {e}")
 
         if cairo_font_face is not None:
             self.ctx.set_font_face(cairo_font_face)
@@ -308,16 +363,17 @@ class BaseRenderer:
         #     if char == "p":
         #         glyph_id = font.symbol_to_gid.get("pi")
         #         char = "pi"
+
         if is_symbol:
             char = glyph_name
-        if not char_width:
+        if char_width is None:
             pass
             print(
                 "is_composite:",
                 font.is_composite,
                 "symbol:",
                 symbol,
-                "content: ",
+                "char: ",
                 char,
                 "last_char",
                 prev_symbol,
@@ -333,57 +389,140 @@ class BaseRenderer:
         char_width = self.state.convert_em_to_ts(char_width)
         return glyph_id, char_width, char
 
+    def draw_glyph_array_old(self, glyph_array):
+        self.ctx.save()
+        try:
+            self.ctx.move_to(0, 0)
+            self.ctx.show_glyphs(glyph_array)
+        except Exception as e:
+            print(f"ERROR while drawing Glyph array")
+            raise ValueError(e)
+        self.ctx.restore()
+
     def draw_glyph_array(self, glyph_array):
         self.ctx.save()
         try:
-            # self.ctx.set_font_size(self.state.font_size)
-            # self.ctx.translate(0, 0)
-            # self.ctx.scale(1, 1)
             self.ctx.move_to(0, 0)
-            self.ctx.show_glyphs(glyph_array)
-        except:
-            raise ValueError(f"ERROR while drawing Glyph array")
+            self.ctx.glyph_path(glyph_array)
+            mode = self.state.text_rendering_mode
+            # fill_source = (*self.state.fill_color, self.state.fill_alpha)
+            # stroke_source = (*self.state.stroke_color, self.state.stroke_alpha)
+
+            if mode in [0, 2, 4, 6]:  # Fill modes
+                # self.ctx.set_source_rgba(*fill_source)
+                preserve = mode in [2, 4, 6]  # Needs preserve for stroke/clip
+                self.fill_path(None, preserve)
+                # (self.ctx.fill_preserve if preserve else self.ctx.fill)()
+
+            if mode in [1, 2, 5, 6]:  # Stroke modes
+                # self.ctx.set_source_rgba(*stroke_source)
+                preserve = mode in [2, 5, 6]  # Needs preserve for fill/clip
+                self.stroke_path(None, preserve)
+                (self.ctx.stroke_preserve if preserve else self.ctx.stroke)()
+
+            if mode in [4, 5, 6, 7]:  # Clipping modes
+                self.ctx.clip()
+            self.ctx.new_path()
+        except Exception as e:
+            print(f"ERROR while drawing Glyph array")
+            # raise ValueError(e)
+            return
         self.ctx.restore()
 
     def clean_text(self, text: str):
         text = text.replace("\\(", "(").replace("\\)", ")")
         return text
 
-    def stroke_path(self, _: PdfOperator) -> None:
+    def fill_and_stroke(
+        self, cmd: PdfOperator, close: bool = False, even_odd: bool = False
+    ):
+        """PDF 'B' operator: Fill and stroke path, then clear it"""
+        self.fill_path(cmd, True, even_odd)
+        self.stroke_path(cmd, False, close)
+
+        # self.ctx.new_path()
+        return "", True
+
+    def clip_path(self, cmd: PdfOperator, even_odd=False):
+        if even_odd:
+            fill_rule = cairo.FILL_RULE_WINDING
+        else:
+            fill_rule = cairo.FILL_RULE_EVEN_ODD
+
+        self.ctx.set_fill_rule(fill_rule)
+        self.ctx.clip()
+
+        if even_odd:
+            self.ctx.set_fill_rule(cairo.FILL_RULE_WINDING)
+
+        return "", True
+
+    def fill_path(
+        self, cmd: PdfOperator, preserve: bool = False, even_odd=False
+    ) -> None:
+        """Fill the current path using Cairo."""
+        if even_odd:
+            fill_rule = cairo.FILL_RULE_WINDING
+        else:
+            fill_rule = cairo.FILL_RULE_EVEN_ODD
+
+        self.ctx.set_fill_rule(fill_rule)
+        # self.ctx.set_source_rgb(*self.state.fill_color)
+        self.ctx.set_source_rgba(
+            *self.state.fill_color, self.state.stroke_alpha
+        )
+        if preserve:
+            self.ctx.fill_preserve()
+        else:
+            self.ctx.fill()
+        if even_odd:
+            self.ctx.set_fill_rule(cairo.FILL_RULE_WINDING)
+        return "", True
+
+    def stroke_path(
+        self, _: PdfOperator, preserve: bool = False, close: bool = False
+    ) -> None:
         """Draw a line using Cairo."""
         if self.ctx is None:
             raise ValueError("Renderer is not initialized")
+        # effective_width = self.state._get_effective_line_width()
+        # self.ctx.set_line_width(effective_width)
         self.ctx.set_line_width(self.state.line_width)
 
         # set gray color
-        self.ctx.set_source_rgb(*self.state.stroke_color)
+        # self.ctx.set_source_rgb(*self.state.stroke_color)
+        self.ctx.set_source_rgba(
+            *self.state.stroke_color, self.state.stroke_alpha
+        )
         self.ctx.set_dash(self.state.dash_pattern, 0)
         self.ctx.set_line_cap(self.state.line_cap)
         self.ctx.set_line_join(self.state.line_join)
         self.ctx.set_miter_limit(self.state.miter_limit)
-        self.ctx.stroke()
-        # self.ctx.stroke_preserve()
+        if close:
+            self.ctx.close_path()
+        if preserve:
+            self.ctx.stroke_preserve()
+            self.ctx.new_path()
+        else:
+            self.ctx.stroke()
+        return "", True
 
     def move_line_to(self, cmd: PdfOperator):
         x, y = cmd.args
         self.ctx.move_to(x, y)
         self.state.position = [x, x]
+        return "", True
 
     def draw_line_to(self, cmd: PdfOperator):
         x, y = cmd.args
         self.ctx.line_to(x, y)
         self.state.position = [x, y]
+        return "", True
 
     def draw_rectangle(self, cmd: PdfOperator):
         x, y, width, height = cmd.args
         self.ctx.rectangle(x, y, width, height)
-
-    def fill_path(self, cmd: PdfOperator) -> None:
-        """Fill the current path using Cairo."""
-        fill_rule = cairo.FILL_RULE_WINDING
-        self.ctx.set_fill_rule(fill_rule)
-        self.ctx.set_source_rgb(*self.state.fill_color)
-        self.ctx.fill()
+        return "", True
 
     PRINTABLE = string.ascii_letters + string.digits + string.punctuation + " "
 
@@ -394,6 +533,13 @@ class BaseRenderer:
         )
 
     def draw_inline_image(self, cmd: PdfOperator):
+        color_cs = self.state.inline_image_color_space
+        if color_cs not in self.state.DEVICE_CS:
+            print("trying to draw image with non-spported color-spcae")
+            return "", True
+            raise Exception(
+                "trying to draw image with non-spported color-spcae"
+            )
         data = self.state.inline_image_data
         width = self.state.inline_image_width
         height = self.state.inline_image_height
@@ -406,7 +552,7 @@ class BaseRenderer:
 
         if is_mask and bits_per_component == 1:
             fill_color = self.state.fill_color
-            r, g, b = [int(c * 255) for c in fill_color]
+            r, g, b = [int(c) for c in fill_color]
 
             for y in range(height):
                 for x in range(width):
@@ -429,7 +575,9 @@ class BaseRenderer:
                             surface_data[idx + 3] = 0  # Alpha (transparent)
         else:
             # Handle regular image case
+
             bytes_per_pixel = bits_per_component // 8
+
             if bytes_per_pixel == 0:
                 bytes_per_pixel = 1
 
@@ -440,33 +588,65 @@ class BaseRenderer:
 
                     if idx_in + bytes_per_pixel <= len(data):
                         # Read pixel value based on bits_per_component
-                        if bits_per_component <= 8:
-                            pixel = data[idx_in]
-                            pixel = (pixel * 255) // (
-                                (1 << bits_per_component) - 1
-                            )
-                            # Grayscale
-                            surface_data[idx_out] = pixel  # Blue
-                            surface_data[idx_out + 1] = pixel  # Green
-                            surface_data[idx_out + 2] = pixel  # Red
-                            surface_data[idx_out + 3] = 255  # Alpha
+                        if (
+                            bits_per_component <= 8
+                        ):  # assume that its always == 8 (< 8 not supported)
+                            if color_cs == "/DeviceGray":
+                                pixel = data[idx_in]
+                                pixel = (pixel * 255) // (
+                                    (1 << bits_per_component) - 1
+                                )
+                                surface_data[idx_out] = pixel  # Blue
+                                surface_data[idx_out + 1] = pixel  # Green
+                                surface_data[idx_out + 2] = pixel  # Red
+                                surface_data[idx_out + 3] = 255  # Alpha
+                            elif color_cs == "/DeviceRGB":
+                                # TODO: extract the 3 values r,g,b from the single byte
+                                pass
+
+                            elif color_cs == "/DeviceCMYK":
+                                # TODO: extract the 4 values c,m,y,k from the single byte
+                                pass
+
+                            else:
+                                raise Exception("Why are you here !!!")
                         else:
-                            # RGB data
-                            r = data[idx_in]
-                            g = (
-                                data[idx_in + 1]
-                                if idx_in + 1 < len(data)
-                                else 0
-                            )
-                            b = (
-                                data[idx_in + 2]
-                                if idx_in + 2 < len(data)
-                                else 0
-                            )
-                            surface_data[idx_out] = b  # Blue
-                            surface_data[idx_out + 1] = g  # Green
-                            surface_data[idx_out + 2] = r  # Red
-                            surface_data[idx_out + 3] = 255  # Alpha
+                            if color_cs == "/DeviceGray":
+                                raise Exception("Why are you here !!!")
+                            else:
+                                r = data[idx_in]
+                                g = (
+                                    data[idx_in + 1]
+                                    if idx_in + 1 < len(data)
+                                    else self.raise_exception(
+                                        "missing g/m value"
+                                    )
+                                )
+                                b = (
+                                    data[idx_in + 2]
+                                    if idx_in + 2 < len(data)
+                                    else self.raise_exception(
+                                        "missing b/y value"
+                                    )
+                                    # else 0
+                                )
+                                if color_cs == "/DeviceRGB":
+                                    surface_data[idx_out] = b  # Blue
+                                    surface_data[idx_out + 1] = g  # Green
+                                    surface_data[idx_out + 2] = r  # Red
+                                    surface_data[idx_out + 3] = 255  # Alpha
+                                elif color_cs == "/DeviceCMYK":
+                                    c, m, y = r, g, b
+                                    k = (
+                                        data[idx_in + 3]
+                                        if idx_in + 3 < len(data)
+                                        else self.raise_exception(
+                                            "missing k value"
+                                        )
+                                    )
+
+                    else:
+                        raise Exception("Exceeded image boundaries !!")
         surface.mark_dirty()
 
         x, y = self.state.position
@@ -489,39 +669,31 @@ class BaseRenderer:
         self.ctx.restore()
         surface.finish()
 
+        return "", True
+
+    def raise_exception(self, msg):
+        raise Exception(msg)
+
     def sync_matrix(self):
         """Sync Cairo's CTM with the current PDF state matrix"""
         current_matrix = self.state.get_current_matrix()
         # self.ctx.identity_matrix()
         self.ctx.set_matrix(current_matrix)
 
-    def execute_command(self, cmd: PdfOperator):
+    def sync_color(
+        self,
+    ):
+        pass
 
-        if cmd.name in self.state.do_sync_after:
-            self.sync_matrix()
+    def execute_command(self, cmd: PdfOperator):
+        for ops, sfunc in self.sync_functions_map:
+            if cmd.name in ops:
+                sfunc()
         func = self.functions_map.get(cmd.name)
         if func:
-            func(cmd)
-
-    # def kill_with_taskkill(self):
-    #     """Use Windows’ native taskkill (works from Windows or WSL)."""
-    #     TARGET = "i_view64.exe"
-    #     cmd = ["taskkill.exe", "/IM", TARGET, "/F"]
-    #     subprocess.run(
-    #         cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
-    #     )
-
-    # def open_image_in_irfan(self, img_path):
-    #     c_prefix = "C:" if os.name == "nt" else "/mnt/c"
-    #     png_full_path = "\\\\wsl.localhost\\Ubuntu" + os.path.abspath(img_path)
-    #     if os.name != "nt":  # Windows
-    #         png_full_path = png_full_path.replace("/", "\\")
-    #     subprocess.Popen(
-    #         args=[
-    #             f"{c_prefix}{SEP}Program Files{SEP}IrfanView{SEP}i_view64.exe",
-    #             png_full_path,
-    #         ]
-    #     )
+            return func(cmd)
+        else:
+            return "", False
 
     def save_to_png(self, filename: str) -> None:
         """Save the rendered content to a PNG file."""
@@ -531,5 +703,3 @@ class BaseRenderer:
         # open_image_in_irfan(filename)
         # input("Press Enter to continue...")
         # kill_with_taskkill()
-
-    # regex = r"(?:^|[^\\])\\(?P<symbol>\d{3})"

@@ -38,7 +38,11 @@ else:
 class PdfFont:
 
     def __init__(
-        self, font_name: str, font_object: PdfObject | None, reader: PdfReader
+        self,
+        font_name: str,
+        font_object: PdfObject | None,
+        reader: PdfReader,
+        depth: int,
     ) -> None:
 
         if font_object is None:
@@ -127,14 +131,7 @@ class PdfFont:
             self.diff_map = {}
 
         self.temp_dir = "temp"
-        font_path = (
-            self.temp_dir
-            + sep
-            + font_name
-            + "_"
-            + str(self.first_char)
-            + ".ttf"
-        )
+        font_path = self.temp_dir + sep + font_name + "_" + str(depth) + ".ttf"
         self.font_path = font_path
         if not os.path.exists(self.temp_dir):
             os.mkdir(self.temp_dir)
@@ -398,10 +395,9 @@ class PdfFont:
             return self.widths
         if not self.is_composite:
             if char_code >= self.first_char and char_code <= self.last_char:
-                return (
-                    self.widths[char_code - self.first_char]
-                    or self.missing_width
-                )
+                width = self.widths[char_code - self.first_char]
+                return width if (width is not None) else self.missing_widthk
+
             else:
                 return None
                 raise Exception(
@@ -453,11 +449,14 @@ class PdfFont:
                 y = y + 50
                 pen_x = 20
                 prefix = "\n"
+            if y > 1000:
+                break
             if self.is_composite:
                 if gid_or_unic == " ":
                     gid_or_unic = "Space"
                 print(f"{prefix}{gid_or_unic:7}", end=" ")
                 gid = cid
+
             else:
                 o = chr(cid)
                 if o == " ":
