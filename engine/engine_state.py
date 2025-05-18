@@ -814,10 +814,10 @@ class EngineState:
 
         args = command.args
 
-        # if args[0] == 0.0:
-        #     args[0] = 0.000000001  # self.scale  #
-        # if args[3] == 0.0:
-        #     args[3] = 0.0000000001  # self.scale
+        if args[0] == 0.0:
+            args[0] = 0.000000001  # self.scale  #
+        if args[3] == 0.0:
+            args[3] = 0.0000000001  # self.scale
 
         new_ctm_matrix = Matrix(*args)
         updated_matrix = new_ctm_matrix.multiply(self.cm_matrix)

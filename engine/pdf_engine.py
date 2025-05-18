@@ -148,7 +148,9 @@ class PdfEngine:
             self.debug_original_stream()
             raise Exception("no data found in this pdf !!!")
         streams_data = [pnc.bytes_to_string(data) for data in streams_data]
-        self.current_stream = "\n".join(streams_data)
+        self.current_stream = (
+            "".join(streams_data).encode("latin1").decode("unicode_escape")
+        )
         return self
 
     def get_page_stream_data(self, page):

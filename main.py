@@ -29,10 +29,8 @@ import os
 import random as rand
 
 if os.name == "nt":  # Windows
-    ansi = "ansi"
     d_drive = "D:"
 else:
-    ansi = "iso_8859_1"
     d_drive = "/mnt/d"
 
 igcse_path = f"{d_drive}{sep}Drive{sep}IGCSE"
@@ -180,7 +178,9 @@ class CmdArgs:
     def get_test_years(self):
 
         gr = self.group
-        if gr == "latest":
+        if gr == "all":
+            year = [i for i in range(11, 24)]
+        elif gr == "latest":
             year = [23]
         elif "oldest" in gr:
             last = int(gr[-1]) if gr[-1].isdigit() else 0
@@ -194,8 +194,6 @@ class CmdArgs:
             year = [i for i in range(23, 10, -int(period))]
         elif gr == "random":
             all = [i for i in range(11, 24)]
-            # year = []
-            # for i in range(6):
             year = rand.sample(all, k=6)
         elif gr.startswith("year"):
             ye = gr[4:]
@@ -281,6 +279,8 @@ class CmdArgs:
                 "font-show",
                 "font-missing",
                 "parser",
+                "renderer-show",
+                "renderer-silent",
                 "questions-count",
                 "questions-match",
             ],
@@ -300,6 +300,7 @@ class CmdArgs:
             "gap4",
             "gap6",
             "random",
+            "all",
         ] + years
         test.add_argument(
             "--group",
@@ -334,6 +335,7 @@ def do_tests(args: CmdArgs):
         "list": do_list,
         "font-show": do_test_font,
         "font-missing": lambda x: do_test_font(x, "missing"),
+        "renderer-silent": do_test_renderer,
         "parser": do_test_parser,
         "questions-count": lambda x: do_test_question(x, True),
         "questions-match": (lambda x: do_test_question(x, False)),
@@ -376,7 +378,6 @@ def do_test_font(args: CmdArgs, t_type: str = "show"):
         args.max_tj = 4000
         engine.initialize_file(pdf[1])
         args.set_engine(engine)
-        # bad_pages[pdf[1]] = []
         cur_range = args.pages or range(1, args.page_count + 1)
         for page in cur_range:
             try:
@@ -399,9 +400,68 @@ def do_test_font(args: CmdArgs, t_type: str = "show"):
 
 def do_test_parser(args: CmdArgs):
 
+    print("************* Testing Parser ****************\n\n")
     engine: PdfEngine = PdfEngine(scaling=4, debug=True, clean=False)
     errors_dict = {}
-    bad_pages: dict[str, list[int]] = []
+    exception_stats = {}  # defaultdict(lambda: (0, "empty", []))
+    total_pages = 0
+    total_passed = 0
+    stop = False
+    all_locations = []
+    for pdf in tqdm.tqdm(args.data):
+        if stop:
+            break
+        args.curr_file = pdf[1]
+        args.max_tj = 4000
+        engine.initialize_file(pdf[1])
+        args.set_engine(engine)
+        for page in range(1, args.page_count + 1):
+            total_pages += 1
+            try:
+                engine.perpare_page_stream(page, QuestionRenderer)
+                engine.debug_original_stream()
+                total_passed += 1
+            except Exception as e:
+                exception_key = get_exception_key(e)
+                location = f"{pdf[1]}:{page}"
+                print(f"Error: {location}")
+                all_locations.append(location)
+                if exception_key not in exception_stats:
+                    full_traceback = traceback.format_exc()
+                    exception_stats[exception_key] = {
+                        "count": 1,
+                        "msg": full_traceback,
+                        "location": [location],
+                    }
+                else:
+                    exception_stats[exception_key]["count"] += 1
+                    exception_stats[exception_key]["location"].append(location)
+
+                if args.pause:
+                    stop = True
+                    break
+    print("\n**********************************")
+    print("Total number of Pages = ", total_pages)
+    print("Passt percent", round(total_passed / total_pages * 100), "%")
+
+    for key, value in exception_stats.items():
+        print("\n**********************************\n")
+        print(key)
+        print("count = ", value["count"])
+        print("percent = ", round(value["count"] / total_pages * 100), "%")
+        print(value["msg"])
+        print(value["location"])
+        print("\n\n\n")
+
+    pprint.pprint(all_locations)
+    with open(f"output{sep}fix_list.txt", "w", encoding="utf-8") as f:
+        f.write("\n".join(all_locations))
+
+
+def do_test_renderer(args: CmdArgs):
+
+    engine: PdfEngine = PdfEngine(scaling=4, debug=True, clean=False)
+    errors_dict = {}
     exception_stats = {}  # defaultdict(lambda: (0, "empty", []))
     total_pages = 0
     total_passed = 0
@@ -413,7 +473,6 @@ def do_test_parser(args: CmdArgs):
         args.max_tj = 4000
         engine.initialize_file(pdf[1])
         args.set_engine(engine)
-        # bad_pages[pdf[1]] = []
         for page in range(1, args.page_count + 1):
             total_pages += 1
             try:
@@ -424,7 +483,6 @@ def do_test_parser(args: CmdArgs):
                 )
                 total_passed += 1
             except Exception as e:
-                # bad_pages[pdf[1]] = []
                 exception_key = get_exception_key(e)
                 location = f"{pdf[1]}:{page}"
                 print(f"Error: {location}")

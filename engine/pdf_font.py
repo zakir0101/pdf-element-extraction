@@ -5,7 +5,6 @@ import platform
 import re
 import subprocess
 from .pdf_encoding import PdfEncoding as pnc
-
 from typing import Callable, Tuple
 import cairo
 import json
@@ -90,6 +89,7 @@ class PdfFont:
         # ************* DiFF map ***********************
         # ---------
         self.diff_map = self.create_diff_map_dict(font_dict)
+        # print(self.diff_map)
 
         # ************* ToUnicode Map *******************
         # ----------
@@ -149,9 +149,6 @@ class PdfFont:
             self.font_family = "Sans"
             self.font_style = None
             self.set_font_style_and_family()
-            # print(
-            #     f"FONT:\nfamily:{self.font_family}, style: {self.font_style}\nNo File Found\n\n"
-            # )
             self.slant = cairo.FONT_SLANT_NORMAL
             self.weight = cairo.FONT_WEIGHT_NORMAL
             self.setup_cairo_toy_font()
@@ -262,31 +259,10 @@ class PdfFont:
     def load_type3_font_data(self, font_dict):
         proc = self.char_procs
         self.base_font = "/Type3"
-        print("tpye3 found")
         if len(proc.keys()) > 1 or "/space" not in proc:
             """for testing purposes"""
             print(proc)
             raise Exception("None-Empty Type3 font")
-
-    def find_and_load_system_fonts(self):
-        base_font = self.base_font
-        if "MT" in base_font:
-            try:
-                font_path = self.map_pdf_font(base_font).__str__()
-                print("MT: subsittute font_path", font_path)
-                not_found = False
-            except:
-                print("no MT")
-        if not_found:
-            font_files = self.get_all_system_font_names()
-            print("# system fonts list:")
-            print(font_files)
-            patterns, base, style = self._style_patterns(base_font)
-            for pat in patterns:
-                font_paths = self.find_system_font(pattern=pat)
-                print(f"subsittute font_path for pat {pat}", font_path)
-                # for match in
-                # if self._is_best_match(font_path[0])
 
     def load_type1_type0_font_data(self, font_dict, reader):
         # print(font_dict)
@@ -338,24 +314,32 @@ class PdfFont:
 
     def select_char_map_for_font(self):
         if not self.is_type0:
-            for enc in ENC_LIST:
-                try:
-                    self.ft_face.select_charmap(enc)
-                    self.ft_encoding = enc
-                    break
-                except Exception as e:
-                    pass
-            if self.ft_encoding is None:
-                self.ft_face.set_charmap(self.ft_face.charmaps[0])
-                self.ft_encoding = self.ft_face.charmap.encoding
-            self.has_char_map = True
-
+            try:
+                # for enc in ENC_LIST:
+                #     try:
+                #         self.ft_face.select_charmap(enc)
+                #         self.ft_encoding = enc
+                #         break
+                #     except Exception as e:
+                #         pass
+                if self.ft_encoding is None:
+                    self.ft_face.set_charmap(self.ft_face.charmaps[0])
+                    self.ft_encoding = self.ft_face.charmap.encoding
+                self.has_char_map = True
+            except Exception as e:
+                print(e)
+                print(
+                    f"could not select cmap for font {self.font_name}: {self.base_font} "
+                )
+                self.ft_encoding = None
         else:
             self.ft_encoding = None
 
     def is_char_code_valid(self, cid):
         if self.valid_ranges is None:
-            return False
+            if self.default_width or self.missing_width:
+                return True  # just for safty
+
         for start, end in self.valid_ranges:
             if start <= cid <= end:
                 return True
@@ -364,7 +348,7 @@ class PdfFont:
     def create_tounicode_map_dict(self, font_dict):
 
         if "/ToUnicode" not in font_dict:
-            return {}, (-1, -1)
+            return {}, None
         tounicode = font_dict["/ToUnicode"]
         data = tounicode.get_data().decode("utf-8")
         self.cmap_data = data
@@ -412,7 +396,7 @@ class PdfFont:
                         )
                     i += 9  # Skip '<', start, '>', '<', end, '>', '<', uni_start, '>'
             i += 1
-        return cid_map, codespace_ranges
+        return cid_map, codespace_ranges or None
 
     def tokenize_cmap(self, data):
         tokens = []
@@ -444,7 +428,15 @@ class PdfFont:
         char_to_gid = {}
         symbol_to_gid = {}
         code_to_gid = {}
-        for cp, raw_gid in self.ft_face.get_chars():  # iterate the cmap
+        if "T1_1" in self.font_name:
+            for cmap in self.ft_face.charmaps:
+                print(cmap.encoding)
+        # self.ft_face.set_charmap(cmap)
+
+        for (
+            cp,
+            raw_gid,
+        ) in self.ft_face.get_chars():  # iterate the cmap
 
             if raw_gid == 0:
                 continue
@@ -452,10 +444,12 @@ class PdfFont:
             code_to_gid[cp] = raw_gid
             gname0 = self.diff_map.get(cp, "").replace("/", "")
 
-            if gname0:
-                is_symbole = True
-                symbol_to_gid[gname0] = raw_gid
-                continue
+            # if gname0:
+            #     symbol_to_gid[gname0] = raw_gid
+            #     continue
+
+            # if "T1_4" in self.font_name:
+            #     print("+++", gname0, cp, raw_gid)
 
             gname = None
             if self.ft_face._has_glyph_names():
@@ -464,6 +458,8 @@ class PdfFont:
                     gname = pnc.bytes_to_string(gname)
                 except Exception:
                     gname = ""
+            elif gname0:
+                gname = gname0
             elif not gname:
                 gname = self.get_symbol_name_from_char_code(cp)
 
@@ -471,7 +467,10 @@ class PdfFont:
                 symbol_to_gid[gname] = raw_gid
             if cp <= 255:
                 char = pnc.int_to_char(cp)
-                if char_to_gid.get(char) is not None:
+                if (
+                    char_to_gid.get(char) is not None
+                    and char_to_gid.get(char) != raw_gid
+                ):
                     raise Exception("2 code with same char representation")
                 char_to_gid[char] = raw_gid
 
@@ -508,6 +507,8 @@ class PdfFont:
     ) -> Tuple[int, int]:
         if char is not None:
             char_code = pnc.char_to_int(char)
+            # char_name = UV2AGL.get(char_code,None)
+            # if char_name and self.dif
         elif self.use_toy_font or not self.is_type0:
             symbol = symbol.lstrip("\\")
             char_code = int(symbol, 8)
@@ -629,7 +630,6 @@ class PdfFont:
             if width is None and self.is_char_code_valid(char_code):
                 width = self.default_width
             return width
-            # return width if (width is not None) else self.default_width
 
     def get_glyph_id_from_char_code(self, char_code: int, is_symbol: bool):
         symbol_name = None
@@ -644,6 +644,27 @@ class PdfFont:
                 glyph_id = self.symbol_to_gid.get(symbol_name)
             else:
                 glyph_id = self.cid_to_gid.get(char_code)
+                symbol_name = self.diff_map.get(char_code, "")
+                if glyph_id is None:
+                    glyph_id = self.symbol_to_gid.get(symbol_name)
+
+                if char_code == 55:
+                    print("+++, 7 (ord=55)=", glyph_id)
+
+            if glyph_id is None and symbol_name:
+                c_ids: list[int] = list(self.diff_map.keys())
+                char_index = c_ids.index(char_code)
+                for i, ch_code in enumerate(reversed(c_ids[:char_index])):
+                    ch_glyph_id = self.cid_to_gid.get(ch_code)
+                    if ch_glyph_id:
+                        print(
+                            f"+++ found glyph_id={ch_glyph_id}, for ch_code={ch_code}"
+                        )
+                        glyph_id = ch_glyph_id + i + 1
+                        break
+
+            if glyph_id is None:
+                glyph_id = char_code
 
         return glyph_id, symbol_name
 
@@ -768,8 +789,6 @@ class PdfFont:
                 self.char_to_gid,
                 self.symbol_to_gid,
             ) = self.create_glyph_map_dicts(self.font_path)
-        # self.use_toy_font = True
-        # self.adjust_glyph_width = True
         pass
 
     FONT_SUBSTITUTION_MAP = {
@@ -788,6 +807,7 @@ class PdfFont:
         "/Helvetica-Oblique": "LiberationSans-Italic.ttf",  # Using Italic for Oblique
         # Arial Family -> Liberation Sans
         "/ArialMT": "LiberationSans-Regular.ttf",
+        "/Arial": "LiberationSans-Regular.ttf",  # Explicitly adding /Arial
         "/Arial-ItalicMT": "LiberationSans-Italic.ttf",
         "/Arial-BoldMT": "LiberationSans-Bold.ttf",
         # Courier Family -> Liberation Mono
@@ -798,118 +818,3 @@ class PdfFont:
         # Symbol Family -> OpenSymbol
         "/Symbol": "OpenSymbol.ttf",
     }
-
-    def find_all_system_font(self, pattern) -> str:
-        """Find font file path on Windows/Linux/macOS"""
-        font_name = pattern.replace("-", " ").replace("MT", "").strip()
-        if platform.system() == "Linux":
-            return self._find_linux_font(font_name)
-        elif platform.system() == "Windows":
-            return self._find_windows_font(font_name)
-        else:  # macOS
-            raise Exception("No MaxOS")
-
-    def _find_linux_font(self, font_name_pa: str) -> str:
-        try:
-            result = subprocess.check_output(
-                ["fc-match", "-all"],
-                stderr=subprocess.DEVNULL,
-                text=True,
-            )
-            res = result.strip()
-            if not res:
-                raise
-            f_list = res.split("\n")
-            f_list = [(f, os.path.basename(f)) for f in f_list]
-            self.SYSTEM_FONTS = f_list
-        except (subprocess.CalledProcessError, FileNotFoundError):
-            raise Exception("Problem finding system fonts : LInux")
-            return self._fallback_font_linux()
-
-    def _find_windows_font(self, font_name: str) -> str:
-        import winreg  # Windows only
-
-        try:
-            f_list = []
-            with winreg.OpenKey(
-                winreg.HKEY_LOCAL_MACHINE,
-                r"Software\Microsoft\Windows NT\CurrentVersion\Fonts",
-            ) as key:
-                for i in range(winreg.QueryInfoKey(key)[1]):
-                    name, value, _ = winreg.EnumValue(key, i)
-                    if font_name.lower() in name.lower():
-                        font_path = Path(r"C:\Windows\Fonts") / value
-                        if font_path.exists():
-                            f_list.append((value, font_path))
-
-                if len(f_list) == 0:
-                    raise Exception()
-                self.SYSTEM_FONTS = f_list
-        except Exception:
-            raise Exception("Problem finding system fonts : Windows")
-
-    def map_pdf_font(self, pdf_font_name: str) -> Path:
-        """
-        Maps PDF font names like '/Arial-BoldMT' to physical font files
-        Handles various MT font styles and naming variations
-        """
-        patterns, base, style = self._style_patterns(pdf_font_name)
-
-        for pattern in patterns:
-            for f in self.FONT_DIR.glob(pattern):
-                print(f)
-                if self._is_best_match(f.stem, style):
-
-                    return f
-        raise FileNotFoundError(f"No font found for {pdf_font_name}")
-
-    def _style_patterns(
-        self,
-    ) -> str:
-        """Handle common style variations"""
-        # clean_name = (
-        #     pdf_font_name.lstrip("/")
-        #     .replace("MT", "")
-        #     .replace("-", "")
-        #     .upper()
-        # )
-        # base_match = re.match(r"^(ARIAL|ARIALROUNDED)(.*?)(MT)?$", clean_name)
-        # if not base_match:
-        #     raise ValueError(f"Unrecognized font format: {pdf_font_name}")
-        # base, style, _ = base_match.groups()
-        base, style = self.font_family, self.font_style
-        style = style or "REGULAR"
-        alternatives = {
-            "BOLD": [
-                "BOLD",
-                "BD",
-            ],  # "BLACK"],
-            "ITALIC": ["ITALIC", "IT"],
-            "BOLDITALIC": ["BOLDITALIC", "BI", "BOLDIT"],
-            "LIGHT": ["LIGHT", "LGT"],
-            "MEDIUM": ["MEDIUM", "MED"],
-            "EXTRABOLD": ["EXTRABOLD", "XBD"],
-            "NARROW": ["NARROW", "NAR"],
-            "ROUNDED": ["ROUNDED", "RND"],
-            "REGULAR": ["MEDIUM", "NORMAL"],
-        }
-        alt = alternatives.get(style, ["DONT_MATCH_ME"])
-
-        orig_1 = [f"{base}*{style}.?TF"]
-        alt_list0 = [f"{base}*{a_style}.?TF" for a_style in alt]
-        alt_list1 = [f"{base}*{a_style}.?TF" for a_style in alt]
-
-        # orig_2 = [f"{base}MT{style}*.?TF"]
-        # alt_list2 = [f"{base}{a_style}*.?TF" for a_style in alt]
-        # alt_list3 = [f"{base}MT{a_style}*.?TF" for a_style in alt]
-
-        return (orig_1 + alt_list0 + alt_list1), base, style
-
-    def _is_best_match(self, filename: str, target_style: str) -> bool:
-        """Prioritize exact style matches"""
-        clean_fn = filename.upper().replace("MT", "")
-        return (
-            # target_style in clean_fn
-            "NARROW" not in clean_fn  # Avoid narrow unless specified
-            and "ROUNDED" not in clean_fn  # Avoid rounded unless specified
-        )

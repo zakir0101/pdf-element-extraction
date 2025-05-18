@@ -326,7 +326,7 @@ class BaseRenderer:
                     char_or: re.Match = char_or
                     if font.is_type0 and char_or.group("symbol"):
                         if i % 2 == 1:
-                            glyph_id, char_width, char = (
+                            glyph_id, char_width, char, is_symbole = (
                                 self.get_glyph_id_for_char(char_or, last_char)
                             )
                             last_char = None
@@ -334,7 +334,7 @@ class BaseRenderer:
                             last_char = char_or
                             continue
                     else:
-                        glyph_id, char_width, char = (
+                        glyph_id, char_width, char, is_symbole = (
                             self.get_glyph_id_for_char(char_or, None)
                         )
 
@@ -342,12 +342,12 @@ class BaseRenderer:
                         # print(f"glyph is None for char:{char}")
                         continue
 
-                    if char == " ":
+                    if char == " " and not is_symbole:
                         # self.output.write("space found!\n")
                         x += word_spacing
 
-                    if not is_prev_element_number_or_none:
-                        x += default_char_spacing
+                    # if not is_prev_element_number_or_none:
+                    #     x += default_char_spacing
 
                     # if font.is_type3:
                     #     x += char_width
@@ -365,9 +365,9 @@ class BaseRenderer:
                     x0, y0 = m_c.transform_point(x, y)
                     w, h = m_c.transform_distance(char_width, char_width)
                     char_array.append(Symbol(char, x0, y0, w, h))
-                    x += char_width  # + default_char_spacing
+                    x += char_width + default_char_spacing
 
-                    is_prev_element_number_or_none = False
+                    # is_prev_element_number_or_none = False
             else:
                 raise ValueError("Invalid text element")
 
@@ -440,7 +440,7 @@ class BaseRenderer:
             raise Exception("char width is None")
 
         char_width = self.state.convert_em_to_ts(char_width)
-        return glyph_id, char_width, char
+        return glyph_id, char_width, char, is_symbol
 
     def draw_glyph_array_old(self, glyph_array):
         self.ctx.save()

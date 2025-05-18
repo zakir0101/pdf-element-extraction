@@ -629,10 +629,10 @@ class QuestionDetector(BaseDetector):
         else:
             d0 = self.height * 0.01
 
-        segments = get_segments(surface, 0, self.height, d0, factor=0.5)
-        # if args.clean:
-        # else:
-        #     segments = [(0, self.height, d0)]
+        if args.type == "questions":
+            segments = get_segments(surface, 0, self.height, d0, factor=0.5)
+        else:
+            segments = [(0, self.height, d0)]
 
         out_height += sum(seg_h + 2 * d2 for _, seg_h, d2 in segments)
         out_height += 2 * d0

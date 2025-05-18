@@ -11,21 +11,26 @@ class PDFStreamParser:
     def __init__(self):
         OR = "|"
         NOT_ESCAPE = r"(?:[^\\]|[^\\](?:\\{2})+)"
-        self.STRING_REGEX = (
-            r"(?:\((?P<string>(?:.*?" + NOT_ESCAPE + r"))(?=\)))"
-        )
-        #  r"(?:\((?P<string>(?:.*?[^\\]))(?=\)))|"
-        self.NUMBER_REGEX = r"(?:(?:(?<=[^_\-\n\d\.])|^)(?P<number>[\d.]+))|(?P<numberO>-[\d.]+)"
+
         self.HEX_REGEX = r"<(?P<hex>[0-9a-fA-F]+)>"
         self.NAME_REGEX = r"(?P<name>/\S+)"
+        self.STRING_REGEX = (
+            r"(?:\((?P<string>(?:.*?" + NOT_ESCAPE + r"))(?:\)))"
+        )
+        self.EMPTY_STRING_REGEX = r"\((?P<stringO>)(?:\))"
+        #  r"(?:\((?P<string>(?:.*?[^\\]))(?=\)))|"
+        self.NUMBER_REGEX = r"(?:(?:(?<=[^_\-\n\d\.])|^)(?P<number>[\d.]+))|(?P<numberO>-[\d.]+)"
+        """
+<(?P<hex>[0-9a-fA-F]+)>|(?P<name>/\S+)|\((?P<stringO>)(?:\))|(?:\((?P<string>(?:.*?(?:[^\\]|[^\\](?:\\{2})+)))(?:\)))|(?:(?:(?<=[^_\-\n\d\.])|^)(?P<number>(?:-)?[\d.]+))
+        """
         self.PRIMATIVE_REGEX = (
             self.HEX_REGEX
             + OR
             + self.NAME_REGEX
             + OR
-            + r"\((?P<stringO>)(?=\))"
-            + OR
             + self.STRING_REGEX
+            + OR
+            + self.EMPTY_STRING_REGEX
             + OR
             + self.NUMBER_REGEX
         )
@@ -87,7 +92,7 @@ class PDFStreamParser:
             raise ValueError("No tokens to parse")
 
         arguements = []
-        for token in self.tokens:
+        for idx, token in enumerate(self.tokens):
             if isinstance(token, bool):
                 arguements.append(token)
                 continue
@@ -107,6 +112,13 @@ class PDFStreamParser:
                 yield command
             else:
                 print("----", token)
+                mi = max(idx - 10, 0)
+                ma = min(idx + 10, len(self.tokens))
+                token_range = self.tokens[mi:ma]
+                token_resolved = [
+                    (self.variables_dict.get(s) or s) for s in token_range
+                ]
+                print("prev_token", token_resolved)
                 raise Exception("----" + token)
         self.tokens = []
 
@@ -128,8 +140,12 @@ class PDFStreamParser:
         self.arrays_counter = 0
         self.primatives_counter = 0
 
-        lines_list = lines.replace("\\\r", "").split(
-            "\n"
+        # TODO: user regex to fetch all \t\n\r\b and replace them with the actual control char
+        lines_list = (
+            lines
+            # .replace("\\b", "\b")
+            # .replace("\\t", "\t")
+            .replace("\\\r", "").split("\n")
         )  # lines.replace("\\\r", "")
         i = 0
         prev_line = ""
