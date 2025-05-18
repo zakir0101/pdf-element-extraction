@@ -40,7 +40,7 @@ class EngineState:
     }
 
     PRINTABLE = string.ascii_letters + string.digits + string.punctuation + " "
-    MAX_X_DEPTH = 4
+    MAX_X_DEPTH = 10
 
     DEVICE_CS = ["/DeviceGray", "/DeviceRGB", "/DeviceCMYK"]
     CIE_CS = ["/CalGray", "/CalRGB", "/Lab", "/ICCBased"]
@@ -67,6 +67,7 @@ class EngineState:
         xobj: dict[str, Any],
         initial_state: dict | None,
         execute_xobject_stream: callable,
+        stream_name: str,
         draw_image: callable,
         scale: int,
         screen_height: int = 0,
@@ -87,6 +88,7 @@ class EngineState:
         self.exgstate = exgstat
         self.xobj = xobj
         self.execute_xobject_stream = execute_xobject_stream
+        self.stream_name = stream_name
         self.draw_image = draw_image
         self.scale = scale
         self.screen_height = screen_height * scale
@@ -120,7 +122,7 @@ class EngineState:
         self.color_space_stroke = None
         self.color_space_fill = None
         self.stroke_color = [0.0, 0.0, 0.0]
-        self.fill_color = [1.0, 1.0, 1.0]
+        self.fill_color = [0.0, 0.0, 0.0]
 
         # ************* drawing/shapes variables *****************
         self.line_width: float = 1.0
@@ -150,6 +152,8 @@ class EngineState:
 
         # ************** OTHERS *********************
         self.text_rendering_mode = 0  # Default: Fill text
+        # ************** Debuging *******************
+        self.missing_font_count = 0
 
         # *
         # **
@@ -176,6 +180,7 @@ class EngineState:
             "TD": self.set_text_position_and_leading,
             "T*": self.move_with_leading,
             "TJ": self.clear_text_position_after_tj,
+            "Tj": self.updata_missing_font_count,
             "'": self.move_with_leading,
             '"': self.move_with_leading_and_spacing,
             # font and text
@@ -201,7 +206,7 @@ class EngineState:
             "/F": self.set_inline_image_filter,
             "/IM": self.set_inline_image_mask,
             "ID": self.decode_inline_image,
-            "EI": lambda _: (None, True),
+            "EI": self.end_inline_image,  # lambda _: (None, True),
             # -------------------
             # Color Operators
             "cs": lambda x: self.set_color_space(x, True),
@@ -217,6 +222,11 @@ class EngineState:
             "scn": lambda x: self.set_color(x, True, None),
             "SCN": lambda x: self.set_color(x, False, None),
             # ---- ---------
+            # Unkown Operatorso
+            "BX": lambda x: ("", True),
+            "EX": lambda x: ("", True),
+            "sh": self.handle_sh_operator,
+            # ---- ---------
             # Path  Construction
             # cairo only
             # "m" : self.move_position,
@@ -226,8 +236,8 @@ class EngineState:
             # "c": self.curve_to,
         }
 
-    def get_alternative_color_space(self, device0: list):
-        pass
+    def handle_sh_operator(self, command: PdfOperator):
+        return "", True
 
     def set_color_space(
         self, command: PdfOperator, is_fill: bool, is_image: bool = False
@@ -349,9 +359,13 @@ class EngineState:
         subtype = xobj.get("/Subtype")
 
         if subtype == "/Image":
+            return "", True
             self._draw_image_xobject(xobj)
         elif subtype == "/Form":
-            self._draw_form_xobject(xobj)
+            if xobj_name == self.stream_name:
+                print("skipping recursive xobject stream !")
+                return "", True
+            self._draw_form_xobject(xobj, xobj_name)
         else:
             print(f"Unsupported XObject type: {subtype}")
 
@@ -401,7 +415,7 @@ class EngineState:
     def _copy_matrix(self, m: Matrix):
         return Matrix(m.xx, m.yx, m.xy, m.yy, m.x0, m.y0)
 
-    def _draw_form_xobject(self, xobj):
+    def _draw_form_xobject(self, xobj, xobj_name):
         # Save graphics state
 
         new_depth = self.depth + 1
@@ -428,25 +442,20 @@ class EngineState:
         merged_resources = self._merge_resources(form_resources)
 
         # Process form content stream
-        content = xobj["/Filter"]  # .decode(xobj.get_stream())
         filters = xobj.get("/Filter", [])
         data = xobj.get_data()
         stream = pnc.bytes_to_string(data)
         self.execute_xobject_stream(
-            stream, initial_state, merged_resources, new_depth
+            stream, initial_state, merged_resources, new_depth, xobj_name
         )
 
         self.ctx.restore()
         # self.restore_state(None)
 
     def _draw_image_xobject(self, xobj):
-        # Get image data
-        pprint.pprint(xobj)
-        # print(xobj.get_data())
-        # return
 
-        self.ctx.save()
-        self.save_state(None)
+        # self.ctx.save()
+        # self.save_state(None)
 
         self.inline_image_width = int(xobj["/Width"])
         self.inline_image_height = int(xobj["/Height"])
@@ -459,32 +468,13 @@ class EngineState:
         self.inline_image_filter = xobj.get("/Filter", [])
         if not isinstance(self.inline_image_filter, list):
             self.inline_image_filter = [self.inline_image_filter]
-        print("mask")
-        if "/SMask" in xobj:
-            print(xobj.get("/SMask"))
-        print("Filters = ", self.inline_image_filter)
-        print("bits per components", self.inline_image_bits_per_component)
-        print("current fill alpha ", self.inline_image_bits_per_component)
-        print("decoder param", self.inline_image_decoder_param)
         data = xobj.get_data()
-        print(
-            "\n\n\n",
-        )
-
-        print(f"Stream Start (first 64 bytes): {data[:64]}")
-
-        prefix = b"\x1b\x13\x14\x02"
-        # while data[0:4] == prefix:
-        #     data = data[4:]
-        print(f"Stream Start (first 64 bytes): {data[:64]}")
-        print(f"Stream End (last 64 bytes): {data[-64:]}")
-        print(f"Reported Stream Length: {len(data)}")
-        byte_counts = Counter(data)
-        # for byte_val, count in byte_counts.most_common(10):
-        #     print(f"Byte 0x{byte_val:02x}: {count} times")
-        print("\n\n\n\n")
-        return
         self.decode_inline_image(None, data)
+
+        if not self.inline_image_data:
+            # self.ctx.restore()
+            # self.restore_state()
+            return
 
         if self.inline_image_bits_per_component % 8 == 0:
             soll_pixel_count = (
@@ -495,7 +485,7 @@ class EngineState:
                 len(self.inline_image_data) // bytes_per_component
             )
 
-            print(f"soll-ist : {soll_pixel_count} vs {ist_pixel_count}")
+            # print(f"soll-ist : {soll_pixel_count} vs {ist_pixel_count}")
             if soll_pixel_count != ist_pixel_count:
                 raise Exception("This image is not OK")
             cs = self.inline_image_color_space
@@ -510,64 +500,15 @@ class EngineState:
                 "sub-deviding a single byte require using shifts '<<'\nwhich is currently not implemented"
             )
 
-        print("\n\nAbout to draw image:\n\n")
         self.draw_image(None)
-        self.ctx.restore()
-        # raise Exception("stop here")
+        # self.ctx.restore()
         return
-
-        # Decode image data
-        # try:
-        #     surface = self._create_image_surface(
-        #         img_data, width, height, color_space, bits_per_component
-        #     )
-        # except Exception as e:
-        #     print(f"Image decode failed: {str(e)}")
-        #     raise Exception(str(e))
-        #     return
-
-        # self.ctx.save()
-        # self.ctx.transform(self.cm_matrix.to_cairo())
-
-        # Apply image mask if present
-        # self._apply_soft_mask(xobj["/SMask"])
-
-        # Set position and paint
-        # self.ctx.set_source_surface(surface, 0, 0)
-        # self.ctx.paint()
-
-    # TODO: test/relocate this function
-
-    # def _decode_image_data(self, xobj):
-    #     filters = xobj.get("/Filter", [])
-    #     params = xobj.get("/DecodeParms", [{}] * len(filters))
-    #     data = xobj.get_data()
-    #
-    #     for filter, parms in zip(filters, params):
-    #         data = self._apply_image_filter(filter, data, parms)
-    #
-    #     return data
-
-    # TODO: test/relocate this function
-    # def _create_image_surface(self, data, width, height, colorspace, bpc):
-    #     # Map to Cairo format
-    #     if colorspace == "/DeviceGray" and bpc == 8:
-    #         fmt = cairo.FORMAT_A8
-    #     elif colorspace == "/DeviceRGB" and bpc == 8:
-    #         fmt = cairo.FORMAT_RGB24
-    #     elif colorspace == "/DeviceCMYK":
-    #         data = self._cmyk_to_rgb(data)
-    #         fmt = cairo.FORMAT_RGB24
-    #     else:
-    #         raise ValueError(f"Unsupported format: {colorspace}/{bpc}bpc")
-    #
-    #     surface = cairo.ImageSurface.create_for_data(data, fmt, width, height)
-    #     return surface
 
     def begin_text(self, _: PdfOperator):
 
         self.in_text_block = True
         self.tm_matrix = Matrix(1.0, 0.0, 0.0, 1.0, 0.0, 0.0)
+        self.text_position = [0, 0]
         return "", True
 
     def end_text(self, _: PdfOperator):
@@ -583,14 +524,20 @@ class EngineState:
         cm = self.cm_matrix
         if self.in_text_block:
             tm = self.tm_matrix
-
             cc1 = cairo.Matrix(1, 0, 0, -1, 0, 0)
+            fz = self.font_size
+            tm_pre_matrix = Matrix(
+                fz * self.horizontal_scaling * 1,
+                0,
+                0,
+                fz * -1,
+                0,
+                self.text_rize,
+            )
             return cc1.multiply(tm.multiply(cm.multiply(cc0)))
         else:
             cc1 = cairo.Matrix(1, 0, 0, 1, 0, 0)
             return cc1.multiply(cm.multiply(cc0))
-
-    # Handle special case: transfer functions (TR) if present
 
     def decode_lzw(self, data: bytes):
         return LZWDecode.decode(data)
@@ -598,132 +545,14 @@ class EngineState:
     def decode_run_length(self, data: bytes):
         return decompress(data)
 
-    def decode_flat_decompress_old(self, data: bytes):
-        # return decompress(data)
-        print("trying to decode flat decode")
+    def decode_flat_decompress(self, data: bytes):
+        # print("trying to decode flat decode")
         return FlateDecode.decode(data, self.inline_image_decoder_param)
-
-    def _repair_flate_stream(self, data: bytes) -> bytes:
-        """
-        Attempts to decompress a Flate stream, trying to handle common issues
-        like incorrect headers or leading garbage characters.
-        """
-        MAX_GARBAGE_SKIP = 4  # You can adjust this value
-        if not data:
-            raise ValueError("Input data for Flate decompression is empty.")
-
-        original_data = data
-
-        # Attempt 1: Standard zlib decompression
-        try:
-            # print("Attempting standard zlib decompression...")
-            return zlib.decompress(data)
-        except zlib.error as e:
-            # print(f"Standard zlib decompression failed: {e}")
-            pass  # Continue to other attempts
-
-        # Attempt 2: Raw DEFLATE decompression (wbits=-15)
-        try:
-            # print("Attempting raw DEFLATE decompression (wbits=-15)...")
-            return zlib.decompress(data, wbits=-15)
-        except zlib.error as e:
-            # print(f"Raw DEFLATE decompression (wbits=-15) failed: {e}")
-            pass  # Continue to other attempts
-
-        # Attempt 3 & 4: Skip potential leading garbage bytes and retry
-        # print(f"Attempting to skip up to {MAX_GARBAGE_SKIP} leading bytes and retry decompression...")
-        for i in range(1, MAX_GARBAGE_SKIP + 1):
-            if len(original_data) <= i:
-                # Not enough data to skip
-                break
-
-            data_skipped = original_data[i:]
-
-            # Try standard zlib with skipped bytes
-            try:
-                # print(f"  Trying standard zlib after skipping {i} byte(s)...")
-                return zlib.decompress(data_skipped)
-            except zlib.error:
-                pass  # Continue
-
-            # Try raw DEFLATE with skipped bytes
-            try:
-                # print(f"  Trying raw DEFLATE (wbits=-15) after skipping {i} byte(s)...")
-                return zlib.decompress(data_skipped, wbits=-15)
-            except zlib.error as e_skip_raw:
-                if (
-                    i == MAX_GARBAGE_SKIP
-                ):  # If it's the last attempt, store the error
-                    final_exception = e_skip_raw
-                pass  # Continue
-
-        # If all attempts fail, raise the last known significant error
-        # (or a generic one if nothing specific was caught in the loop)
-        final_exception_message = (
-            str(final_exception)
-            if "final_exception" in locals()
-            else "All decompression attempts failed."
-        )
-        raise ValueError(
-            f"Failed zlib decompression after multiple attempts (including skipping leading bytes): {final_exception_message}"
-        )
-
-    def decode_flat_decompress(
-        self,
-        data,
-    ):
-        """Decode FlateDecode with PNG predictor for CMYK images"""
-        # Decompress
-        decode_parms = self.inline_image_decoder_param
-        print(len(data))
-        decompressed = self._repair_flate_stream(data)
-        # decompressor = zlib.decompressobj(wbits=-zlib.MAX_WBITS)
-        # decompressed = decompressor.decompress(data)
-        # decompressed += decompressor.flush()
-        # Extract parameters
-        width = decode_parms["/Columns"]
-        height = self.inline_image_height
-        colors = decode_parms.get("/Colors", 4)
-        bpc = self.inline_image_bits_per_component
-
-        # Calculate row size
-        bytes_per_pixel = colors * (bpc // 8)
-        row_size = width * bytes_per_pixel + 1  # +1 for filter byte
-
-        # Process PNG predictors
-        prev_row = bytes([0] * (width * bytes_per_pixel))
-        output = bytearray()
-        print("decompresed", len(decompressed))
-        for y in range(height):
-            row_start = y * row_size
-            filter_type = decompressed[row_start]
-            row_data = decompressed[row_start + 1 : row_start + row_size]
-
-            # Apply inverse filter
-            if filter_type == 0:  # None
-                decoded = row_data
-            elif filter_type == 1:  # Sub (left pixel)
-                decoded = [row_data[0]] * colors
-                for i in range(colors, len(row_data)):
-                    decoded.append((row_data[i] + decoded[i - colors]) % 256)
-            elif filter_type == 2:  # Up (above pixel)
-                decoded = [
-                    (row_data[i] + prev_row[i]) % 256
-                    for i in range(len(row_data))
-                ]
-            # ... implement other filters as needed ...
-
-            output.extend(decoded)
-            prev_row = decoded
-
-        return bytes(output)
 
     def cmyk_to_bgrx(cmyk_data, width, height):
         """Convert CMYK to Cairo's BGRx format"""
         img = Image.frombytes("CMYK", (width, height), cmyk_data)
         img = img.convert("RGB")
-
-        # Convert to BGRx (Cairo's FORMAT_RGB24)
         bgrx = bytearray()
         for r, g, b in img.getdata():
             bgrx.extend([b, g, r, 0])  # BGRx format
@@ -738,22 +567,20 @@ class EngineState:
         kill_with_taskkill()
 
     def decode_dct(self, data: bytes):
-        # return DCTDecode.decode(data)
         img = Image.open(io.BytesIO(data))
-        if img.has_transparency_data:
-            input("the image has transparency data")
+        # if img.has_transparency_data:
+        #     input("the image has transparency data")
         img = img.convert("RGB")
         width, height = img.size
         bgrx_data = bytearray()
-        rgb_data = bytearray()
+        # rgb_data = bytearray()
         for r, g, b in img.getdata():
             bgrx_data.extend([b, g, r])  # 0 = unused alpha
-            max_byte = max(r, g, b)
-            f = 255 // max_byte
-            rgb_data.extend([r * f, g * f, b * f])
-
-        img2 = Image.frombytes("RGB", size=img.size, data=rgb_data)
-        self.test_play_image(img2)
+            # max_byte = max(r, g, b)
+            # f = 255 // max_byte
+            # rgb_data.extend([r * f, g * f, b * f])
+        # img2 = Image.frombytes("RGB", size=img.size, data=rgb_data)
+        # self.test_play_image(img2)
         self.inline_image_bits_per_component = 24
         self.inline_image_color_space = "/DeviceRGB"
 
@@ -777,29 +604,26 @@ class EngineState:
             raise ValueError("No image data found in inline image")
         if not data:
             data = operator.args[0]
-        # Convert string data to bytes if needed
         if isinstance(data, str):
             data = pnc.string_to_bytes(data)
 
-        # Apply each filter in sequence
         decoded_data = data
         for filter_name in self.inline_image_filter:
             filter_name = filter_name.replace("Decode", "")
             decoder_method_name = self.INLINE_DECODER_MAP.get(filter_name)
-            print(filter_name, decoder_method_name)
             if decoder_method_name:
-                # Get the actual method and decode
                 decoder = getattr(self, decoder_method_name)
-                print(f"about to decode using : {filter_name}")
-                print("before", len(decoded_data))
-                decoded_data = decoder(decoded_data)
-                print("after", len(decoded_data))
+                try:
+                    decoded_data = decoder(decoded_data)
+                except Exception as e:
+                    print(f"Could not decode Image using {filter_name}")
+                    decoded_data = None
         self.inline_image_data = decoded_data
         return "", True
 
     def begin_inline_image(self, _: PdfOperator):
-        self.ctx.save()
-        self.save_state(None)
+        # self.ctx.save()
+        # self.save_state(None)
         self.inline_image_width = 0
         self.inline_image_height = 0
         self.inline_image_bits_per_component = 0
@@ -807,14 +631,12 @@ class EngineState:
         self.inline_image_mask = False
         return "", True
 
-    def end_inline_image(
-        self,
-    ):
+    def end_inline_image(self, cmd: PdfOperator):
         """this function should only called from renderer
         after finishing the drawing of the image"""
-
-        self.ctx.restore()
-        self.restore_state()
+        # self.ctx.restore()
+        # self.restore_state()
+        return "", True
 
     def set_inline_image_width(self, command: PdfOperator):
         self.inline_image_width = int(command.args[0])
@@ -864,6 +686,10 @@ class EngineState:
             "dash_pattern": copy.copy(self.dash_pattern),
             "stroke_color": copy.copy(self.stroke_color),
             "fill_color": copy.copy(self.fill_color),
+            "color_space_stroke ": copy.copy(self.color_space_stroke),
+            "color_space_fill": copy.copy(self.color_space_fill),
+            "_stroke_alpha": copy.copy(self.stroke_alpha),
+            "_fill_alpha ": copy.copy(self.fill_alpha),
             "miter_limit": copy.copy(self.miter_limit),
             "line_cap": copy.copy(self.line_cap),
             "line_join": copy.copy(self.line_join),
@@ -874,17 +700,21 @@ class EngineState:
                 self.inline_image_bits_per_component
             ),
             "inline_image_mask": copy.copy(self.inline_image_mask),
+            "text_rendering_mode": copy.copy(self.text_rendering_mode),
         }
 
     def save_state(self, _: PdfOperator):
+        # print("saving state")
         self.state_stack.append(self.dump_dict())
         return "", True
 
-    def restore_state(self, _: PdfOperator | None, dump: dict | None = None):
+    def restore_state(
+        self, _: PdfOperator | None = None, dump: dict | None = None
+    ):
         if not dump and len(self.state_stack) == 0:
             raise Exception("stack is empty")
             return None
-
+        # print("restoring state")
         if not dump:
             state = self.state_stack.pop()
         else:
@@ -904,6 +734,7 @@ class EngineState:
             else:
                 setattr(self, key, value)
 
+        # print(self.cm_matrix)
         return "", True
 
     def set_line_width(self, command: PdfOperator):
@@ -959,12 +790,13 @@ class EngineState:
             return "", True
         return "", True
 
-    # def get_line_width(self):
-    #     return self.cm_matrix.transform_distance(self.line_width, 0)[0]
-
     # ========================================
     # ============ NEED REVISION =============
     # ============== BELOW  ==================
+    def is_matrix_invertible(self, matrix: cairo.Matrix) -> bool:
+        """Check if matrix can be inverted (determinant != 0)"""
+        determinant = matrix.xx * matrix.yy - matrix.xy * matrix.yx
+        return abs(determinant) > 1e-6  # Account for floating-point precision
 
     def set_ctm(self, command: PdfOperator):
         """
@@ -972,20 +804,37 @@ class EngineState:
         specify a matrix, they are passed as six numbers, not an array
         multiply old ctm with new one
         """
-        new_ctm_matrix = Matrix(*command.args)
-        self.cm_matrix = new_ctm_matrix.multiply(self.cm_matrix)
+
+        # if not self.is_matrix_invertible(updated_matrix):
+        #     print("skipping not-invertable matrix")
+        #     return "", True
+
+        # args[0] = args[0] or 1
+        # args[3] = args[3] or 1
+
+        args = command.args
+
+        # if args[0] == 0.0:
+        #     args[0] = 0.000000001  # self.scale  #
+        # if args[3] == 0.0:
+        #     args[3] = 0.0000000001  # self.scale
+
+        new_ctm_matrix = Matrix(*args)
+        updated_matrix = new_ctm_matrix.multiply(self.cm_matrix)
+        self.cm_matrix = updated_matrix
+
         if self.debug:
-            return [*self.cm_matrix], True
+            return self.get_current_position_for_debuging(), True
         return "", True
 
     def set_text_matrix(self, command: PdfOperator):
-        if not self.in_text_block:
-            return  # Ignore text matrix operations outside text blocks
+        # if not self.in_text_block:
+        #     return  # Ignore text matrix operations outside text blocks
         self.tm_matrix = Matrix(*command.args)
         self.text_position = [0.0, 0.0]
         # self.text_position = [self.tm_matrix.x0, self.tm_matrix.y0]
         if self.debug:
-            return [*self.tm_matrix], True
+            return self.get_current_position_for_debuging(), True
         return "", True
 
     def set_text_position(self, command: PdfOperator):
@@ -993,33 +842,41 @@ class EngineState:
         set position offset from text-space origin
         """
         x, y = [*command.args]
+        # self.tm_matrix.translate(x0, y0)
         self.tm_matrix.translate(x, y)
+        # self.tm_matrix = Matrix(1, 0, 0, 1, x, y).multiply(self.tm_matrix)
         self.text_position = [0.0, 0.0]
         if self.debug:
-            m = self.tm_matrix.multiply(self.cm_matrix)
-            return m.transform_distance(x, y), True
+            return self.get_current_position_for_debuging(), True
 
         return "", True
 
     def set_leading(self, command: PdfOperator):
         self.leading = float(command.args[0])
         if self.debug:
-            m = self.tm_matrix.multiply(self.cm_matrix)
-            return [m.transform_distance(0, self.leading)[1]], True
+            return self.get_current_position_for_debuging(), True
         return "", True
 
     def set_text_position_and_leading(self, command: PdfOperator):
         x, y = [*command.args]
         self.leading = -float(y)
         self.tm_matrix.translate(x, y)
+        # self.tm_matrix = Matrix(1, 0, 0, 1, x, y).multiply(self.tm_matrix)
         self.text_position = [0.0, 0.0]
         if self.debug:
-            m = self.tm_matrix.multiply(self.cm_matrix)
-            return m.transform_distance(x, y), True
+            return self.get_current_position_for_debuging(), True
         return "", True
+
+    def get_current_position_for_debuging(self):
+        m = (
+            self.get_current_matrix()
+        )  # self.tm_matrix.multiply(self.cm_matrix)
+        return m.transform_point(0, 0)
 
     def move_with_leading(self, _: PdfOperator):
         self.tm_matrix.translate(0, -self.leading)
+        self.text_position = [0, 0]
+        self.updata_missing_font_count()
         if self.debug:
             return None, True
         return "", True
@@ -1029,47 +886,60 @@ class EngineState:
         self.character_spacing = float(sc)
         self.word_spacing = float(sw)
         self.tm_matrix.translate(0, self.leading)
+        self.text_position = [0, 0]
+        self.updata_missing_font_count()
         if self.debug:
-            m = self.tm_matrix.multiply(self.cm_matrix)
-            return [
-                m.transform_distance(sw, 0)[0],
-                m.transform_distance(sc, 0)[0],
-            ], True
-
+            return self.get_current_position_for_debuging(), True
         return "", True
 
     def set_character_spacing(self, command: PdfOperator):
         self.character_spacing = float(command.args[0])
+
         if self.debug:
-            m = self.tm_matrix.multiply(self.cm_matrix)
-            return [m.transform_distance(self.character_spacing, 0)[0]], True
+            return self.get_current_position_for_debuging(), True
         return "", True
 
     def set_word_spacing(self, command: PdfOperator):
         self.word_spacing = float(command.args[0])
         if self.debug:
-            m = self.tm_matrix.multiply(self.cm_matrix)
-            return [m.transform_distance(self.word_spacing, 0)[0]], True
+            return self.get_current_position_for_debuging(), True
         return "", True
 
     def set_horizontal_scaling(self, command: PdfOperator):
         self.horizontal_scaling = command.args[0]
-        self.tm_matrix.scale(self.horizontal_scaling / 100.0, 1)
+        # self.cm_matrix.scale(self.horizontal_scaling / 100.0, 1)
         if self.debug:
             return None, True
         return "", True
 
+    def updata_missing_font_count(self, cmd: PdfOperator | None = None):
+        if self.font.use_system_font:
+            self.missing_font_count += 1
+        return "", None
+
+    def list_all_missing_font(self):
+        return [
+            f.base_font
+            for (n, f) in self.font_map.items()
+            if f.use_system_font
+        ]
+
     def clear_text_position_after_tj(self, _: PdfOperator):
-        self.text_position = [0, 0]
+        # WARN:
+        """WARN:NEVER clear txt position after tj !!!1"""
+
+        # WARN: following line is WRONG
+        # self.text_position = [0, 0]
+        self.updata_missing_font_count()
+
         return "", True
         pass
 
     def set_text_rize(self, command: PdfOperator):
         self.set_text_rize = command.args[0]
-        self.tm_matrix.translate(0, self.text_rize)
+        # self.tm_matrix.translate(0, self.text_rize)
         if self.debug:
-            m = self.tm_matrix.multiply(self.cm_matrix)
-            return [m.transform_distance(0, self.text_rize)[0]], True
+            return self.get_current_position_for_debuging(), True
         return "", True
 
     def convert_em_to_ts(self, em: float):
@@ -1080,7 +950,7 @@ class EngineState:
         if func:
             args_scaled, ok = func(command)
             if args_scaled:
-                return command.get_explanation(*args_scaled), ok
+                return f"current position = {args_scaled}", True
             return "", True
         else:
             return "", False
@@ -1089,8 +959,9 @@ class EngineState:
     def set_graphics_state(self, cmd: PdfOperator):
         gstate_name = cmd.args[0]
         if gstate_name not in self.exgstate:
-            return  # Silently ignore missing states
+            return "", True
 
+        return "", True
         gs_dict = self.exgstate[gstate_name]  # .resolve().get_object()
 
         # Map ExtGState parameters to existing functions/state variables
@@ -1114,7 +985,16 @@ class EngineState:
             "/OPM": (self._set_overprint_mode, lambda v: [int(v)]),
             "/SA": (self._set_stroke_adjustment, lambda v: [bool(v)]),
         }
-        ignore_list = ["/Type", "/AIS"]
+        ignore_list = [
+            "/Type",
+            "/AIS",
+            "/SM",
+            "/SM2",
+            "/UCR2",
+            "/BG2",
+            "/TR2",
+            "/HT2",
+        ]
         for key, value in gs_dict.items():
             if key in ignore_list:
                 continue
@@ -1138,6 +1018,7 @@ class EngineState:
         self.overprint_fill = cmd.args[0]
 
     def _set_overprint_mode(self, cmd: PdfOperator):
+        print("setting opm to ", cmd.args)
         self.overprint_mode = cmd.args[0]
 
     # New state variables and handlers
@@ -1145,14 +1026,6 @@ class EngineState:
     # New handler method
     def _set_stroke_adjustment(self, cmd: PdfOperator):
         self.stroke_adjustment = cmd.args[0]
-
-    # Modify line width calculation
-    def _get_effective_line_width(self):
-        if self.stroke_adjustment:
-            # Adjust for CTM scaling (simplified example)
-            ctm_scale = max(abs(self.cm_matrix[0]), abs(self.cm_matrix[3]))
-            return max(self.line_width, 1.0 / ctm_scale)
-        return self.line_width
 
     def _handle_overprint(self, is_stroke):
         """currently not implemented/used at all"""

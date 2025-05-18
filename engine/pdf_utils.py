@@ -22,12 +22,40 @@ OPAQUE_WHITE = 0xFFFFFFFF
 ANY_ALPHA0_WHITE = 0x00FFFFFF  # alpha 0 + white RGB
 
 
-def row_is_blank(
+def row_is_blank_old(
     row, usable_cols, white=OPAQUE_WHITE, twhite=ANY_ALPHA0_WHITE
 ):
     # all() on the first width pixels; ignore the padding on the right edge
     part = row[:usable_cols]
     return np.all((part == white) | (part == twhite))
+
+
+def row_is_blank(
+    row, usable_cols, white=OPAQUE_WHITE, twhite=ANY_ALPHA0_WHITE
+):
+    # all() on the first width pixels; ignore the padding on the right edge
+    part = row[:usable_cols]
+    f1 = 0.15
+    s_left = round(f1 * usable_cols)
+    s_right = round((1 - f1) * usable_cols)
+    middle = part[s_left:s_right]
+    sides = np.concatenate((part[:s_left], part[s_right:]), axis=0)
+    # print("right > usable_col", s_right, usable_cols)
+    # print("side length = ", len(sides))
+    # print("middle length = ", len(middle))
+    is_side_almost_empty = (
+        np.count_nonzero((sides == white) | (sides == twhite)) / len(sides)
+    ) > 0.99
+    is_middle_completly_empyty = np.all((middle == white) | (middle == twhite))
+
+    # is_part_completly_empyty = np.all((part == white) | (part == twhite))
+    # if (
+    #     is_middle_completly_empyty != is_part_completly_empyty
+    #     and is_side_almost_empty
+    # ):
+    #     print(usable_cols, len(middle))
+    #     print(str(is_part_completly_empyty), str(is_middle_completly_empyty))
+    return is_middle_completly_empyty and is_side_almost_empty
 
 
 def row_is_blank_new(

@@ -11,11 +11,14 @@ class PdfOperator:
         context = {f"operands{i}": str(op) for i, op in enumerate(arguements)}
         context["operands"] = ", ".join(args_string)
         explaination = self.OPERATORS.get(op_name)
-        if explaination:  # print(context)
+        # if explaination:  # print(context)
+        try:
             # print(explaination)
             self.explaination = explaination % context
-        else:
-            raise ValueError("operator not found")
+        except Exception as e:
+            print("ERROR: while parsing operator")
+            print(op_name, arguements, "\n\n")
+            raise ValueError(e)
 
     def get_explanation(self, *args):
 
@@ -93,6 +96,9 @@ class PdfOperator:
             "/ML": "EXG: set meter limit !!! [operands=%(operands)s]",
             "/D": "EXG: set dash pattern !!! [operands=%(operands)s]",
             "Tr": "set rending mode !!! [operands=%(operands)s]",
+            "EX": "Unkown operators !! [operands=%(operands)s]",
+            "BX": "Unkown operatkor !!! [operands=%(operands)s]",
+            "sh": "Not Implemented operatkor !!! [operands=%(operands)s]",
         }
 
     GRAPHICS_OPERATORS = get_graphics_operator()

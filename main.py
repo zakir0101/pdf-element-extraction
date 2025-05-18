@@ -55,6 +55,7 @@ class CmdArgs:
             self.single = args.single
             self.exampaths: list[str] = args.exampath
             self.max_tj = args.max_tj
+            self.missing_font = args.missing_font or None
             self.range: list[int] = self.convet_range_string_to_list(
                 args.range
             )
@@ -76,8 +77,8 @@ class CmdArgs:
             )  # parser , detector-count , detector-full,
             self.group = args.group
             self.data = (
-                [(os.path.basename(f), f) for f in args.data]
-                if args.data
+                [(os.path.basename(f), f) for f in args.path]
+                if args.path
                 else None
             )
 
@@ -85,13 +86,12 @@ class CmdArgs:
             self.size = self.TEST_SIZE.get(args.size) or None
             self.subjects = args.subjects or all_subjects
             self.max = args.max
+            self.build_test_data()
 
-            if self.test == "font":
+            if "font" in self.test:
+                self.pages = self.convet_range_string_to_list(args.range)
                 if not self.data:
                     raise Exception("missing data for test-type font")
-                self.pages = self.convet_range_string_to_list(args.pages)
-            else:
-                self.build_test_data()
 
         if self.mode in ["list"]:
             self.item = args.item
@@ -182,8 +182,11 @@ class CmdArgs:
         gr = self.group
         if gr == "latest":
             year = [23]
-        elif gr == "oldest":
-            year = [11]
+        elif "oldest" in gr:
+            last = int(gr[-1]) if gr[-1].isdigit() else 0
+            year = []
+            for i in range(11, 11 + 1 + last):
+                year.append(i)
         elif gr.startswith("gap"):
             period = gr[-1]
             if not period.isdigit():
@@ -220,6 +223,7 @@ class CmdArgs:
             help="time to wait before viewing the next image",
         )
         view.add_argument("--max-tj", type=int, default=10000)
+        view.add_argument("--missing-font", type=int, default=0)
         view.add_argument("--single", "-r", action="store_true", default=False)
         view.add_argument(
             "--no-clean", "-nc", action="store_true", default=False
@@ -274,20 +278,24 @@ class CmdArgs:
             type=str,
             choices=[
                 "list",
-                "font",
+                "font-show",
+                "font-missing",
                 "parser",
                 "questions-count",
                 "questions-match",
             ],
         )
 
-        test.add_argument("--data", type=str, default=None, nargs="*")
+        test.add_argument("--path", type=str, default=None, nargs="*")
         years = []
         for i in range(11, 24):
             years.append(f"year{str(i)}")
         groups = [
             "latest",
             "oldest",
+            "oldest2",
+            "oldest4",
+            "oldest6",
             "gap2",
             "gap4",
             "gap6",
@@ -299,7 +307,7 @@ class CmdArgs:
             choices=groups,
         )
 
-        test.add_argument("--pages", type=str, default=None)
+        test.add_argument("--range", type=str, default=None)
         test.add_argument(
             "--size",
             type=str,
@@ -324,7 +332,8 @@ def do_tests(args: CmdArgs):
 
     callbacks = {
         "list": do_list,
-        "font": do_test_font,
+        "font-show": do_test_font,
+        "font-missing": lambda x: do_test_font(x, "missing"),
         "parser": do_test_parser,
         "questions-count": lambda x: do_test_question(x, True),
         "questions-match": (lambda x: do_test_question(x, False)),
@@ -338,9 +347,31 @@ def do_list(args: CmdArgs):
         print(f[1], end=" ")
 
 
-def do_test_font(args: CmdArgs):
+missing_fonts = """
+{'/Arial-BoldMT', '/Times-Italic', '/Times-Bold', '/Times-Roman'}
+
+Iam trying to make a pdf-renderer app , and have some issue with fonts ( some font does not have embeded font file)
+
+I have analyzed alot of pdf files ( of interest ) , and listed all the missing fonts in them (no embeded font file) , I will provide you with the list , and I want you to find a free alternative for each one of them , which comply with it and garanties :
+1- similar char_width
+2- same glyph_id -> char_code map
+3- generally similary look and position in the bounding box
+
+for each missing fontfamily find the corresponding free font file which satisfy the requirment , if possible tell me where I can download it 
+
+at the end create a pythong dict which map each pdf "missing" file to the alternative font filename
+
+here is the list of missing font:
+
+{'/TimesNewRomanPSMT', '/Helvetica', '/TimesNewRomanPS-ItalicMT', '/Times-BoldItalic', '/Arial-ItalicMT', '/Helvetica-Bold', '/Helvetica-Oblique', '/CourierNewPSMT', '/ArialMT', '/TimesNewRomanPS-BoldItalicMT', '/Verdana', '/TimesNewRomanPS-BoldMT', '/Symbol', '/Verdana-Italic', '/Times-Italic', '/Arial-BoldMT', '/Times-Roman', '/Times-Bold'}
+"""
+
+
+def do_test_font(args: CmdArgs, t_type: str = "show"):
+    print("TEsting fonts")
     engine: PdfEngine = PdfEngine(scaling=4, debug=True, clean=False)
-    for pdf in args.data:
+    missing = set()
+    for pdf in tqdm.tqdm(args.data):
         args.curr_file = pdf[1]
         args.max_tj = 4000
         engine.initialize_file(pdf[1])
@@ -348,9 +379,22 @@ def do_test_font(args: CmdArgs):
         # bad_pages[pdf[1]] = []
         cur_range = args.pages or range(1, args.page_count + 1)
         for page in cur_range:
-            engine.perpare_page_stream(page, QuestionRenderer)
-            for font in engine.font_map.values():
-                font.debug_font()
+            try:
+                engine.perpare_page_stream(page, QuestionRenderer)
+                for font in engine.font_map.values():
+                    if t_type == "show":
+                        font.debug_font()
+                    elif t_type == "missing":
+                        if not font.is_type3 and font.use_toy_font:
+                            missing.add(font.base_font)
+            except Exception as e:
+                print(e)
+                print(f"{pdf[1]}:{page}")
+
+    if t_type == "missing":
+        print("missing fonts :>")
+        print(missing)
+        pass
 
 
 def do_test_parser(args: CmdArgs):
@@ -382,12 +426,14 @@ def do_test_parser(args: CmdArgs):
             except Exception as e:
                 # bad_pages[pdf[1]] = []
                 exception_key = get_exception_key(e)
+                location = f"{pdf[1]}:{page}"
+                print(f"Error: {location}")
                 if exception_key not in exception_stats:
                     full_traceback = traceback.format_exc()
                     exception_stats[exception_key] = {
                         "count": 1,
                         "msg": full_traceback,
-                        "location": [f"{pdf[1]}:{page}"],
+                        "location": [location],
                     }
                 else:
                     exception_stats[exception_key]["count"] += 1
@@ -507,25 +553,45 @@ def view_element(args: CmdArgs):
 
 def show_single_image(args: CmdArgs):
     exam_name = os.path.basename(args.curr_file)
+    print("\n")
     print("***************  exam  ******************")
     print(f"*********** ({exam_name}) ************")
+    print(f"{args.curr_file}")
     engine: PdfEngine = args.engine
     detector = engine.question_detector
     surfs_dict = {}
     per_page = args.type == "pages"
     per_questions = args.type == "questions"
+    missing_font_mode = args.missing_font or None
+    rendererClass = QuestionRenderer if per_questions else BaseRenderer
     if per_page and not args.range:
         args.range = [i for i in range(1, args.page_count + 1)]
+    missing_font_count = 0
+    missing_font_names = set()
     for page in range(1, args.page_count + 1):
         if per_questions or page in args.range:
-            engine.perpare_page_stream(page, QuestionRenderer)
+            engine.perpare_page_stream(page, rendererClass=rendererClass)
             engine.debug_original_stream()
+            if (
+                missing_font_mode
+                and len(engine.state.list_all_missing_font()) == 0
+            ):
+                continue
             engine.execute_stream_extract_question(
                 max_show=args.max_tj, mode=1
             )
-            curr_surf = engine.renderer.surface
-            surfs_dict[page] = curr_surf
-            detector.calc_page_segments_and_height(curr_surf, page, args)
+            if (
+                not missing_font_mode
+                or engine.state.missing_font_count > args.missing_font
+            ):
+                curr_surf = engine.renderer.surface
+                surfs_dict[page] = curr_surf
+                detector.calc_page_segments_and_height(curr_surf, page, args)
+                if args.missing_font:
+                    missing_font_count += 1
+                    missing_font_names.update(
+                        engine.state.list_all_missing_font()
+                    )
 
     questions: list[Question] = detector.question_list
     print("Page Numbers :", args.page_count)
@@ -535,7 +601,17 @@ def show_single_image(args: CmdArgs):
         print(f"no Question detected in File {exam_name}")
         return
 
-    detector.print_final_results(args.curr_file)
+    if not missing_font_mode:
+        detector.print_final_results(args.curr_file)
+    else:
+        print(
+            f"Found {missing_font_count} Pages with missing Fonts (>{args.missing_font})\n"
+        )
+        print(">> replaced with :")
+        print(missing_font_names)
+        if missing_font_count == 0:
+
+            return
     # if len(questions) > 0:
 
     if args.single:

@@ -44,6 +44,10 @@ class PdfEncoding:
         return f"\\{c:03o}"
 
     @classmethod
+    def bytearray_to_octal(cls, b_array: bytes | int):
+        return "".join([f"\\{c:03o}" for c in b_array])
+
+    @classmethod
     def char_to_int(cls, char):
         return cls.char_to_byte(char)[0]
 

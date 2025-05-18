@@ -26,19 +26,22 @@ class QuestionRenderer(BaseRenderer):
     ) -> None:
         super().__init__(state, main_detector)
         self.question_detector: QuestionDetector = main_detector
-        self.mode = 1
 
-    def draw_string_array(self, cmd: PdfOperator, is_single=False):
-        glyph_array, char_seq, update_text_position = self.get_glyph_array(
-            cmd, is_single
-        )
-        char_seq: Sequence = char_seq
-        if self.should_skip_sequence(char_seq):
-            update_text_position()
-            return "", True
-        if self.mode == 1:
-            self.question_detector.handle_sequence(char_seq, self.page_number)
+    def run_detectors(self, char_seq: Sequence):
+        self.question_detector.handle_sequence(char_seq, self.page_number)
 
-        self.draw_glyph_array(glyph_array)
-        update_text_position()
-        return "", True
+    # def draw_string_array(self, cmd: PdfOperator, is_single=False):
+    #
+    #     glyph_array, char_seq, update_text_position = self.get_glyph_array(
+    #         cmd, is_single
+    #     )
+    #     char_seq: Sequence = char_seq
+    #     if self.should_skip_sequence(char_seq):
+    #         update_text_position()
+    #         return "", True
+    #     if self.mode == 1:
+    #         self.question_detector.handle_sequence(char_seq, self.page_number)
+    #
+    #     self.draw_glyph_array(glyph_array)
+    #     update_text_position()
+    #     return "", True

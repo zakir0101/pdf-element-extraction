@@ -1,4 +1,5 @@
 import os
+import cairo
 from pypdf.generic import (
     IndirectObject,
     EncodedStreamObject,
@@ -90,6 +91,7 @@ class PdfEngine:
                         font_name,
                         self.reader.get_object(font_object),
                         self.reader,
+                        self.execute_glyph_stream,
                         depth,
                     )
         return fonts
@@ -122,6 +124,7 @@ class PdfEngine:
             self.xobject,
             None,
             self.execute_xobject_stream,
+            "MAIN",
             None,
             self.scaling,
             self.default_height,
@@ -139,6 +142,10 @@ class PdfEngine:
         )
         streams_data = self.get_page_stream_data(page)
         if len(streams_data) == 0:
+            self.current_stream = pnc.bytes_to_string(
+                self.reader.stream.read()
+            )
+            self.debug_original_stream()
             raise Exception("no data found in this pdf !!!")
         streams_data = [pnc.bytes_to_string(data) for data in streams_data]
         self.current_stream = "\n".join(streams_data)
@@ -297,8 +304,81 @@ class PdfEngine:
             self.print_color_space(f, xres)
             f.write(xstream)
 
+    def execute_glyph_stream(self, stream: str, ctx: cairo.Context):
+        if self.debug:
+            with open(
+                f"output{sep}font_stream.txt", "w", encoding="utf-8"
+            ) as f:
+                f.write("# page number " + str(self.current_page) + "\n\n")
+                f.write(stream)
+
+        font_state = EngineState(
+            font_map=None,
+            color_map=None,
+            resources=None,
+            exgstat=None,
+            xobj=None,
+            initial_state=None,
+            execute_xobject_stream=self.execute_xobject_stream,
+            stream_name="glyph_stream",
+            draw_image=self.renderer.draw_inline_image,
+            scale=self.scaling,
+            screen_height=self.default_height,
+            debug=self.debug,
+            depth=self.state.depth,
+        )
+        old_state = self.renderer.state
+        old_ctx = self.renderer.ctx
+
+        self.renderer.state = font_state
+        self.renderer.ctx = ctx
+        font_state.ctx = ctx
+
+        if stream is None:
+            raise ValueError("Font stream is None")
+
+        counter = 0
+
+        x_parser = PDFStreamParser()
+
+        f = self.output_file
+        f.write("\n\n\n")
+        f.write(f"Font_Stream[{self.state.depth}]: " + "\n")
+        f.write("Enter: " + "\n\n\n")
+        print("\n\nEnter Font_Stream\n")
+        for cmd in x_parser.parse_stream(stream).iterate():
+            f.write(f"{cmd}\n")
+            explanation, ok = font_state.execute_command(cmd)
+            if self.debug and explanation:
+                f.write(f"{explanation}\n")
+            explanation2, ok2 = self.renderer.execute_command(cmd)
+            if self.debug and explanation2:
+                f.write(f"{explanation}\n")
+            if cmd.name in ["Tj", "TJ", "'", '"']:
+                f.write(f"\n\n")
+                counter += 1
+                # if counter > self.max_show:
+                #     break
+            if not ok and not ok2:
+                print("Font_CMD:", cmd)
+                print("Inside Font_State :")
+                s = f"{cmd.name} was not handled \n"
+                s += f"args : {cmd.args}\n"
+                raise Exception("Incomplete Implementaion\n" + s)
+
+        f.write("\n\n")
+        f.write(f"Font_Stream[{self.state.depth}]: " + "\n")
+        f.write("Exit: " + "\n\n\n")
+        self.renderer.state = old_state
+        self.renderer.ctx = old_ctx
+
     def execute_xobject_stream(
-        self, data_stream: str, initial_state: dict, xres: dict, depth: int
+        self,
+        data_stream: str,
+        initial_state: dict,
+        xres: dict,
+        depth: int,
+        stream_name,
     ):
 
         x_stream = data_stream
@@ -317,6 +397,7 @@ class PdfEngine:
             x_xobject,
             initial_state,
             self.execute_xobject_stream,
+            stream_name,
             self.renderer.draw_inline_image,
             self.scaling,
             self.default_height,
@@ -345,6 +426,9 @@ class PdfEngine:
             if self.debug and explanation:
                 f.write(f"{explanation}\n")
             explanation2, ok2 = self.renderer.execute_command(cmd)
+
+            if self.debug and explanation2:
+                f.write(f"{explanation}\n")
             if cmd.name in ["Tj", "TJ", "'", '"']:
                 f.write(f"\n\n")
                 counter += 1
@@ -395,6 +479,7 @@ class PdfEngine:
 
         self.parser = PDFStreamParser()
         f = open(f"output{sep}output.md", "w", encoding="utf-8")
+        self.renderer.output = f
         self.output_file = f
         f.write("FILE: " + os.path.basename(self.pdf_path) + "\n")
         f.write("PAGE: " + str(self.current_page) + "\n\n\n")
@@ -405,6 +490,8 @@ class PdfEngine:
             if self.debug and explanation:
                 f.write(f"{explanation}\n")
             explanation2, ok2 = renderer.execute_command(cmd)
+            if self.debug and explanation2:
+                f.write(f"{explanation2}\n")
             if cmd.name in ["Tj", "TJ", "'", '"']:
                 f.write(f"\n\n")
                 counter += 1

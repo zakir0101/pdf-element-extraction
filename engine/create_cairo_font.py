@@ -223,7 +223,9 @@ def create_cairo_font_face_for_file(
                 "Error %d creating cairo font face for %s" % (status, filename)
             )
     except Exception as e:
+        print(f"Error while Trying to lead font: {filename}")
         print(e)
+        raise Exception(e)
     finally:
         _cairo_so.cairo_font_face_destroy(cr_face)
         _freetype_so.FT_Done_Face(ft_face)

@@ -49,7 +49,7 @@ class Symbol(Box):
     def __str__(
         self,
     ):
-        return f"Smybole({self.ch}, {self.x}, {self.y}, {self.w}, {self.h})"
+        return f"Smybole({self.ch}, x={self.x}, y={self.y}, w={self.w}, h={self.h})"
 
     def get_box(self):
         """shift the origin of the symbole !! IMPORTANT"""
@@ -629,10 +629,10 @@ class QuestionDetector(BaseDetector):
         else:
             d0 = self.height * 0.01
 
-        if args.clean:
-            segments = get_segments(surface, 0, self.height, d0, factor=0.5)
-        else:
-            segments = [(0, self.height, d0)]
+        segments = get_segments(surface, 0, self.height, d0, factor=0.5)
+        # if args.clean:
+        # else:
+        #     segments = [(0, self.height, d0)]
 
         out_height += sum(seg_h + 2 * d2 for _, seg_h, d2 in segments)
         out_height += 2 * d0
@@ -774,7 +774,7 @@ class QuestionDetector(BaseDetector):
             out_ctx.paint()
             """this 0.25 is for spacing between lines, it require the surface to
             be paint white at beginning"""
-            self.dest_y += h0 + (0.25 * d0)
+            self.dest_y += h0 + (0.55 * d0)
         return d0
 
     # def export_whole_surface_to_png(self,pdf_file)

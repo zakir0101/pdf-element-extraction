@@ -1,6 +1,8 @@
 import enum
 import re
 import string
+from .pdf_encoding import PdfEncoding as pnc
+from freetype import GlyphSlot
 
 
 from engine.pdf_utils import open_image_in_irfan, kill_with_taskkill
@@ -8,7 +10,7 @@ from .pdf_operator import PdfOperator
 from .engine_state import EngineState
 import cairo
 import subprocess
-from cairo import Context, ImageSurface
+from cairo import Context, Glyph, ImageSurface, Matrix
 import os
 from .pdf_detectors import Sequence, Symbol, BaseDetector
 
@@ -30,6 +32,8 @@ class BaseRenderer:
         self.page_number = -1
         self.main_detector: BaseDetector = main_detector
         self.max_dots = 20
+        self.mode = 1
+        self.output = None
 
         self.functions_map = {
             "TJ": self.draw_string_array,
@@ -53,8 +57,8 @@ class BaseRenderer:
             "W": lambda x: self.clip_path(x, False),
             "W*": lambda x: self.clip_path(x, True),
             "h": self.close_path,
-            "EI": self.draw_inline_image,
-            "W": self.draw_clip,
+            "ID": self.draw_inline_image,
+            # "W": self.draw_clip,
             "n": self.end_path,
             "q": self.save_state,
             "Q": self.restore_state,
@@ -74,7 +78,7 @@ class BaseRenderer:
                     "cm",
                     "BT",
                     "ET",
-                    "q",
+                    "Q",
                     "Td",
                     "TD",
                     "T*",
@@ -82,10 +86,19 @@ class BaseRenderer:
                     '"',
                     "Tz",
                     "Ts",
+                    "Tf",
                 ],
                 self.sync_matrix,
             )
         ]
+        self.RT_MAP = {
+            0: lambda x: self.fill_path(None),
+            1: lambda x: self.stroke_path(
+                None,
+            ),
+            2: lambda x: self.fill_and_stroke(None),
+            3: lambda x: (),
+        }
 
     def initialize(self, width: int, height: int, page: int) -> None:
         """Initialize the Cairo surface and context."""
@@ -187,10 +200,9 @@ class BaseRenderer:
             natural_width = self.default_char_width
         ratio = extents.y_advance / natural_width or 1
         h_scale = 1.0 if natural_width == 0 else width / natural_width
-        return h_scale, ratio
+        return h_scale
 
     def draw_string(self, cmd: PdfOperator):
-        # print("drawing single text ", text)
         return self.draw_string_array(cmd, is_single=True)
 
     def count_dots(self, char_seq):
@@ -210,12 +222,11 @@ class BaseRenderer:
         return is_dot_only
 
     def should_skip_sequence(self, char_seq):
-
         if char_seq is None:
             return True
         if len(char_seq) == 0:
             return True
-        if self.skip_footer and (
+        if (  # self.skip_footer and
             char_seq[0].y >= self.footer_y or char_seq[0].y <= self.header_y
         ):
             return True
@@ -224,110 +235,150 @@ class BaseRenderer:
         return False
 
     def draw_string_array(self, cmd: PdfOperator, is_single=False):
+
         glyph_array, char_seq, update_text_position = self.get_glyph_array(
             cmd, is_single
         )
         char_seq: Sequence = char_seq
         if self.should_skip_sequence(char_seq):
+            self.output.write("skipping ...")
             update_text_position()
-            return "", True
+            return self.state.get_current_position_for_debuging(), True
         # if self.count_dots(char_seq) < self.max_dots:
-        self.draw_glyph_array(glyph_array)
+
+        if self.mode == 1:
+            self.run_detectors(char_seq)
+
+        if not self.state.font.is_type3:
+            self.draw_glyph_array(glyph_array)
         update_text_position()
-        return "", True
+        self.output.write(
+            f"cairoPos: {self.ctx.get_matrix().transform_point(0,0)}\n"
+        )
+        return self.state.get_current_position_for_debuging(), True
+
+    def run_detectors(self, char_seq: Sequence):
+        # self.question_detector.handle_sequence(char_seq, self.page_number)
+        pass
 
     def get_glyph_array(self, cmd: PdfOperator, is_single=False):
         if is_single:
             text_array = [cmd.args[0]]
         else:
+            if not isinstance(cmd.args[0], list):
+                raise Exception()
             text_array = cmd.args[0]
 
         state = self.state
         x, y = state.text_position
+        # x, y = 0, 0
         font_size = state.font_size
-
         font = self.state.font
 
         char_regex1 = r"(?:\\(?P<symbol>\d{3}))|(?P<char>.)"
-        # char_regex2 = r"(?:(?:^|[^\\])\\(?P<symbol>\d{3}))|(?P<char>.)"
-        # char_regex2 = r"\\(?P<symbol>\d{3})(?!\d{3})|(?:\\(?P<symbol_long>\d{6})|(?P<char>(?:\\)?.))"
-        # char_regex2 = r"(?P<symbol>\d{6})|(?P<char>dontFinDMeHere)"
 
-        cairo_font_face = None
-        try:
-            cairo_font_face = font.get_cairo_font_face()
-        except Exception as e:
-            pass
-            print(f"Error loading embedded font face: {e}")
-            raise Exception(f"Error loading embedded font face: {e}")
-
-        if cairo_font_face is not None:
-            self.ctx.set_font_face(cairo_font_face)
-        else:
-            print(" embeded font NOT found ")
-            self.ctx.select_font_face(
-                font.family,
-                font.slant,
-                font.weight,
+        if font.use_toy_font:
+            face = cairo.ToyFontFace(font.font_family, font.slant, font.weight)
+            option = cairo.FontOptions()
+            scaled_font = cairo.ScaledFont(
+                face, Matrix(), self.ctx.get_matrix(), option
             )
+            self.ctx.set_scaled_font(scaled_font)
+            pass
+        elif font.is_type3:
+            """do not do anything !!"""
+            pass
+        else:
+            try:
+                cairo_font_face = font.get_cairo_font_face()
+                self.ctx.set_font_face(cairo_font_face)
+            except Exception as e:
+                pass
+                print(f"Error loading embedded font face: {e}")
+                raise Exception(f"Error loading embedded font face: {e}")
 
-        self.ctx.set_font_size(font_size)
-
-        c_spacing = state.character_spacing
-        w_spacing = state.word_spacing
+        # self.ctx.set_font_size(font_size)
+        self.ctx.set_font_size(1)
+        scaled_font = self.ctx.get_scaled_font()
+        default_char_spacing = state.character_spacing
+        word_spacing = state.word_spacing
 
         m_c = self.state.get_current_matrix()
         glyph_array = []
         char_array = []
+        is_prev_element_number_or_none = True
 
         for element in text_array:
-            if isinstance(element, float):
+
+            if isinstance(element, (float, int)):
                 dx = state.convert_em_to_ts(float(element))
                 x -= dx
+                is_prev_element_number_or_none = True
+                continue
             elif isinstance(element, str):
                 element = self.clean_text(element)
-
                 last_char = None
-                for word in re.split(
-                    r"([ ]+)", element, flags=re.DOTALL | re.MULTILINE
-                ):
-                    if word.isspace():
-                        x += w_spacing
-                    for i, char_or in enumerate(
-                        re.finditer(char_regex1, word)
-                    ):
-                        char_or: re.Match = char_or
-                        if font.is_composite and char_or.group("symbol"):
-                            if i % 2 == 1:
-                                glyph_id, char_width, char = (
-                                    self.get_glyph_id_for_char(
-                                        char_or, last_char
-                                    )
-                                )
-                                last_char = None
-                            else:
-                                last_char = char_or
-                                continue
-                        else:
-                            glyph_id, char_width, char = (
-                                self.get_glyph_id_for_char(char_or, None)
-                            )
+                # for word in re.split(
+                #     r"([ ]+)", element, flags=re.DOTALL | re.MULTILINE
+                # ):
+                for i, char_or in enumerate(re.finditer(char_regex1, element)):
 
-                        if glyph_id is None:
+                    char_or: re.Match = char_or
+                    if font.is_type0 and char_or.group("symbol"):
+                        if i % 2 == 1:
+                            glyph_id, char_width, char = (
+                                self.get_glyph_id_for_char(char_or, last_char)
+                            )
+                            last_char = None
+                        else:
+                            last_char = char_or
                             continue
+                    else:
+                        glyph_id, char_width, char = (
+                            self.get_glyph_id_for_char(char_or, None)
+                        )
+
+                    if glyph_id is None:
+                        # print(f"glyph is None for char:{char}")
+                        continue
+
+                    if char == " ":
+                        # self.output.write("space found!\n")
+                        x += word_spacing
+
+                    if not is_prev_element_number_or_none:
+                        x += default_char_spacing
+
+                    # if font.is_type3:
+                    #     x += char_width
+                    #     continue
+
+                    if font.use_toy_font:  # or font.is_type3:
+                        char = pnc.int_to_char(glyph_id)
+                        glyph_obj = scaled_font.text_to_glyphs(
+                            x, y, char, False
+                        )[0]
+                        glyph_array.append((glyph_obj, char_width))
+                    else:
                         glyph_obj = cairo.Glyph(glyph_id, x, y)
                         glyph_array.append(glyph_obj)
-                        x0, y0 = m_c.transform_point(x, y)
-                        w, h = m_c.transform_distance(char_width, char_width)
-                        char_array.append(Symbol(char, x0, y0, w, h))
-                        x += char_width + c_spacing
+                    x0, y0 = m_c.transform_point(x, y)
+                    w, h = m_c.transform_distance(char_width, char_width)
+                    char_array.append(Symbol(char, x0, y0, w, h))
+                    x += char_width  # + default_char_spacing
 
+                    is_prev_element_number_or_none = False
             else:
                 raise ValueError("Invalid text element")
 
         def update_on_finish():
-            if is_single or True:
-                self.state.text_position = [x, y]
+            pass
+            self.state.text_position = [x, y]
+            # self.state.tm_matrix = Matrix(1, 0, 0, 1, x, y).multiply(
+            #     self.state.tm_matrix
+            # )
+            # if is_single:
+            #     self.state.tm_matrix.translate(x, y)
 
         if len(glyph_array) == 0:
             return None, None, update_on_finish
@@ -343,12 +394,14 @@ class BaseRenderer:
         prev_symbol = prev_char.group("symbol") if prev_char else None
         is_symbol = char is None
 
+        if symbol and not prev_symbol and symbol[-3:] == "000":
+            return None, None, None
         # +++++++++++++++ for DEBUG ******************
         if not is_symbol and not char:  # check for empty match
             return None, None, None
         if is_symbol and not symbol:  # check for empty match
             return None, None, None
-        if font.is_composite:
+        if font.is_type0:
             if not is_symbol or not symbol or not prev_symbol:
                 raise Exception("missing symbol[prev] for composite font")
         # ************** END DEBUG ********************
@@ -370,7 +423,7 @@ class BaseRenderer:
             pass
             print(
                 "is_composite:",
-                font.is_composite,
+                font.is_type0,
                 "symbol:",
                 symbol,
                 "char: ",
@@ -399,35 +452,58 @@ class BaseRenderer:
             raise ValueError(e)
         self.ctx.restore()
 
-    def draw_glyph_array(self, glyph_array):
+    def draw_glyph_array(self, glyph_array: list[Glyph]):
+        font = self.state.font
+
         self.ctx.save()
         try:
-            self.ctx.move_to(0, 0)
-            self.ctx.glyph_path(glyph_array)
-            mode = self.state.text_rendering_mode
-            # fill_source = (*self.state.fill_color, self.state.fill_alpha)
-            # stroke_source = (*self.state.stroke_color, self.state.stroke_alpha)
+            if font.is_type3 or font.use_toy_font:
+                self.ctx.move_to(0, 0)
+                for g, width in glyph_array:
+                    if font.is_type3:
+                        raise Exception
+                        recorder = font.get_glyph_for_type3(
+                            g.index, self.state.fill_color
+                        )
+                        self.ctx.move_to(g.x, g.y)
+                        self.ctx.transform(font.font_matrix)
+                        self.ctx.set_source_surface(recorder)
+                        self.ctx.paint()
+                    elif font.use_toy_font:
+                        # TODO: scale the toy font
+                        # cairo.ScaledFont()
+                        raise Exception
+                        scale = self.get_glyph_scale(g.index, width)
+                        # self.ctx.get_scaled_font().get_scale_matrix().scale(
+                        #     scale, 1
+                        # )
+                        self.ctx.get_font_matrix().scale(scale, 1)
+                        self.ctx.glyph_path([g])
+                        self.ctx.set_font_matrix(Matrix())
 
-            if mode in [0, 2, 4, 6]:  # Fill modes
-                # self.ctx.set_source_rgba(*fill_source)
-                preserve = mode in [2, 4, 6]  # Needs preserve for stroke/clip
-                self.fill_path(None, preserve)
-                # (self.ctx.fill_preserve if preserve else self.ctx.fill)()
+            else:
+                self.ctx.glyph_path(glyph_array)
 
-            if mode in [1, 2, 5, 6]:  # Stroke modes
-                # self.ctx.set_source_rgba(*stroke_source)
-                preserve = mode in [2, 5, 6]  # Needs preserve for fill/clip
-                self.stroke_path(None, preserve)
-                (self.ctx.stroke_preserve if preserve else self.ctx.stroke)()
+            if not font.is_type3:
+                mode = self.state.text_rendering_mode
+                draw_mode = mode % 4
+                clip_mode = mode // 4
+                self.RT_MAP[draw_mode](None)
+                if clip_mode:
+                    self.ctx.clip()
+                self.ctx.new_path()
 
-            if mode in [4, 5, 6, 7]:  # Clipping modes
-                self.ctx.clip()
-            self.ctx.new_path()
         except Exception as e:
             print(f"ERROR while drawing Glyph array")
-            # raise ValueError(e)
-            return
+            raise ValueError(e)
         self.ctx.restore()
+
+        # if mode in [0, 2, 4, 6]:
+        #     preserve = mode in [2, 4, 6]
+        #     self.fill_path(None, preserve)
+        # if mode in [1, 2, 5, 6]:
+        #     preserve = mode in [2, 5, 6]
+        #     self.stroke_path(None, preserve)
 
     def clean_text(self, text: str):
         text = text.replace("\\(", "(").replace("\\)", ")")
@@ -444,13 +520,15 @@ class BaseRenderer:
         return "", True
 
     def clip_path(self, cmd: PdfOperator, even_odd=False):
+
         if even_odd:
-            fill_rule = cairo.FILL_RULE_WINDING
-        else:
             fill_rule = cairo.FILL_RULE_EVEN_ODD
+        else:
+            fill_rule = cairo.FILL_RULE_WINDING
 
         self.ctx.set_fill_rule(fill_rule)
         self.ctx.clip()
+        self.ctx.new_path()
 
         if even_odd:
             self.ctx.set_fill_rule(cairo.FILL_RULE_WINDING)
@@ -462,15 +540,11 @@ class BaseRenderer:
     ) -> None:
         """Fill the current path using Cairo."""
         if even_odd:
-            fill_rule = cairo.FILL_RULE_WINDING
-        else:
             fill_rule = cairo.FILL_RULE_EVEN_ODD
+            self.ctx.set_fill_rule(fill_rule)
 
-        self.ctx.set_fill_rule(fill_rule)
         # self.ctx.set_source_rgb(*self.state.fill_color)
-        self.ctx.set_source_rgba(
-            *self.state.fill_color, self.state.stroke_alpha
-        )
+        self.ctx.set_source_rgba(*self.state.fill_color, self.state.fill_alpha)
         if preserve:
             self.ctx.fill_preserve()
         else:
@@ -534,7 +608,9 @@ class BaseRenderer:
 
     def draw_inline_image(self, cmd: PdfOperator):
         color_cs = self.state.inline_image_color_space
-        if color_cs not in self.state.DEVICE_CS:
+        bits_per_component = self.state.inline_image_bits_per_component
+
+        if bits_per_component > 1 and color_cs not in self.state.DEVICE_CS:
             print("trying to draw image with non-spported color-spcae")
             return "", True
             raise Exception(
@@ -543,7 +619,6 @@ class BaseRenderer:
         data = self.state.inline_image_data
         width = self.state.inline_image_width
         height = self.state.inline_image_height
-        bits_per_component = self.state.inline_image_bits_per_component
         is_mask = self.state.inline_image_mask
 
         surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, width, height)
@@ -651,7 +726,7 @@ class BaseRenderer:
 
         x, y = self.state.position
 
-        self.ctx.save()
+        # self.ctx.save()
         self.ctx.translate(x, y)
         self.ctx.set_source_surface(surface, 0, 0)
         source = self.ctx.get_source()
@@ -666,7 +741,7 @@ class BaseRenderer:
         # cairo.FILTER_GAUSSIAN - Gaussian convolution filter
 
         self.ctx.paint()
-        self.ctx.restore()
+        # self.ctx.restore()
         surface.finish()
 
         return "", True
@@ -674,10 +749,16 @@ class BaseRenderer:
     def raise_exception(self, msg):
         raise Exception(msg)
 
-    def sync_matrix(self):
+    def sync_matrix(self, after: str = ""):
         """Sync Cairo's CTM with the current PDF state matrix"""
         current_matrix = self.state.get_current_matrix()
-        # self.ctx.identity_matrix()
+        # self.ctx.set_matrix(Matrix())
+        # print(
+        #     current_matrix,
+        #     "in text" if self.state.in_text_block else "not in text",
+        #     ",after op=",
+        #     after,
+        # )
         self.ctx.set_matrix(current_matrix)
 
     def sync_color(
@@ -688,7 +769,7 @@ class BaseRenderer:
     def execute_command(self, cmd: PdfOperator):
         for ops, sfunc in self.sync_functions_map:
             if cmd.name in ops:
-                sfunc()
+                sfunc(cmd.name)
         func = self.functions_map.get(cmd.name)
         if func:
             return func(cmd)
