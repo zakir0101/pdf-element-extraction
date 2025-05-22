@@ -22,6 +22,7 @@ from pypdf.filters import (
     DCTDecode,
     decompress,
     FlateDecode,
+    CCITTFaxDecode,
 )
 from cairo import Matrix
 from .pdf_encoding import PdfEncoding as pnc
@@ -37,6 +38,7 @@ class EngineState:
         "/A85": "decode_ascii85",
         "/AHx": "decode_ascii_hex",
         "/Flate": "decode_flat_decompress",
+        "/CCF": "decode_cff_image",
     }
 
     PRINTABLE = string.ascii_letters + string.digits + string.punctuation + " "
@@ -205,6 +207,9 @@ class EngineState:
             "/CS": lambda x: self.set_color_space(x, False, True),
             "/F": self.set_inline_image_filter,
             "/IM": self.set_inline_image_mask,
+            "/F": self.set_inline_image_dcode_filter,
+            "/DP": self.set_inline_image_decode_params,
+            "/D": lambda x: ("", True),
             "ID": self.decode_inline_image,
             "EI": self.end_inline_image,  # lambda _: (None, True),
             # -------------------
@@ -226,6 +231,8 @@ class EngineState:
             "BX": lambda x: ("", True),
             "EX": lambda x: ("", True),
             "sh": self.handle_sh_operator,
+            "d0": lambda x: ("", True),
+            "d1": lambda x: ("", True),
             # ---- ---------
             # Path  Construction
             # cairo only
@@ -444,7 +451,9 @@ class EngineState:
         # Process form content stream
         filters = xobj.get("/Filter", [])
         data = xobj.get_data()
-        stream = pnc.bytes_to_string(data)
+        stream = (
+            pnc.bytes_to_string(data).encode("latin1").decode("unicode_escape")
+        )
         self.execute_xobject_stream(
             stream, initial_state, merged_resources, new_depth, xobj_name
         )
@@ -472,8 +481,6 @@ class EngineState:
         self.decode_inline_image(None, data)
 
         if not self.inline_image_data:
-            # self.ctx.restore()
-            # self.restore_state()
             return
 
         if self.inline_image_bits_per_component % 8 == 0:
@@ -549,6 +556,30 @@ class EngineState:
         # print("trying to decode flat decode")
         return FlateDecode.decode(data, self.inline_image_decoder_param)
 
+    def decode_cff_image(self, data: bytes):
+        param = self.inline_image_decoder_param
+
+        class CDict(dict):
+            def get_object(
+                self,
+            ):
+                return self
+
+            def __init__(self, dict2):
+                for key, value in dict2.items():
+                    self.__dict__[key] = value
+
+        param_dict = CDict(param)
+        decoeded = CCITTFaxDecode.decode(
+            data=data,
+            decode_parms=param_dict,
+        )
+        print("decoded_img_ccf =", decoeded)
+
+        # self.inline_image_bits_per_component = 8
+        # self.inline_image_color_space = "/DeviceRGB"
+        return decoeded
+
     def cmyk_to_bgrx(cmyk_data, width, height):
         """Convert CMYK to Cairo's BGRx format"""
         img = Image.frombytes("CMYK", (width, height), cmyk_data)
@@ -599,6 +630,18 @@ class EngineState:
             for c in s
         )
 
+    def set_inline_image_dcode_filter(self, cmd: PdfOperator):
+        filter = cmd.args[0]
+        self.inline_image_filter = [filter]
+        print("inline image filter =", filter)
+        return "", True
+
+    def set_inline_image_decode_params(self, cmd: PdfOperator):
+        param = cmd.args[0]
+        self.inline_image_decoder_param = param
+        print("inline image decode params=", type(param), param)
+        return "", True
+
     def decode_inline_image(self, operator: PdfOperator, data=None):
         if operator and len(operator.args) == 0:
             raise ValueError("No image data found in inline image")
@@ -618,6 +661,7 @@ class EngineState:
                 except Exception as e:
                     print(f"Could not decode Image using {filter_name}")
                     decoded_data = None
+                    raise Exception(e)
         self.inline_image_data = decoded_data
         return "", True
 
@@ -814,9 +858,9 @@ class EngineState:
 
         args = command.args
 
-        if args[0] == 0.0:
+        if args[0] == 0.0:  # and args[1] == 0:
             args[0] = 0.000000001  # self.scale  #
-        if args[3] == 0.0:
+        if args[3] == 0.0:  # and args[2] == 0:
             args[3] = 0.0000000001  # self.scale
 
         new_ctm_matrix = Matrix(*args)
@@ -830,7 +874,12 @@ class EngineState:
     def set_text_matrix(self, command: PdfOperator):
         # if not self.in_text_block:
         #     return  # Ignore text matrix operations outside text blocks
-        self.tm_matrix = Matrix(*command.args)
+        args = command.args
+        # if args[0] == 0.0:
+        #     args[0] = 0.000000001  # self.scale  #
+        # if args[3] == 0.0:
+        #     args[3] = 0.0000000001  # self.scale
+        self.tm_matrix = Matrix(*args)
         self.text_position = [0.0, 0.0]
         # self.text_position = [self.tm_matrix.x0, self.tm_matrix.y0]
         if self.debug:

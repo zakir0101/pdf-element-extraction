@@ -32,7 +32,7 @@ class BaseRenderer:
         self.page_number = -1
         self.main_detector: BaseDetector = main_detector
         self.max_dots = 20
-        self.mode = 1
+        self.mode = 0
         self.output = None
 
         self.functions_map = {
@@ -240,11 +240,12 @@ class BaseRenderer:
             cmd, is_single
         )
         char_seq: Sequence = char_seq
+
+        self.output.write("charSeq: " + char_seq.get_text(False) + "\n")
         if self.should_skip_sequence(char_seq):
             self.output.write("skipping ...")
             update_text_position()
             return self.state.get_current_position_for_debuging(), True
-        # if self.count_dots(char_seq) < self.max_dots:
 
         if self.mode == 1:
             self.run_detectors(char_seq)
@@ -275,7 +276,8 @@ class BaseRenderer:
         font_size = state.font_size
         font = self.state.font
 
-        char_regex1 = r"(?:\\(?P<symbol>\d{3}))|(?P<char>.)"
+        # char_regex1 = r"(?:\\(?P<symbol>\d{3}))|(?P<char>.)"
+        # char_regex1 = r"(?:\\(?P<symbol>\d{3}))|(?P<char>.)"
 
         if font.use_toy_font:
             face = cairo.ToyFontFace(font.font_family, font.slant, font.weight)
@@ -297,8 +299,7 @@ class BaseRenderer:
                 print(f"Error loading embedded font face: {e}")
                 raise Exception(f"Error loading embedded font face: {e}")
 
-        # self.ctx.set_font_size(font_size)
-        self.ctx.set_font_size(1)
+        self.ctx.set_font_size(font_size)
         scaled_font = self.ctx.get_scaled_font()
         default_char_spacing = state.character_spacing
         word_spacing = state.word_spacing
@@ -316,34 +317,25 @@ class BaseRenderer:
                 is_prev_element_number_or_none = True
                 continue
             elif isinstance(element, str):
-                element = self.clean_text(element)
-                last_char = None
-                # for word in re.split(
-                #     r"([ ]+)", element, flags=re.DOTALL | re.MULTILINE
-                # ):
-                for i, char_or in enumerate(re.finditer(char_regex1, element)):
-
-                    char_or: re.Match = char_or
-                    if font.is_type0 and char_or.group("symbol"):
-                        if i % 2 == 1:
-                            glyph_id, char_width, char, is_symbole = (
-                                self.get_glyph_id_for_char(char_or, last_char)
-                            )
-                            last_char = None
+                i = 0
+                while i < len(element):
+                    char = element[i]
+                    if font.is_type0:
+                        # TODO: handle 2 byte as one char , similarly modify the logic for handling symbol
+                        if i == len(element) - 1:
+                            char = "\x00" + char
                         else:
-                            last_char = char_or
-                            continue
-                    else:
-                        glyph_id, char_width, char, is_symbole = (
-                            self.get_glyph_id_for_char(char_or, None)
-                        )
+                            char = char + element[i + 1]
+                        i += 1
+                    i += 1
+                    glyph_id, char_width, char = self.get_glyph_id_for_char(
+                        char
+                    )
 
                     if glyph_id is None:
-                        # print(f"glyph is None for char:{char}")
                         continue
 
-                    if char == " " and not is_symbole:
-                        # self.output.write("space found!\n")
+                    if char == " ":
                         x += word_spacing
 
                     # if not is_prev_element_number_or_none:
@@ -353,21 +345,24 @@ class BaseRenderer:
                     #     x += char_width
                     #     continue
 
-                    if font.use_toy_font:  # or font.is_type3:
+                    if font.use_toy_font:
                         char = pnc.int_to_char(glyph_id)
                         glyph_obj = scaled_font.text_to_glyphs(
                             x, y, char, False
                         )[0]
                         glyph_array.append((glyph_obj, char_width))
+                    elif font.is_type3:
+                        glyph_array.append((Glyph(glyph_id, x, y), char_width))
                     else:
                         glyph_obj = cairo.Glyph(glyph_id, x, y)
                         glyph_array.append(glyph_obj)
                     x0, y0 = m_c.transform_point(x, y)
                     w, h = m_c.transform_distance(char_width, char_width)
+                    # if char != "\u0003":
                     char_array.append(Symbol(char, x0, y0, w, h))
                     x += char_width + default_char_spacing
 
-                    # is_prev_element_number_or_none = False
+                    is_prev_element_number_or_none = False
             else:
                 raise ValueError("Invalid text element")
 
@@ -385,51 +380,40 @@ class BaseRenderer:
 
         return glyph_array, Sequence(char_array), update_on_finish
 
-    def get_glyph_id_for_char(
-        self, char_or, prev_char: re.Match | None = None
-    ):
+    def get_glyph_id_for_char(self, char):
         font = self.state.font
-        char = char_or.group("char")
-        symbol = char_or.group("symbol")
-        prev_symbol = prev_char.group("symbol") if prev_char else None
-        is_symbol = char is None
 
-        if symbol and not prev_symbol and symbol[-3:] == "000":
-            return None, None, None
         # +++++++++++++++ for DEBUG ******************
-        if not is_symbol and not char:  # check for empty match
-            return None, None, None
-        if is_symbol and not symbol:  # check for empty match
-            return None, None, None
-        if font.is_type0:
-            if not is_symbol or not symbol or not prev_symbol:
-                raise Exception("missing symbol[prev] for composite font")
+        # if not is_symbol and not char:  # check for empty match
+        #     return None, None, None
+        # if is_symbol and not symbol:  # check for empty match
+        #     return None, None, None
+        # if font.is_type0:
+        #     if not is_symbol or not symbol or not prev_symbol:
+        #         raise Exception("missing symbol[prev] for composite font")
         # ************** END DEBUG ********************
 
-        char_code = font.get_char_code_from_match(char, symbol, prev_symbol)
+        char_code = font.get_char_code_from_match(char)
         char_width = font.get_char_width_from_code(char_code)
-        glyph_id, glyph_name = font.get_glyph_id_from_char_code(
-            char_code, is_symbol
-        )
+        glyph_id, glyph_name = font.get_glyph_id_from_char_code(char_code)
 
-        # if glyph_id is None:
-        #     if char == "p":
-        #         glyph_id = font.symbol_to_gid.get("pi")
-        #         char = "pi"
-
-        if is_symbol:
-            char = glyph_name
+        char_uni = None
+        if font.cid_to_unicode:
+            char_uni = font.cid_to_unicode.get(char_code)
+            # print("char_uni", char_uni)
+        elif font.is_type0:
+            # print("WARN: typ0 font without toUnicode map !!")
+            char_uni = chr(char_code)
+            # raise Exception("")
         if char_width is None:
             pass
             print(
                 "is_composite:",
                 font.is_type0,
                 "symbol:",
-                symbol,
+                glyph_name,
                 "char: ",
                 char,
-                "last_char",
-                prev_symbol,
                 "glyph_id",
                 glyph_id,
                 "char_code",
@@ -440,7 +424,7 @@ class BaseRenderer:
             raise Exception("char width is None")
 
         char_width = self.state.convert_em_to_ts(char_width)
-        return glyph_id, char_width, char, is_symbol
+        return glyph_id, char_width, (char_uni or char)
 
     def draw_glyph_array_old(self, glyph_array):
         self.ctx.save()
@@ -454,14 +438,13 @@ class BaseRenderer:
 
     def draw_glyph_array(self, glyph_array: list[Glyph]):
         font = self.state.font
-
         self.ctx.save()
         try:
             if font.is_type3 or font.use_toy_font:
                 self.ctx.move_to(0, 0)
                 for g, width in glyph_array:
                     if font.is_type3:
-                        raise Exception
+                        print("inside type3 rendering")
                         recorder = font.get_glyph_for_type3(
                             g.index, self.state.fill_color
                         )
@@ -504,10 +487,6 @@ class BaseRenderer:
         # if mode in [1, 2, 5, 6]:
         #     preserve = mode in [2, 5, 6]
         #     self.stroke_path(None, preserve)
-
-    def clean_text(self, text: str):
-        text = text.replace("\\(", "(").replace("\\)", ")")
-        return text
 
     def fill_and_stroke(
         self, cmd: PdfOperator, close: bool = False, even_odd: bool = False
@@ -625,7 +604,8 @@ class BaseRenderer:
         surface_data = surface.get_data()
         stride = surface.get_stride()
 
-        if is_mask and bits_per_component == 1:
+        if bits_per_component == 1:
+            # print("is 1 bit")
             fill_color = self.state.fill_color
             r, g, b = [int(c) for c in fill_color]
 

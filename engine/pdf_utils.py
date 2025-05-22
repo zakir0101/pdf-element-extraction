@@ -315,6 +315,22 @@ def is_first_label(input: str):
 SEP = os.path.sep
 
 
+#  (venv) ➜  pdf-element-extraction git:(master) ✗  '/mnt/d/Drive/IGCSE/0580/exams/0580_s15_qp_11.pdf
+def open_pdf_using_sumatra(pdf_full_path):
+    if os.name != "nt":  # Windows
+        png_full_path = pdf_full_path.replace("/mnt/d", "D:")
+    subprocess.Popen(
+        args=[
+            f"SumatraPDF-3.5.2-64.exe",
+            png_full_path,
+        ],
+        start_new_session=True,
+        stdout=None,
+        stderr=None,
+        stdin=None,
+    ).wait
+
+
 def open_image_in_irfan(img_path):
     c_prefix = "C:" if os.name == "nt" else "/mnt/c"
     png_full_path = "\\\\wsl.localhost\\Ubuntu" + os.path.abspath(img_path)
@@ -324,14 +340,20 @@ def open_image_in_irfan(img_path):
         args=[
             f"{c_prefix}{SEP}Program Files{SEP}IrfanView{SEP}i_view64.exe",
             png_full_path,
-        ]
+        ],
+        start_new_session=True,
+        stdout=None,
+        stderr=None,
+        stdin=None,
     )
 
 
 def kill_with_taskkill():
     """Use Windows’ native taskkill (works from Windows or WSL)."""
     TARGET = "i_view64.exe"
+    TARGET2 = "SumatraPDF-3.5.2-64.exe"
     cmd = ["taskkill.exe", "/IM", TARGET, "/F"]
+    cmd = ["taskkill", "/IM", TARGET2, "/F"]
     subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
 

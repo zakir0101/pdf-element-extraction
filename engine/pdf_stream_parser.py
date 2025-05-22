@@ -10,21 +10,29 @@ class PDFStreamParser:
 
     def __init__(self):
         OR = "|"
-        NOT_ESCAPE = r"(?:[^\\]|[^\\](?:\\{2})+)"
+        NOT_ESCAPE = r"(?:[^\\]|[^\\](?:\\{2})+|[\\](?=\)\]\s*TJ))"
 
         self.HEX_REGEX = r"<(?P<hex>[0-9a-fA-F]+)>"
-        self.NAME_REGEX = r"(?P<name>/\S+)"
+        self.NAME_REGEX = r"(?P<name>/\w+)"
         self.STRING_REGEX = (
             r"(?:\((?P<string>(?:.*?" + NOT_ESCAPE + r"))(?:\)))"
         )
         self.EMPTY_STRING_REGEX = r"\((?P<stringO>)(?:\))"
+        self.BOOL_REGEX = r"(?P<bool>true|false)"
         #  r"(?:\((?P<string>(?:.*?[^\\]))(?=\)))|"
-        self.NUMBER_REGEX = r"(?:(?:(?<=[^_\-\n\d\.])|^)(?P<number>[\d.]+))|(?P<numberO>-[\d.]+)"
+        self.NUMBER_REGEX = r"(?:(?:(?<=[^_\-\n\d\.\w])|^)(?P<number>[\d.]+))|(?P<numberO>-[\d.]+)"
+        self.IMAGE_REGEX = r"(?P<image>ID[\s\S]*?)(?=EI)"
+        self.INLINE_IMAGE_OP_REGEX = (
+            r"(?P<inline>\/(?:W|H|IM|BPC|CS|D|F|DP))(?=\W|$)"  # (?: |^)
+        )
+
         """
-<(?P<hex>[0-9a-fA-F]+)>|(?P<name>/\S+)|\((?P<stringO>)(?:\))|(?:\((?P<string>(?:.*?(?:[^\\]|[^\\](?:\\{2})+)))(?:\)))|(?:(?:(?<=[^_\-\n\d\.])|^)(?P<number>(?:-)?[\d.]+))
+<(?P<hex>[0-9a-fA-F]+)>|(?P<name>/\w+)|\((?P<stringO>)(?:\))|(?:\((?P<string>(?:.*?(?:[^\\]|[^\\](?:\\{2})+)))(?:\)))|(?:(?:(?<=[^_\-\n\d\.])|^)(?P<number>(?:-)?[\d.]+))|(?<=ID)(?P<image>[\s\S]*?)(?=EI)
         """
         self.PRIMATIVE_REGEX = (
             self.HEX_REGEX
+            + OR
+            + self.INLINE_IMAGE_OP_REGEX
             + OR
             + self.NAME_REGEX
             + OR
@@ -32,13 +40,20 @@ class PDFStreamParser:
             + OR
             + self.EMPTY_STRING_REGEX
             + OR
+            + self.BOOL_REGEX
+            + OR
             + self.NUMBER_REGEX
+            + OR
+            + self.IMAGE_REGEX
         )
         self.ARRAY_REGEX = (
-            r"^[^(]*(?:(?:(?<=[^\\])|^)(?P<array>\[(?:.*[^\\])?\]))"
+            r"(?:(?:(?<=[^\\])|^)\[(?P<array>[\s\S]*?(?:[^\\]|\\{2})?)\])"
         )
-        # r"^[^(]*(?:(?:(?<=[^\\])|^)\[(?P<array>.*[^\\])?\])"
-        # r"(?:(?P<pre>[^\\\n]|^)\[(?P<array>.*[^\\])?\])"
+
+        # r"(?:(?:(?<=[^\\])|^)\[(?P<array>.*?(?:[^\\]|\\{2})?)\])"
+        # r"(?:(?:(?<=[^\\])|^)\[(?P<array>(?:.*[^\\]))\])"
+        # r"^[^(]*(?:(?:(?<=[^\\])|^)(?P<array>\[(?:.*[^\\])?\]))"
+
         self.DICT_REGEX = r"\s*<<(?P<obj>.*?)>>"  # (?P<name>/\w+)?
         self.DICT_CONTENT = (
             self.NAME_REGEX.replace("name", "key")
@@ -48,42 +63,41 @@ class PDFStreamParser:
             + self.PRIMATIVE_REGEX
             + ")"
         )
-        # OLD DICT        +r"(?P<value><(?:\S+?)>|(?:/\S+)|\((?P<stringO>)(?=\))|(?:\((?:(?:.*?[^\\]))(?=\)))|(?:(?:[^_\-\n\d]|^)(?:[\d.]+))|(?:-[\d.]+))")
         self.TYPES_MAP = {
             "number": float,
             "hex": str,
+            "image": str,
             "string": str,
             "name": str,
+            "inline": str,
             "binary": str,
+            "bool": lambda v: True if v == "true" else False,
         }
-        self.TRUNCATED_TOKEN_REGEX = re.compile(
-            r"(?:<[^>]*$)",
-            re.MULTILINE,
-        )
-        self.INVALID_ESCAPE = re.compile(
-            r"(?:[^\\]|^)\\(?![()\\rntb0-7])", re.MULTILINE | re.DOTALL  # f
-        )
         self.SPLIT_REGEX = r"\s+"  # r"(?:\r\n)|\n| |\s"
-        self.ID_REGEX = r"ARRAY___\d+|DICT___\d+|NUMBER___\d+|STRING___\d+|NAME___\d+|BINARY___\d+|HEX___\d+"
-        self.BOOL_REGEX = r"true|false"
-        # self.HAS_HEX_3 = r"(?P<hex>\\(?:\d{3})(?:\\(?:\d{3})|(?:[^\\])))"
-        # self.HAS_HEX_3 = ( r"\\(?P<hex1>\d{3})(?:\\(?P<hex2>\d{3})|(?P<char>(?:\\)?\D))")
-        self.HAS_HEX_3 = re.compile(
-            r"(?:\\(?:\d{3})(?:\\(?:\d{3})|(?:(?:\\)?.)))+$", re.MULTILINE
-        )
-        self.HEX_ITERATE = r"\\(?P<hex>\d{3})|(?P<char>.)"
-        self.HEX_ITERATE_V2 = (
-            r"\\(?P<hex>\d{3})|(?P<char>.*?(?:(?=\\\d{3})|$))"
-        )
-        self.HEX_ITERATE_V3 = r"\\(?P<hex1>\d{3})(?:\\(?P<hex2>\d{3})|(?P<char>(?:\\)?.(?:(?=\\\d{3})|$)))"
-        # "\\(?P<hex1>\d{3})(?:\\(?P<hex2>\d{3})|(?P<char>(?:.|\\\\)(?:(?=\\\d{3})|$)))"
+        self.ID_REGEX = r"ARRAY___\d+|DICT___\d+|NUMBER___\d+|STRING___\d+|NAME___\d+|BOOL___\d+|BINARY___\d+|HEX___\d+|IMAGE___\d+"
+        self.INLINE_ID_REGEX = r"INLINE___\d+"
+        self.TRUNCATED_HEX = r"<[0-9a-fA-F]+\s(?=[0-9a-fA-F]+>)"
+
+        # self.TRUNCATED_TOKEN_REGEX = re.compile(
+        #     r"(?:<[^>]*$)",
+        #     re.MULTILINE,
+        # )
+        # self.INVALID_ESCAPE = re.compile(
+        #     r"(?:[^\\]|^)\\(?![()\\rntb0-7])", re.MULTILINE | re.DOTALL  # f
+        # )
+        # self.HAS_HEX_3 = re.compile(
+        #     r"(?:\\(?:\d{3})(?:\\(?:\d{3})|(?:(?:\\)?.)))+$", re.MULTILINE
+        # )
+        # self.HEX_ITERATE = r"\\(?P<hex>\d{3})|(?P<char>.)"
+        # self.HEX_ITERATE_V2 = (
+        #     r"\\(?P<hex>\d{3})|(?P<char>.*?(?:(?=\\\d{3})|$))"
+        # )
+        # self.HEX_ITERATE_V3 = r"\\(?P<hex1>\d{3})(?:\\(?P<hex2>\d{3})|(?P<char>(?:\\)?.(?:(?=\\\d{3})|$)))"
 
         self.primatives_counter = 0
         self.arrays_counter = 0
         self.dict_counter = 0
         self.variables_dict = {}
-        # self.variables_dict = {}
-        # self.prim_
         self.data: str = ""
         self.tokens = []
 
@@ -92,22 +106,33 @@ class PDFStreamParser:
             raise ValueError("No tokens to parse")
 
         arguements = []
+        ignore_next = False
         for idx, token in enumerate(self.tokens):
-            if isinstance(token, bool):
-                arguements.append(token)
+            if not token:  # or token == ")":
                 continue
-            elif not token or token == ")":
+            if ignore_next:
+                ignore_next = False
                 continue
             if re.match(self.ID_REGEX, token):
-                try:
-                    arguements.append(self.variables_dict[token])
-                except Exception as e:
-                    # pprint.pprint(self.variables_dict)
-                    raise Exception(e)
-            elif token.lstrip(")") in PdfOperator.OPERTORS_SET:
-                cmd = token.lstrip(")")
+                data = self.variables_dict[token]
+                if token.startswith("IMAGE"):
+                    img_data = data.lstrip("\n ")[2:].strip("\r\n")
+                    command = PdfOperator("ID", [img_data])
+                    yield command
+                else:
+                    arguements.append(data)
+            elif re.match(self.INLINE_ID_REGEX, token):
+                if len(arguements) > 0:
+                    print("args = ", arguements)
+                    raise Exception("unhandled args")
+                cmd = self.variables_dict[token]
+                args = self.variables_dict[self.tokens[idx + 1]]
+                command = PdfOperator(cmd, [args])
+                ignore_next = True
+                yield command
+            elif token in PdfOperator.OPERTORS_SET:  # .lstrip() in
+                cmd = token  # .lstrip(")")
                 command = PdfOperator(cmd, arguements)
-                # print(cmd, arguements)
                 arguements = []
                 yield command
             else:
@@ -122,22 +147,136 @@ class PDFStreamParser:
                 raise Exception("----" + token)
         self.tokens = []
 
-    # PRINTABLE = string.ascii_letters + string.digits + string.punctuation + " "
-    #
-    # def hex_escape(self, s):
-    #     return "".join(
-    #         (
-    #             c
-    #             if c in PDFStreamParser.PRINTABLE
-    #             else r"\x{0:02x}".format(ord(c))
-    #         )
-    #         for c in s
-    #     )
+    def parse_stream(self, stream_content: str):
+        self.variables_dict = {}
+        self.arrays_counter = 0
+        self.dict_counter = 0
+        self.primatives_counter = 0
+        stream_content = stream_content.replace("\\\r", "")
+        stream_content = re.sub(
+            self.TRUNCATED_HEX,
+            lambda m: m.group(0).strip("\n"),  # \r
+            stream_content,
+            flags=re.DOTALL | re.MULTILINE,
+        )
 
-    def parse_stream(self, lines: str):
+        def replace_primatives_v2(match: re.Match):
+            for p_type, p_value in match.groupdict().items():
+                if p_value is None:
+                    continue
+
+                self.primatives_counter += 1
+                p_type = p_type.replace("O", "")
+                value = self.TYPES_MAP[p_type](p_value)
+
+                if p_type.startswith("string"):
+                    value = value.replace("\\(", "(").replace("\\)", ")")
+                    value = re.sub(
+                        r"\\([1234567]{3})",
+                        lambda m: pnc.octal_to_char(m.group(1)),
+                        value,
+                        flags=re.DOTALL | re.MULTILINE,
+                    )
+                elif p_type == "hex":
+                    value = re.sub(
+                        r"([0-9a-fA-F]{2})",
+                        lambda m: pnc.hex_to_char(m.group(1)),
+                        value,
+                        flags=re.DOTALL | re.MULTILINE,
+                    )
+
+                primative_id = (
+                    f"{p_type.upper()}___{self.primatives_counter:06}"
+                )
+                self.variables_dict[primative_id] = value
+                return f" {primative_id} "
+            return " "
+
+        def replace_array_v2(match: re.Match):
+            p_value = match.group("array")
+            if p_value is None:
+                return ""  # WARN: potential bug
+
+            self.arrays_counter += 1
+            array = []
+            for prim_key in p_value.replace("\n", "").split(" "):
+                if prim_key:  # WARN:
+                    if prim_key in self.variables_dict:
+                        prim_value = self.variables_dict.pop(prim_key)
+                        array.append(prim_value)
+                    else:
+                        print("match = ", match.group("array"))
+                        print("error_key =", prim_key)
+                        raise Exception
+            # print(array)
+            array_id = f"ARRAY___{self.arrays_counter}"
+            self.variables_dict[array_id] = array
+            return f" {array_id} "
+
+        def replace_dict_v2(match: re.Match):
+            p_value = match.group("obj")
+            if p_value is None:
+                return ""  # WARN: potential bug
+            # print(match.group(0))
+            self.dict_counter += 1
+            dict_obj = {}
+            current_Key = None
+            for prim_key in p_value.replace("\n", "").split(" "):
+                if not prim_key:
+                    continue
+                if prim_key not in self.variables_dict:
+                    print("match = ", match.group("obj"))
+                    print("error_key =", prim_key)
+                    raise Exception
+                if current_Key:
+                    dict_obj[current_Key] = self.variables_dict.pop(prim_key)
+                    current_Key = None
+                else:
+                    current_Key = self.variables_dict.pop(prim_key)
+
+            dict_id = f"DICT___{self.dict_counter}"
+            self.variables_dict[dict_id] = dict_obj
+            return f" {dict_id} "
+
+        stream_content = re.sub(
+            self.PRIMATIVE_REGEX,
+            replace_primatives_v2,
+            stream_content,
+            flags=re.DOTALL | re.MULTILINE,
+        )
+
+        # print(stream_content)
+        # print("\n" * 4)
+        stream_content = re.sub(
+            self.ARRAY_REGEX,
+            replace_array_v2,
+            stream_content,
+            flags=re.DOTALL | re.MULTILINE,
+        )
+
+        # print(stream_content)
+
+        stream_content = re.sub(
+            self.DICT_REGEX,
+            replace_dict_v2,
+            stream_content,
+            flags=re.DOTALL | re.MULTILINE,
+        )
+
+        self.tokens.extend(
+            re.split(
+                self.SPLIT_REGEX,
+                stream_content,
+                flags=re.MULTILINE | re.DOTALL,
+            )
+        )
+        return self
+
+    def parse_stream_old(self, lines: str):
         # lines = lines.replace("\r", "")
         self.variables_dict = {}
         self.arrays_counter = 0
+        self.dict_counter = 0
         self.primatives_counter = 0
 
         # TODO: user regex to fetch all \t\n\r\b and replace them with the actual control char
@@ -175,7 +314,6 @@ class PDFStreamParser:
                 self.__process_line(prev_line + line)
             prev_line = ""
             i += 1
-
         return self
 
     def __process_line(self, line: str):
@@ -235,6 +373,7 @@ class PDFStreamParser:
 
     def __replace_arrays(self, match: re.Match):
         self.arrays_counter += 1
+
         array_id = f"ARRAY___{self.arrays_counter}"
         all_text = match.group(0)
         array = match.group("array")
@@ -303,32 +442,9 @@ class PDFStreamParser:
                 char = char[1:]
             byte_data = pnc.char_to_byte(char)
             byte_string = pnc.byte_to_octal(byte_data)
-            # "".join(f"\\{b:03o}" for b in byte_data)
             hex2 = byte_string.lstrip("0o").lstrip("\\")
         final = f"\\{hex1}\\{hex2}"
         return final
-
-    def pdf_hex_to_str(self, hex_text: str) -> str:
-        cleaned = "".join(hex_text.split())
-        length = len(cleaned)
-        i = 0
-        byte_string = ""
-        while i < length:
-            prefix = ""
-            j = i + 4
-            if j > length:
-                j = length - i
-                prefix = "0" * (4 - j)
-            try:
-                raw_bytes = bytes.fromhex(prefix + cleaned[i:j])
-            except Exception as e:
-                print(e)
-                print(prefix + cleaned[i:j])
-                print(hex_text)
-                raise Exception(e)
-            byte_string += "".join(f"\\{b:03o}" for b in raw_bytes)
-            i += 4
-        return byte_string
 
     def __replace_primatives(self, match, primatives_array):
         for p_type, p_value in match.groupdict().items():

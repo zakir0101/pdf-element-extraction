@@ -44,6 +44,25 @@ class PdfEncoding:
         return f"\\{c:03o}"
 
     @classmethod
+    def hex_to_char(cls, hex_text: str) -> str:
+        if len(hex_text) != 2:
+            raise
+        nr = int(hex_text, 16)
+        if nr > 255:
+            raise Exception("byte is > 255 !")
+        return int.to_bytes(nr).decode(cls.CURRENT_ENCODING)
+
+    @classmethod
+    def octal_to_char(cls, octal_string: str):
+        """3 digits octal number"""
+        if len(octal_string) != 3:
+            raise
+        nr = int(octal_string, 8)
+        if nr > 255:
+            raise Exception("byte is > 255 !")
+        return int.to_bytes(nr).decode(cls.CURRENT_ENCODING)
+
+    @classmethod
     def bytearray_to_octal(cls, b_array: bytes | int):
         return "".join([f"\\{c:03o}" for c in b_array])
 
@@ -58,12 +77,15 @@ class PdfEncoding:
         return b.decode(cls.CURRENT_ENCODING)
 
     @classmethod
-    def bytes_to_string(cls, byte_text: bytes):
+    def bytes_to_string(cls, byte_text: bytes, unicode_excape=False):
         if not isinstance(byte_text, (bytes, bytearray)):
             raise Exception("the input bytes are not of correct type")
         for b in byte_text:
             cls.is_valid_byte(b)
-        return byte_text.decode(enc)
+        if unicode_excape:
+            return byte_text.decode("unicode_escape")
+        else:
+            return byte_text.decode(cls.CURRENT_ENCODING)
 
     @classmethod
     def string_to_bytes(cls, text: str):

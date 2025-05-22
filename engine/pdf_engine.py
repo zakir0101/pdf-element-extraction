@@ -4,10 +4,12 @@ from pypdf.generic import (
     IndirectObject,
     EncodedStreamObject,
     ArrayObject,
+    PdfObject,
 )
 from pypdf import PdfReader, PageObject
 import pprint
 
+from engine.pdf_operator import PdfOperator
 from engine.pdf_question_renderer import QuestionRenderer
 from .pdf_renderer import BaseRenderer
 from .pdf_font import PdfFont
@@ -140,23 +142,31 @@ class PdfEngine:
             int(self.default_width) * self.scaling,
             int(self.default_height) * self.scaling,
         )
-        streams_data = self.get_page_stream_data(page)
+        streams_data: list[bytes] = self.get_page_stream_data(page)
+        # bytes b"54" and b"03:"
+        if b"\xc3\x9f" in streams_data:
+            print("ß found")
+        for i, b in enumerate(streams_data):
+            if b == 54:
+                pass
+                # print("found", chr(streams_data[i - 1 : i + 2]))
+        # print(biggest, chr(biggest))
         if len(streams_data) == 0:
             self.current_stream = pnc.bytes_to_string(
                 self.reader.stream.read()
             )
             self.debug_original_stream()
             raise Exception("no data found in this pdf !!!")
-        streams_data = [pnc.bytes_to_string(data) for data in streams_data]
+        streams_data = pnc.bytes_to_string(streams_data, unicode_excape=True)
         self.current_stream = (
-            "".join(streams_data).encode("latin1").decode("unicode_escape")
+            streams_data  # .encode("latin1").decode( "unicode_escape")
         )
         return self
 
     def get_page_stream_data(self, page):
 
         contents = page.get("/Contents")
-
+        # return contents.get_data()
         streams_data = []
         if contents is None:
             raise ValueError("No content found in the page")
@@ -175,13 +185,14 @@ class PdfEngine:
                     data = c.get_data()
                     if data:
                         streams_data.append(data)
-        return streams_data
+        return b"".join(streams_data)
 
     def debug_original_stream(
         self, filename=f"output{sep}original_stream.txt"
     ):
         # print("saving debug info into file")
         with open(filename, "w", encoding="utf-8") as f:
+            f.write("# FileName: " + os.path.basename(self.pdf_path) + "\n\n")
             f.write("# page number " + str(self.current_page) + "\n\n")
             pprint.pprint(self.pages[self.current_page - 1], f)
 
@@ -306,7 +317,9 @@ class PdfEngine:
             self.print_color_space(f, xres)
             f.write(xstream)
 
-    def execute_glyph_stream(self, stream: str, ctx: cairo.Context):
+    def execute_glyph_stream(
+        self, stream: str, ctx: cairo.Context, char_name: str, font_matrix
+    ):
         if self.debug:
             with open(
                 f"output{sep}font_stream.txt", "w", encoding="utf-8"
@@ -315,19 +328,24 @@ class PdfEngine:
                 f.write(stream)
 
         font_state = EngineState(
-            font_map=None,
-            color_map=None,
-            resources=None,
+            font_map=self.font_map,
+            color_map=self.color_map,
+            resources=self.res,
             exgstat=None,
             xobj=None,
             initial_state=None,
             execute_xobject_stream=self.execute_xobject_stream,
-            stream_name="glyph_stream",
+            stream_name=char_name,
             draw_image=self.renderer.draw_inline_image,
             scale=self.scaling,
             screen_height=self.default_height,
             debug=self.debug,
             depth=self.state.depth,
+        )
+        m: cairo.Matrix = font_matrix
+        cairo.Matrix()
+        font_state.set_ctm(
+            PdfOperator("cm", [m.xx, m.yx, m.xy, m.yy, m.x0, m.y0])
         )
         old_state = self.renderer.state
         old_ctx = self.renderer.ctx
@@ -453,7 +471,7 @@ class PdfEngine:
     def execute_stream_extract_question(
         self,
         max_show=10000,
-        mode=1,
+        mode=0,
         stream: str | None = None,
         width=None,
         height=None,
@@ -495,7 +513,8 @@ class PdfEngine:
             if self.debug and explanation2:
                 f.write(f"{explanation2}\n")
             if cmd.name in ["Tj", "TJ", "'", '"']:
-                f.write(f"\n\n")
+
+                f.write(f"counter={counter}\n\n")
                 counter += 1
                 if counter > max_show:
                     break

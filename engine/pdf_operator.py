@@ -99,6 +99,8 @@ class PdfOperator:
             "EX": "Unkown operators !! [operands=%(operands)s]",
             "BX": "Unkown operatkor !!! [operands=%(operands)s]",
             "sh": "Not Implemented operatkor !!! [operands=%(operands)s]",
+            "d0": "set glyph width in type3 font [operands=%(operands)s]",
+            "d1": "set glyph width in type3 font [operands=%(operands)s]",
         }
 
     GRAPHICS_OPERATORS = get_graphics_operator()
@@ -119,6 +121,8 @@ class PdfOperator:
             "/BPC": "Set bits per component [bpc=%(operands)s] (1, 2, 4, 8, 16, 32)",
             "/CS": "Set color space [colorSpace=%(operands)s] (name or array)",
             "/F": "Set filter [filter=%(operands)s] (name or array)",
+            "/D": "D=Decode, Unkown operator  [filter=%(operands)s]",
+            "/DP": " Unkown operator  [filter=%(operands)s]",
         }
 
     INLINE_IMAGE_OPERATORS = get_inline_image_operators()

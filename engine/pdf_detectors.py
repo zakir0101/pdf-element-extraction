@@ -26,6 +26,24 @@ import cairo
 from .pdf_utils import get_next_label, checkIfRomanNumeral, get_segments
 
 
+cosole_print = print
+file = None
+
+
+def set_dubugging():
+    global file
+    file = open(f"output{sep}detector_output.md", "w", encoding="utf-8")
+
+
+def print(*args):
+    global file
+    if not file:
+        return
+    args = [str(a) for a in args]
+    file.write(" ".join(args) + "\n")
+    file.flush()
+
+
 class Box:
     def __init__(self):
         self.box = (0, 0, 0, 0)
@@ -71,7 +89,7 @@ class Sequence(Box):
         self.threshold_y = 20
         self.threshold_x = 20
         if symboles is not None:
-            self.data = symboles
+            self.data = symboles.copy()
             self.__set_box__()
             self.__set_mean__(self.box)
 
@@ -82,6 +100,19 @@ class Sequence(Box):
     def __getitem__(self, index) -> Symbol:
         return self.data[index]
 
+    def iterate_split(self, char: str = " "):
+        sub = []
+        for sym in self.data:
+            if sym.ch in char:
+                if len(sub) > 0:
+                    yield Sequence(sub)
+                sub = []
+            else:
+                sub.append(sym)
+
+        if len(sub) > 0:
+            yield Sequence(sub)
+
     def __len__(self):
         return len(self.data)
 
@@ -91,13 +122,14 @@ class Sequence(Box):
             rep += "   " + str(sym) + "\n"
         return rep  #
 
-    def get_text(self) -> str:
+    def get_text(self, verbose=True) -> str:
         rep = ""
         for sym in self.data:
             rep += sym.ch
-        return (
-            f"Sequence(lenght={len(self.data)}, content={rep}, box={self.box})"
-        )
+        if verbose:
+            return f"Sequence(lenght={len(self.data)}, content={rep}, box={self.box})"
+        else:
+            return rep
 
     def size(self):
         return self.data.__len__()
@@ -243,13 +275,7 @@ def find_questions_part_in_page(q: Question, page: int) -> list[Question]:
     return parts
 
 
-file = open(f"output{sep}detector_output.md", "w", encoding="utf-8")
-
-
-def print(*args):
-    args = [str(a) for a in args]
-    file.write("".join(args) + "\n")
-    file.flush()
+# DEBUG_DETECTOR = True
 
 
 class QuestionDetector(BaseDetector):
@@ -258,6 +284,8 @@ class QuestionDetector(BaseDetector):
         self.curr_page = -1
         self.height = 100
         self.width = 100
+        self.MINIMAL_X = 0
+        self.LEVEL_2_X = None
         self.is_first_detection = True
         self.out_surf: cairo.ImageSurface | None = None
         self.out_ctx: cairo.Context | None = None
@@ -265,7 +293,17 @@ class QuestionDetector(BaseDetector):
         self.page_parts: dict[int, list[Question]] = {}
         self.page_parts_per_question: dict[int, dict[int, Question]] = {}
         self.page_heights: dict[int, int] = {}
-        self.allowed_skip_chars = [" ", "(", "[", "", ")", "]" "."]
+        self.allowed_skip_chars = [
+            " ",
+            "\u0008",
+            "\u2002",
+            "(",
+            "[",
+            "",
+            ")",
+            "]",
+            ".",
+        ]
         self.allowed_chars_startup = ["1", "a", "i"]
 
         self.tolerance = 20
@@ -279,6 +317,7 @@ class QuestionDetector(BaseDetector):
     def set_height(self, new_width, new_height):
         self.height = new_height
         self.width = new_width
+        self.MINIMAL_X = 0.05 * new_width
         if len(self.question_list) == 0:
             self.reset_left_most()
 
@@ -316,6 +355,18 @@ class QuestionDetector(BaseDetector):
     def replace_question(self, q: Question, level: int):
         old_curr = self.current[level]
         if old_curr and len(old_curr.parts) > 1:
+
+            # if (
+            #     level == 0
+            #     and self.type[0] != NUMERIC
+            #     and q.label == "1"
+            #     and self.curr_page <= 4
+            # ):
+            #     # NOTE:improve me, this should not happen from the begining, this workaround is ver specific to IGCSE
+            #     print(
+            #         "# NOTE: We will replace the old existing question, though it already detected +2 part"
+            #     )
+            # else:
             print(
                 "Can not replace old question because it already has detected 2+ parts"
             )
@@ -325,6 +376,9 @@ class QuestionDetector(BaseDetector):
             and len(old_curr.parts) > 0
             and len(old_curr.parts[0].parts) > 1
         ):
+
+            # Commented same as abode ....
+            # truncated ...
             print(
                 "Can not replace old question because it already has detected a part with 2+ sub-parts"
             )
@@ -362,6 +416,19 @@ class QuestionDetector(BaseDetector):
         self.left_most_x[level] = q.x
         self.current[level] = q
 
+    def on_finish(
+        self,
+    ):
+        """call this function after all pages has beeing prcessed"""
+        last = self.current[0]
+        if not last:
+            return
+        last.y1 = self.height
+        if len(last.parts) < 2:
+            last.parts = []
+        if last.parts and len(last.parts[-1].parts) < 2:
+            last.parts[-1].parts = []
+
     def set_question(self, q: Question, level: int):
         print(f"trying to set question ..(level={level})")
         self.set_page_number_for_first_detection(level)
@@ -382,6 +449,9 @@ class QuestionDetector(BaseDetector):
             self.current[0] = q
         elif level == 1 and self.current[0]:
             self.current[0].parts.append(q)
+            if len(self.current[0].parts) > 1:
+                print("setting LEVEL_2_X")
+                self.LEVEL_2_X = q.x + 2 * q.h
             self.current[1] = q
         elif level == 2 and self.current[1]:
             self.current[1].parts.append(q)
@@ -418,7 +488,10 @@ class QuestionDetector(BaseDetector):
 
     def get_allowed_startup_chars(self, level: int):
         used = None
-        if level > 0:
+        if level == 0:  # WARN:
+            """this work only for cambrdige IGCSE ..."""
+            return "1"
+        else:
             used = FIRST_MAP[self.type[level - 1]]
         res = [i for i in self.allowed_chars_startup if i != used]
         return res
@@ -478,7 +551,10 @@ class QuestionDetector(BaseDetector):
     def is_char_x_close_enough_to_append(self, diff, level):
         return abs(diff) <= FACTORS[level] * self.tolerance
 
-    def is_char_skip(self, char, level):
+    def is_char_skip(self, sym: Symbol, level):
+        char = sym.ch
+        if sym.x < self.MINIMAL_X:
+            return True
         if level > 0:
             if char in self.current[level - 1].label:
                 return True
@@ -497,6 +573,7 @@ class QuestionDetector(BaseDetector):
         )
 
     def print_final_results(self, curr_file):
+        print = cosole_print
         print("\n\n")
         print("****************** Final Result ********************\n")
         if len(self.question_list) == 0:
@@ -516,13 +593,24 @@ class QuestionDetector(BaseDetector):
                 f"\n***************** page {page} ({self.width},{self.height})**********************\n"
             )
             self.curr_page = page
+            self.width
             self.is_first_detection = True
             if len(self.question_list) == 0:
                 self.reset(0)
+            if self.LEVEL_2_X:
+                self.reset_left_most(1)
+                self.left_most_x[0] = self.LEVEL_2_X
+            else:
                 self.reset_left_most(0)
+
             self.print_internal_status("After:")
+
         for level in range(3):
-            found = self.__handle_sequence(seq, level)
+            for sub_seq in seq.iterate_split(" \t"):
+                found = self.__handle_sequence(sub_seq, level)
+                if found:
+                    break
+
             if self.current[level] is None:
                 break
 
@@ -531,9 +619,10 @@ class QuestionDetector(BaseDetector):
         prev_valid: Symbol | None = None
         is_next_candidate = False
         is_alternative_candidate = False
+        is_overwrite_and_reset = False
 
         char_all = ""
-        char, x, y, h, diff, old_diff = "", 0, 0, 0, 0, 10000
+        char, x, y, h, diff, old_diff = "", 0, 0, 0, None, 10000
         can_append, can_overwrite = None, None
         # is_alternative_better = False
 
@@ -542,13 +631,13 @@ class QuestionDetector(BaseDetector):
         for _, sym in enumerate(seq):
             sym: Symbol = sym
             char = sym.ch
-            if self.is_char_skip(char, level):
+            if self.is_char_skip(sym, level):
                 continue
             if prev_valid and not self.is_valid_neighbours(sym, prev_valid):
                 break
             prev_valid = sym
 
-            if diff == 0:
+            if diff is None:
                 x, y, x1, y1 = sym.get_box()
                 h = y1 - y
                 self.tolerance = x1 - x
@@ -568,6 +657,15 @@ class QuestionDetector(BaseDetector):
                 char_all + char, level
             )
 
+            # if (
+            #     self.type[0] != NUMERIC
+            #     and char == "1"
+            #     and can_overwrite
+            #     and level == 0
+            #     and self.curr_page <= 4
+            # ):
+            #     is_overwrite_and_reset = True
+            #     break
             if valid_as_next:
                 char_all += char
                 is_next_candidate = True
@@ -579,8 +677,10 @@ class QuestionDetector(BaseDetector):
                 continue
 
             elif can_overwrite:
-
-                print(f"\nL{level}: Ignored 'OVERRIDE' Seq: " + seq.get_text())
+                print(
+                    f"\nL{level}: Ignored 'OVERRIDE' Seq:(charall={char_all},char={char}) "
+                    + seq.get_text()
+                )
                 pass
                 # TODO: only adjust left_most_x , but don't set any thing new
                 # if diff < -self.tolerance:  # and diff_upper > 0:
@@ -594,7 +694,14 @@ class QuestionDetector(BaseDetector):
             is_next_candidate = is_alternative_candidate = False
             return False
 
-        if is_next_candidate and self.is_char_valid_as_next(
+        if is_overwrite_and_reset:
+            print("OV_AND_RESET :\n" + seq.get_text())
+            self.reset(0)  # current level == 0
+            new_q = Question("1", self.curr_page, level, x, y, 2 * h)
+            self.set_question(new_q, level)
+            return True
+
+        elif is_next_candidate and self.is_char_valid_as_next(
             char_all, level, strict=True
         ):
 
@@ -663,8 +770,8 @@ class QuestionDetector(BaseDetector):
         per_question: bool,
     ):
         pdf_file = args.curr_file
-        if per_question:
-            self.question_list[-1].y1 = self.height
+        # if per_question:
+        #     self.question_list[-1].y1 = self.height
 
         total_height = sum(self.page_heights.values())
 
