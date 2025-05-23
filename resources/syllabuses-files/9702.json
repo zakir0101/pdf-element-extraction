@@ -1,0 +1,639 @@
+[
+    {
+        "chapters": [
+            {
+                "name": "Physical Quantities And Units",
+                "number": 1,
+                "topics": [
+                    {
+                        "name": "Physical quantities",
+                        "number": 1,
+                        "description": "Candidates should be able to:\n1  understand that all physical quantities consist of a numerical magnitude and a unit\n2  make reasonable estimates of physical quantities included within the syllabus",
+                        "examples": ""
+                    },
+                    {
+                        "name": "SI units",
+                        "number": 2,
+                        "description": "Candidates should be able to:\n1  recall the following SI base quantities and their units: mass (kg), length (m), time (s), current (A),\ntemperature (K)\n2  express derived units as products or quotients of the Sl base units and use the derived units for\nquantities listed in this syllabus as appropriate\n3  use Sl base units to check the homogeneity of physical equations\n4  recall and use the following prefixes and their symbols to indicate decimal submultiples or multiples of\nboth base and derived units: pico (p), nano (n), micro (μ), milli (m), centi (c), deci (d), kilo (k), mega (M),\ngiga (G), tera (T)",
+                        "examples": ""
+                    },
+                    {
+                        "name": "Errors and uncertainties",
+                        "number": 3,
+                        "description": "Candidates should be able to:\n1  understand and explain the effects of systematic errors (including zero errors) and random errors in\nmeasurements\n2  understand the distinction between precision and accuracy\n3  assess the uncertainty in a derived quantity by simple addition of absolute or percentage uncertainties",
+                        "examples": ""
+                    },
+                    {
+                        "name": "Scalars and vectors",
+                        "number": 4,
+                        "description": "Candidates should be able to:\n1  understand the difference between scalar and vector quantities and give examples of scalar and vector\nquantities included in the syllabus\n2  add and subtract coplanar vectors\n3  represent a vector as two perpendicular components",
+                        "examples": ""
+                    }
+                ]
+            },
+            {
+                "name": "Kinematics",
+                "number": 2,
+                "topics": [
+                    {
+                        "name": "Equations of motion",
+                        "number": 1,
+                        "description": "Candidates should be able to:\n1  define and use distance, displacement, speed, velocity and acceleration\n2  use graphical methods to represent distance, displacement, speed, velocity and acceleration\n3  determine displacement from the area under a velocity-time graph\n4  determine velocity using the gradient of a displacement-time graph\n5  determine acceleration using the gradient of a velocity-time graph\n6  derive, from the definitions of velocity and acceleration, equations that represent uniformly accelerated\nmotion in a straight line\n7  solve problems using equations that represent uniformly accelerated motion in a straight line, including\nthe motion of bodies falling in a uniform gravitational field without air resistance\n8  describe an experiment to determine the acceleration of free fall using a falling object\n9  describe and explain motion due to a uniform velocity in one direction and a uniform acceleration in a\nperpendicular direction",
+                        "examples": ""
+                    }
+                ]
+            },
+            {
+                "name": "Dynamics",
+                "number": 3,
+                "topics": [
+                    {
+                        "name": "Momentum and Newton's laws of motion",
+                        "number": 1,
+                        "description": "Candidates should be able to:\n1  understand that mass is the property of an object that resists change in motion\n2  recall F = ma and solve problems using it, understanding that acceleration and resultant force are\nalways in the same direction\n3  define and use linear momentum as the product of mass and velocity\n4  define and use force as rate of change of momentum\n5  state and apply each of Newton's laws of motion\n6  describe and use the concept of weight as the effect of a gravitational field on a mass and recall that\nthe weight of an object is equal to the product of its mass and the acceleration of free fall",
+                        "examples": ""
+                    },
+                    {
+                        "name": "Non-uniform motion",
+                        "number": 2,
+                        "description": "Candidates should be able to:\n1  show a qualitative understanding of frictional forces and viscous/drag forces including air resistance\n(no treatment of the coefficients of friction and viscosity is required, and a simple model of drag force\nincreasing as speed increases is sufficient)\n2  describe and explain qualitatively the motion of objects in a uniform gravitational field with air resistance\n3  understand that objects moving against a resistive force may reach a terminal (constant) velocity",
+                        "examples": ""
+                    },
+                    {
+                        "name": "Linear momentum and its conservation",
+                        "number": 3,
+                        "description": "Candidates should be able to:\n1  state the principle of conservation of momentum\n2  apply the principle of conservation of momentum to solve simple problems, including elastic and\ninelastic interactions between objects in both one and two dimensions (knowledge of the concept of\ncoefficient of restitution is not required)\n3  recall that, for an elastic collision, total kinetic energy is conserved and the relative speed of approach is\nequal to the relative speed of separation\n4  understand that, while momentum of a system is always conserved in interactions between objects,\nsome change in kinetic energy may take place",
+                        "examples": ""
+                    }
+                ]
+            },
+            {
+                "name": "Forces, Density And Pressure",
+                "number": 4,
+                "topics": [
+                    {
+                        "name": "Turning effects of forces",
+                        "number": 1,
+                        "description": "Candidates should be able to:\n1  understand that the weight of an object may be taken as acting at a single point known as its centre of\ngravity\n2  define and apply the moment of a force\n3  understand that a couple is a pair of forces that acts to produce rotation only\n4  define and apply the torque of a couple",
+                        "examples": ""
+                    },
+                    {
+                        "name": "Equilibrium of forces",
+                        "number": 2,
+                        "description": "Candidates should be able to:\n1  state and apply the principle of moments\n2  understand that, when there is no resultant force and no resultant torque, a system is in equilibrium\n3  use a vector triangle to represent coplanar forces in equilibrium",
+                        "examples": ""
+                    },
+                    {
+                        "name": "Density and pressure",
+                        "number": 3,
+                        "description": "Candidates should be able to:\n1  define and use density\n2  define and use pressure\n3  derive, from the definitions of pressure and density, the equation for hydrostatic pressure Ap = pgAh\n4  use the equation Ap = pgAh\n5  understand that the upthrust acting on an object in a fluid is due to a difference in hydrostatic pressure\n6  calculate the upthrust acting on an object in a fluid using the equation F = pgV (Archimedes' principle)",
+                        "examples": ""
+                    }
+                ]
+            },
+            {
+                "name": "Work, Energy And Power",
+                "number": 5,
+                "topics": [
+                    {
+                        "name": "Energy conservation",
+                        "number": 1,
+                        "description": "Candidates should be able to:\n1  understand the concept of work, and recall and use work done = force × displacement in the direction\nof the force\n2  recall and apply the principle of conservation of energy\n3  recall and understand that the efficiency of a system is the ratio of useful energy output from the system\nto the total energy input\n4  use the concept of efficiency to solve problems\n5  define power as work done per unit time\n6  solve problems using P = W/t\n7  derive P = Fv and use it to solve problems",
+                        "examples": ""
+                    },
+                    {
+                        "name": "Gravitational potential energy and kinetic energy",
+                        "number": 2,
+                        "description": "Candidates should be able to:\n1  derive, using W = Fs, the formula ∆Ep = mg∆h for gravitational potential energy changes in a uniform\ngravitational field\n2  recall and use the formula ∆Ep = mg∆h for gravitational potential energy changes in a uniform\ngravitational field\n3  derive, using the equations of motion, the formula for kinetic energy Ex = ½mv²\n4  recall and use Ex = ½mv²",
+                        "examples": ""
+                    }
+                ]
+            },
+            {
+                "name": "Deformation Of Solids",
+                "number": 6,
+                "topics": [
+                    {
+                        "name": "Stress and strain",
+                        "number": 1,
+                        "description": "Candidates should be able to:\n1  understand that deformation is caused by tensile or compressive forces (forces and deformations will\nbe assumed to be in one dimension only)\n2  understand and use the terms load, extension, compression and limit of proportionality\n3  recall and use Hooke's law\n4  recall and use the formula for the spring constant k = F/x\n5  define and use the terms stress, strain and the Young modulus\n6  describe an experiment to determine the Young modulus of a metal in the form of a wire",
+                        "examples": ""
+                    },
+                    {
+                        "name": "Elastic and plastic behaviour",
+                        "number": 2,
+                        "description": "Candidates should be able to:\n1  understand and use the terms elastic deformation, plastic deformation and elastic limit\n2  understand that the area under the force-extension graph represents the work done\n3  determine the elastic potential energy of a material deformed within its limit of proportionality from the\narea under the force-extension graph\n4  recall and use Ep = ½ Fx = ½kx² for a material deformed within its limit of proportionality",
+                        "examples": ""
+                    }
+                ]
+            },
+            {
+                "name": "Waves",
+                "number": 7,
+                "topics": [
+                    {
+                        "name": "Progressive waves",
+                        "number": 1,
+                        "description": "Candidates should be able to:\n1  describe what is meant by wave motion as illustrated by vibration in ropes, springs and ripple tanks\n2  understand and use the terms displacement, amplitude, phase difference, period, frequency,\nwavelength and speed\n3  understand the use of the time-base and y-gain of a cathode-ray oscilloscope (CRO) to determine\nfrequency and amplitude\n4  derive, using the definitions of speed, frequency and wavelength, the wave equation v = fλ\n5  recall and use v = fλ\n6  understand that energy is transferred by a progressive wave\n7  recall and use intensity = power/area and intensity ∝ (amplitude)² for a progressive wave",
+                        "examples": ""
+                    },
+                    {
+                        "name": "Transverse and longitudinal waves",
+                        "number": 2,
+                        "description": "Candidates should be able to:\n1  compare transverse and longitudinal waves\n2  analyse and interpret graphical representations of transverse and longitudinal waves",
+                        "examples": ""
+                    },
+                    {
+                        "name": "Doppler effect for sound waves",
+                        "number": 3,
+                        "description": "Candidates should be able to:\n1  understand that when a source of sound waves moves relative to a stationary observer, the observed\nfrequency is different from the source frequency (understanding of the Doppler effect for a stationary\nsource and a moving observer is not required)\n2  use the expression fo = f¸v/(v ± v) for the observed frequency when a source of sound waves moves\nrelative to a stationary observer",
+                        "examples": ""
+                    },
+                    {
+                        "name": "Electromagnetic spectrum",
+                        "number": 4,
+                        "description": "Candidates should be able to:\n1  state that all electromagnetic waves are transverse waves that travel with the same speed c in free\nspace\n2  recall the approximate range of wavelengths in free space of the principal regions of the\nelectromagnetic spectrum from radio waves to y-rays\n3  recall that wavelengths in the range 400–700 nm in free space are visible to the human eye",
+                        "examples": ""
+                    },
+                    {
+                        "name": "Polarisation",
+                        "number": 5,
+                        "description": "Candidates should be able to:\n1  understand that polarisation is a phenomenon associated with transverse waves\n2  recall and use Malus's law (I = I₀ cos²θ) to calculate the intensity of a plane-polarised electromagnetic\nwave after transmission through a polarising filter or a series of polarising filters (calculation of the effect\nof a polarising filter on the intensity of an unpolarised wave is not required)",
+                        "examples": ""
+                    }
+                ]
+            },
+            {
+                "name": "Superposition",
+                "number": 8,
+                "topics": [
+                    {
+                        "name": "Stationary waves",
+                        "number": 1,
+                        "description": "Candidates should be able to:\n1  explain and use the principle of superposition\n2  show an understanding of experiments that demonstrate stationary waves using microwaves, stretched\nstrings and air columns (it will be assumed that end corrections are negligible; knowledge of the\nconcept of end corrections is not required)\n3  explain the formation of a stationary wave using a graphical method, and identify nodes and antinodes\n4  understand how wavelength may be determined from the positions of nodes or antinodes of a\nstationary wave",
+                        "examples": ""
+                    },
+                    {
+                        "name": "Diffraction",
+                        "number": 2,
+                        "description": "Candidates should be able to:\n1  explain the meaning of the term diffraction\n2  show an understanding of experiments that demonstrate diffraction including the qualitative effect of the\ngap width relative to the wavelength of the wave; for example diffraction of water waves in a ripple tank",
+                        "examples": ""
+                    },
+                    {
+                        "name": "Interference",
+                        "number": 3,
+                        "description": "Candidates should be able to:\n1  understand the terms interference and coherence\n2  show an understanding of experiments that demonstrate two-source interference using water waves in\na ripple tank, sound, light and microwaves\n3  understand the conditions required if two-source interference fringes are to be observed\n4  recall and use λ = ax/D for double-slit interference using light",
+                        "examples": ""
+                    },
+                    {
+                        "name": "The diffraction grating",
+                        "number": 4,
+                        "description": "Candidates should be able to:\n1  recall and used sin θ = nλ\n2  describe the use of a diffraction grating to determine the wavelength of light (the structure and use of\nthe spectrometer are not included)",
+                        "examples": ""
+                    }
+                ]
+            },
+            {
+                "name": "Electricity",
+                "number": 9,
+                "topics": [
+                    {
+                        "name": "Electric current",
+                        "number": 1,
+                        "description": "Candidates should be able to:\n1  understand that an electric current is a flow of charge carriers\n2  understand that the charge on charge carriers is quantised\n3  recall and use Q = It\n4  use, for a current-carrying conductor, the expression I = Anvq, where n is the number density of charge\ncarriers",
+                        "examples": ""
+                    },
+                    {
+                        "name": "Potential difference and power",
+                        "number": 2,
+                        "description": "Candidates should be able to:\n1  define the potential difference across a component as the energy transferred per unit charge\n2  recall and use V = W/Q\n3  recall and use P = VI, P = I²R and P = V²/R",
+                        "examples": ""
+                    },
+                    {
+                        "name": "Resistance and resistivity",
+                        "number": 3,
+                        "description": "Candidates should be able to:\n1  define resistance\n2  recall and use V = IR\n3  sketch the I-V characteristics of a metallic conductor at constant temperature, a semiconductor diode\nand a filament lamp\n4  explain that the resistance of a filament lamp increases as current increases because its temperature\nincreases\n5  state Ohm's law\n6  recall and use R = ρL/A\n7  understand that the resistance of a light-dependent resistor (LDR) decreases as the light intensity\nincreases\n8  understand that the resistance of a thermistor decreases as the temperature increases (it will be\nassumed that thermistors have a negative temperature coefficient)",
+                        "examples": ""
+                    }
+                ]
+            },
+            {
+                "name": "Dc Circuits",
+                "number": 10,
+                "topics": [
+                    {
+                        "name": "Practical circuits",
+                        "number": 1,
+                        "description": "Candidates should be able to:\n1  recall and use the circuit symbols shown in section 6 of this syllabus\n2  draw and interpret circuit diagrams containing the circuit symbols shown in section 6 of this syllabus\n3  define and use the electromotive force (e.m.f.) of a source as energy transferred per unit charge in\ndriving charge around a complete circuit\n4  distinguish between e.m.f. and potential difference (p.d.) in terms of energy considerations\n5  understand the effects of the internal resistance of a source of e.m.f. on the terminal potential difference",
+                        "examples": ""
+                    },
+                    {
+                        "name": "Kirchhoff's laws",
+                        "number": 2,
+                        "description": "Candidates should be able to:\n1  recall Kirchhoff's first law and understand that it is a consequence of conservation of charge\n2  recall Kirchhoff's second law and understand that it is a consequence of conservation of energy\n3  derive, using Kirchhoff's laws, a formula for the combined resistance of two or more resistors in series\n4  use the formula for the combined resistance of two or more resistors in series\n5  derive, using Kirchhoff's laws, a formula for the combined resistance of two or more resistors in parallel\n6  use the formula for the combined resistance of two or more resistors in parallel\n7  use Kirchhoff's laws to solve simple circuit problems",
+                        "examples": ""
+                    },
+                    {
+                        "name": "Potential dividers",
+                        "number": 3,
+                        "description": "Candidates should be able to:\n1  understand the principle of a potential divider circuit\n2  recall and use the principle of the potentiometer as a means of comparing potential differences\n3  understand the use of a galvanometer in null methods\n4  explain the use of thermistors and light-dependent resistors in potential dividers to provide a potential\ndifference that is dependent on temperature and light intensity",
+                        "examples": ""
+                    }
+                ]
+            },
+            {
+                "name": "Particle Physics",
+                "number": 11,
+                "topics": [
+                    {
+                        "name": "Atoms, nuclei and radiation",
+                        "number": 1,
+                        "description": "Candidates should be able to:\n1  infer from the results of the a-particle scattering experiment the existence and small size of the nucleus\n2  describe a simple model for the nuclear atom to include protons, neutrons and orbital electrons\n3  distinguish between nucleon number and proton number\n4  understand that isotopes are forms of the same element with different numbers of neutrons in their\nnuclei\n5  understand and use the notation  Z X for the representation of nuclides\n6  understand that nucleon number and charge are conserved in nuclear processes\n7  describe the composition, mass and charge of a-, ẞ- and y-radiations (both ẞ- (electrons) and ẞ+\n(positrons) are included)\n8  understand that an antiparticle has the same mass but opposite charge to the corresponding particle,\nand that a positron is the antiparticle of an electron\n9  state that (electron) antineutrinos are produced during ẞ- decay and (electron) neutrinos are produced\nduring ẞ+ decay\n10 understand that a-particles have discrete energies but that ẞ-particles have a continuous range of\nenergies because (anti)neutrinos are emitted in β-decay\n11 represent a- and β-decay by a radioactive decay equation of the form 238  U -> 234 Th+a\n12 use the unified atomic mass unit (u) as a unit of mass",
+                        "examples": ""
+                    },
+                    {
+                        "name": "Fundamental particles",
+                        "number": 2,
+                        "description": "Candidates should be able to:\n1  understand that a quark is a fundamental particle and that there are six flavours (types) of quark: up,\ndown, strange, charm, top and bottom\n2  recall and use the charge of each flavour of quark and understand that its respective antiquark has the\nopposite charge (no knowledge of any other properties of quarks is required)\n3  recall that protons and neutrons are not fundamental particles and describe protons and neutrons in\nterms of their quark composition\n4  understand that a hadron may be either a baryon (consisting of three quarks) or a meson (consisting of\none quark and one antiquark)\n5  describe the changes to quark composition that take place during β- and β+ decay\n6  recall that electrons and neutrinos are fundamental particles called leptons",
+                        "examples": ""
+                    }
+                ]
+            }
+        ],
+        "name": "As Level Subject Content",
+        "papers": [
+            1,
+            2,
+            3,
+            4,
+            5
+        ],
+        "paper_to_key": {
+            "1,2,3,4,5": [
+                "description,examples"
+            ]
+        }
+    },
+    {
+        "chapters": [
+            {
+                "name": "Motion In A Circle",
+                "number": 12,
+                "topics": [
+                    {
+                        "name": "Kinematics of uniform circular motion",
+                        "number": 121,
+                        "description": "Candidates should be able to:\n1 define the radian and express angular displacement in radians\n2 understand and use the concept of angular speed\n3 recall and use ω = 2π/T and v = rω",
+                        "examples": ""
+                    },
+                    {
+                        "name": "Centripetal acceleration",
+                        "number": 122,
+                        "description": "Candidates should be able to:\n1 understand that a force of constant magnitude that is always perpendicular to the direction of motion causes centripetal acceleration\n2 understand that centripetal acceleration causes circular motion with a constant angular speed\n3 recall and use a = rω² and a = v²/r\n4 recall and use F = mrω² and F = mv²/r",
+                        "examples": ""
+                    }
+                ]
+            },
+            {
+                "name": "Gravitational Fields",
+                "number": 13,
+                "topics": [
+                    {
+                        "name": "Gravitational field",
+                        "number": 131,
+                        "description": "Candidates should be able to:\n1 understand that a gravitational field is an example of a field of force and define gravitational field as force per unit mass\n2 represent a gravitational field by means of field lines",
+                        "examples": ""
+                    },
+                    {
+                        "name": "Gravitational force between point masses",
+                        "number": 132,
+                        "description": "Candidates should be able to:\n1 understand that, for a point outside a uniform sphere, the mass of the sphere may be considered to be a point mass at its centre\n2 recall and use Newton's law of gravitation F = Gm₁m₂/r² for the force between two point masses\n3 analyse circular orbits in gravitational fields by relating the gravitational force to the centripetal acceleration it causes\n4 understand that a satellite in a geostationary orbit remains at the same point above the Earth's surface, with an orbital period of 24 hours, orbiting from west to east, directly above the Equator",
+                        "examples": ""
+                    },
+                    {
+                        "name": "Gravitational field of a point mass",
+                        "number": 133,
+                        "description": "Candidates should be able to:\n1 derive, from Newton's law of gravitation and the definition of gravitational field, the equation g = GM/r² for the gravitational field strength due to a point mass\n2 recall and use g = GM/r²\n3 understand why g is approximately constant for small changes in height near the Earth's surface",
+                        "examples": ""
+                    },
+                    {
+                        "name": "Gravitational potential",
+                        "number": 134,
+                        "description": "Candidates should be able to:\n1 define gravitational potential at a point as the work done per unit mass in bringing a small test mass from infinity to the point\n2 use φ = -GM/r for the gravitational potential in the field due to a point mass\n3 understand how the concept of gravitational potential leads to the gravitational potential energy of two point masses and use Ep = −GMm/r",
+                        "examples": ""
+                    }
+                ]
+            },
+            {
+                "name": "Temperature",
+                "number": 14,
+                "topics": [
+                    {
+                        "name": "Thermal equilibrium",
+                        "number": 141,
+                        "description": "Candidates should be able to:\n1 understand that (thermal) energy is transferred from a region of higher temperature to a region of lower temperature\n2 understand that regions of equal temperature are in thermal equilibrium",
+                        "examples": ""
+                    },
+                    {
+                        "name": "Temperature scales",
+                        "number": 142,
+                        "description": "Candidates should be able to:\n1 understand that a physical property that varies with temperature may be used for the measurement of temperature and state examples of such properties, including the density of a liquid, volume of a gas at constant pressure, resistance of a metal, e.m.f. of a thermocouple\n2 understand that the scale of thermodynamic temperature does not depend on the property of any particular substance\n3 convert temperatures between kelvin and degrees Celsius and recall that T/K = θ/°C + 273.15\n4 understand that the lowest possible temperature is zero kelvin on the thermodynamic temperature scale and that this is known as absolute zero",
+                        "examples": ""
+                    },
+                    {
+                        "name": "Specific heat capacity and specific latent heat",
+                        "number": 143,
+                        "description": "Candidates should be able to:\n1 define and use specific heat capacity\n2 define and use specific latent heat and distinguish between specific latent heat of fusion and specific latent heat of vaporisation",
+                        "examples": ""
+                    }
+                ]
+            },
+            {
+                "name": "Ideal Gases",
+                "number": 15,
+                "topics": [
+                    {
+                        "name": "The mole",
+                        "number": 151,
+                        "description": "Candidates should be able to:\n1 understand that amount of substance is an Sl base quantity with the base unit mol\n2 use molar quantities where one mole of any substance is the amount containing a number of particles of that substance equal to the Avogadro constant NA",
+                        "examples": ""
+                    },
+                    {
+                        "name": "Equation of state",
+                        "number": 152,
+                        "description": "Candidates should be able to:\n1 understand that a gas obeying pV ∝ T, where T is the thermodynamic temperature, is known as an ideal gas\n2 recall and use the equation of state for an ideal gas expressed as pV = nRT, where n = amount of substance (number of moles) and as pV = NkT, where N = number of molecules\n3 recall that the Boltzmann constant k is given by k = R/NA",
+                        "examples": ""
+                    },
+                    {
+                        "name": "Kinetic theory of gases",
+                        "number": 153,
+                        "description": "Candidates should be able to:\n1 state the basic assumptions of the kinetic theory of gases\n2 explain how molecular movement causes the pressure exerted by a gas and derive and use the relationship pV = ⅓Nm<c²>, where <c²> is the mean-square speed (a simple model considering one-dimensional collisions and then extending to three dimensions using ⅓<c²> = <cx² > is sufficient)\n3 understand that the root-mean-square speed cr.m.s. is given by √<c²>\n4 compare pV = ⅓Nm<c²> with pV = NkT to deduce that the average translational kinetic energy of a molecule is 3/2kT, and recall and use this expression",
+                        "examples": ""
+                    }
+                ]
+            },
+            {
+                "name": "Thermodynamics",
+                "number": 16,
+                "topics": [
+                    {
+                        "name": "Internal energy",
+                        "number": 161,
+                        "description": "Candidates should be able to:\n1 understand that internal energy is determined by the state of the system and that it can be expressed as the sum of a random distribution of kinetic and potential energies associated with the molecules of a system\n2 relate a rise in temperature of an object to an increase in its internal energy",
+                        "examples": ""
+                    },
+                    {
+                        "name": "The first law of thermodynamics",
+                        "number": 162,
+                        "description": "Candidates should be able to:\n1 recall and use W = p∆V for the work done when the volume of a gas changes at constant pressure and understand the difference between the work done by the gas and the work done on the gas\n2 recall and use the first law of thermodynamics ∆U = q + W expressed in terms of the increase in internal energy, the heating of the system (energy transferred to the system by heating) and the work done on the system",
+                        "examples": ""
+                    }
+                ]
+            },
+            {
+                "name": "Oscillations",
+                "number": 17,
+                "topics": [
+                    {
+                        "name": "Simple harmonic oscillations",
+                        "number": 171,
+                        "description": "Candidates should be able to:\n1 understand and use the terms displacement, amplitude, period, frequency, angular frequency and phase difference in the context of oscillations, and express the period in terms of both frequency and angular frequency\n2 understand that simple harmonic motion occurs when acceleration is proportional to displacement from a fixed point and in the opposite direction\n3 use a = −ω²x and recall and use, as a solution to this equation, x = x0 sin ωt\n4 use the equations v = v0 cos ωt and v = ±ω√(x0²−x²)\n5 analyse and interpret graphical representations of the variations of displacement, velocity and acceleration for simple harmonic motion",
+                        "examples": ""
+                    },
+                    {
+                        "name": "Energy in simple harmonic motion",
+                        "number": 172,
+                        "description": "Candidates should be able to:\n1 describe the interchange between kinetic and potential energy during simple harmonic motion\n2 recall and use E = ½mω²x0² for the total energy of a system undergoing simple harmonic motion",
+                        "examples": ""
+                    },
+                    {
+                        "name": "Damped and forced oscillations, resonance",
+                        "number": 173,
+                        "description": "Candidates should be able to:\n1 understand that a resistive force acting on an oscillating system causes damping\n2 understand and use the terms light, critical and heavy damping and sketch displacement-time graphs illustrating these types of damping\n3 understand that resonance involves a maximum amplitude of oscillations and that this occurs when an oscillating system is forced to oscillate at its natural frequency",
+                        "examples": ""
+                    }
+                ]
+            },
+            {
+                "name": "Electric Fields",
+                "number": 18,
+                "topics": [
+                    {
+                        "name": "Electric fields and field lines",
+                        "number": 181,
+                        "description": "Candidates should be able to:\n1 understand that an electric field is an example of a field of force and define electric field as force per unit positive charge\n2 recall and use F = qE for the force on a charge in an electric field\n3 represent an electric field by means of field lines",
+                        "examples": ""
+                    },
+                    {
+                        "name": "Uniform electric fields",
+                        "number": 182,
+                        "description": "Candidates should be able to:\n1 recall and use E = ∆V/∆d to calculate the field strength of the uniform field between charged parallel plates\n2 describe the effect of a uniform electric field on the motion of charged particles",
+                        "examples": ""
+                    },
+                    {
+                        "name": "Electric force between point charges",
+                        "number": 183,
+                        "description": "Candidates should be able to:\n1 understand that, for a point outside a spherical conductor, the charge on the sphere may be considered to be a point charge at its centre\n2 recall and use Coulomb's law F = Q₁Q₂/(4πε₀r²) for the force between two point charges in free space",
+                        "examples": ""
+                    },
+                    {
+                        "name": "Electric field of a point charge",
+                        "number": 184,
+                        "description": "Candidates should be able to:\n1 recall and use E = Q/(4πε₀r²) for the electric field strength due to a point charge in free space",
+                        "examples": ""
+                    },
+                    {
+                        "name": "Electric potential",
+                        "number": 185,
+                        "description": "Candidates should be able to:\n1 define electric potential at a point as the work done per unit positive charge in bringing a small test charge from infinity to the point\n2 recall and use the fact that the electric field at a point is equal to the negative of potential gradient at that point\n3 use V = Q/(4πε₀r) for the electric potential in the field due to a point charge\n4 understand how the concept of electric potential leads to the electric potential energy of two point charges and use Ep = Qq/(4πε₀r)",
+                        "examples": ""
+                    }
+                ]
+            },
+            {
+                "name": "Capacitance",
+                "number": 19,
+                "topics": [
+                    {
+                        "name": "Capacitors and capacitance",
+                        "number": 191,
+                        "description": "Candidates should be able to:\n1 define capacitance, as applied to both isolated spherical conductors and to parallel plate capacitors\n2 recall and use C = Q/V\n3 derive, using C = Q/V, formulae for the combined capacitance of capacitors in series and in parallel\n4 use the capacitance formulae for capacitors in series and in parallel",
+                        "examples": ""
+                    },
+                    {
+                        "name": "Energy stored in a capacitor",
+                        "number": 192,
+                        "description": "Candidates should be able to:\n1 determine the electric potential energy stored in a capacitor from the area under the potential-charge graph\n2 recall and use W = ½QV = ½CV²",
+                        "examples": ""
+                    },
+                    {
+                        "name": "Discharging a capacitor",
+                        "number": 193,
+                        "description": "Candidates should be able to:\n1 analyse graphs of the variation with time of potential difference, charge and current for a capacitor discharging through a resistor\n2 recall and use τ = RC for the time constant for a capacitor discharging through a resistor\n3 use equations of the form x = x0 e-(t/RC) where x could represent current, charge or potential difference for a capacitor discharging through a resistor",
+                        "examples": ""
+                    }
+                ]
+            },
+            {
+                "name": "Magnetic Fields",
+                "number": 20,
+                "topics": [
+                    {
+                        "name": "Concept of a magnetic field",
+                        "number": 201,
+                        "description": "Candidates should be able to:\n1 understand that a magnetic field is an example of a field of force produced either by moving charges or by permanent magnets\n2 represent a magnetic field by field lines",
+                        "examples": ""
+                    },
+                    {
+                        "name": "Force on a current-carrying conductor",
+                        "number": 202,
+                        "description": "Candidates should be able to:\n1 understand that a force might act on a current-carrying conductor placed in a magnetic field\n2 recall and use the equation F = BIL sin θ, with directions as interpreted by Fleming's left-hand rule\n3 define magnetic flux density as the force acting per unit current per unit length on a wire placed at right-angles to the magnetic field",
+                        "examples": ""
+                    },
+                    {
+                        "name": "Force on a moving charge",
+                        "number": 203,
+                        "description": "Candidates should be able to:\n1 determine the direction of the force on a charge moving in a magnetic field\n2 recall and use F = BQv sin θ\n3 understand the origin of the Hall voltage and derive and use the expression VH = BI/(ntq), where t = thickness\n4 understand the use of a Hall probe to measure magnetic flux density\n5 describe the motion of a charged particle moving in a uniform magnetic field perpendicular to the direction of motion of the particle\n6 explain how electric and magnetic fields can be used in velocity selection",
+                        "examples": ""
+                    },
+                    {
+                        "name": "Magnetic fields due to currents",
+                        "number": 204,
+                        "description": "Candidates should be able to:\n1 sketch magnetic field patterns due to the currents in a long straight wire, a flat circular coil and a long solenoid\n2 understand that the magnetic field due to the current in a solenoid is increased by a ferrous core\n3 explain the origin of the forces between current-carrying conductors and determine the direction of the forces",
+                        "examples": ""
+                    },
+                    {
+                        "name": "Electromagnetic induction",
+                        "number": 205,
+                        "description": "Candidates should be able to:\n1 define magnetic flux as the product of the magnetic flux density and the cross-sectional area perpendicular to the direction of the magnetic flux density\n2 recall and use Ø = BA\n3 understand and use the concept of magnetic flux linkage\n4 understand and explain experiments that demonstrate:\n• that a changing magnetic flux can induce an e.m.f. in a circuit\n• that the induced e.m.f. is in such a direction as to oppose the change producing it\n• the factors affecting the magnitude of the induced e.m.f.\n5 recall and use Faraday's and Lenz's laws of electromagnetic induction",
+                        "examples": ""
+                    }
+                ]
+            },
+            {
+                "name": "Alternating Currents",
+                "number": 21,
+                "topics": [
+                    {
+                        "name": "Characteristics of alternating currents",
+                        "number": 211,
+                        "description": "Candidates should be able to:\n1 understand and use the terms period, frequency and peak value as applied to an alternating current or voltage\n2 use equations of the form x = xo sin ωt representing a sinusoidally alternating current or voltage\n3 recall and use the fact that the mean power in a resistive load is half the maximum power for a sinusoidal alternating current\n4 distinguish between root-mean-square (r.m.s.) and peak values and recall and use Irms. = Io/√2 and Vrms. = Vo/√2 for a sinusoidal alternating current",
+                        "examples": ""
+                    },
+                    {
+                        "name": "Rectification and smoothing",
+                        "number": 212,
+                        "description": "Candidates should be able to:\n1 distinguish graphically between half-wave and full-wave rectification\n2 explain the use of a single diode for the half-wave rectification of an alternating current\n3 explain the use of four diodes (bridge rectifier) for the full-wave rectification of an alternating current\n4 analyse the effect of a single capacitor in smoothing, including the effect of the values of capacitance and the load resistance",
+                        "examples": ""
+                    }
+                ]
+            },
+            {
+                "name": "Quantum Physics",
+                "number": 22,
+                "topics": [
+                    {
+                        "name": "Energy and momentum of a photon",
+                        "number": 221,
+                        "description": "Candidates should be able to:\n1 understand that electromagnetic radiation has a particulate nature\n2 understand that a photon is a quantum of electromagnetic energy\n3 recall and use E = hf\n4 use the electronvolt (eV) as a unit of energy\n5 understand that a photon has momentum and that the momentum is given by p = E/c",
+                        "examples": ""
+                    },
+                    {
+                        "name": "Photoelectric effect",
+                        "number": 222,
+                        "description": "Candidates should be able to:\n1 understand that photoelectrons may be emitted from a metal surface when it is illuminated by electromagnetic radiation\n2 understand and use the terms threshold frequency and threshold wavelength\n3 explain photoelectric emission in terms of photon energy and work function energy\n4 recall and use hf = φ + ½mvmax²\n5 explain why the maximum kinetic energy of photoelectrons is independent of intensity, whereas the photoelectric current is proportional to intensity",
+                        "examples": ""
+                    },
+                    {
+                        "name": "Wave-particle duality",
+                        "number": 223,
+                        "description": "Candidates should be able to:\n1 understand that the photoelectric effect provides evidence for a particulate nature of electromagnetic radiation while phenomena such as interference and diffraction provide evidence for a wave nature\n2 describe and interpret qualitatively the evidence provided by electron diffraction for the wave nature of particles\n3 understand the de Broglie wavelength as the wavelength associated with a moving particle\n4 recall and use λ = h/p",
+                        "examples": ""
+                    },
+                    {
+                        "name": "Energy levels in atoms and line spectra",
+                        "number": 224,
+                        "description": "Candidates should be able to:\n1 understand that there are discrete electron energy levels in isolated atoms (e.g. atomic hydrogen)\n2 understand the appearance and formation of emission and absorption line spectra\n3 recall and use hf = E₁ – E₂",
+                        "examples": ""
+                    }
+                ]
+            },
+            {
+                "name": "Nuclear Physics",
+                "number": 23,
+                "topics": [
+                    {
+                        "name": "Mass defect and nuclear binding energy",
+                        "number": 231,
+                        "description": "Candidates should be able to:\n1 understand the equivalence between energy and mass as represented by E = mc² and recall and use this equation\n2 represent simple nuclear reactions by nuclear equations of the form 14\n7N + 4\n2He → 17\n8O + 1\n1H\n3 define and use the terms mass defect and binding energy\n4 sketch the variation of binding energy per nucleon with nucleon number\n5 explain what is meant by nuclear fusion and nuclear fission\n6 explain the relevance of binding energy per nucleon to nuclear reactions, including nuclear fusion and nuclear fission\n7 calculate the energy released in nuclear reactions using E = c²∆m",
+                        "examples": ""
+                    },
+                    {
+                        "name": "Radioactive decay",
+                        "number": 232,
+                        "description": "Candidates should be able to:\n1 understand that fluctuations in count rate provide evidence for the random nature of radioactive decay\n2 understand that radioactive decay is both spontaneous and random\n3 define activity and decay constant, and recall and use A = λN\n4 define half-life\n5 use λ = 0.693/t½\n6 understand the exponential nature of radioactive decay, and sketch and use the relationship x = x0e−λt, where x could represent activity, number of undecayed nuclei or received count rate",
+                        "examples": ""
+                    }
+                ]
+            },
+            {
+                "name": "Medical Physics",
+                "number": 24,
+                "topics": [
+                    {
+                        "name": "Production and use of ultrasound",
+                        "number": 241,
+                        "description": "Candidates should be able to:\n1 understand that a piezo-electric crystal changes shape when a p.d. is applied across it and that the crystal generates an e.m.f. when its shape changes\n2 understand how ultrasound waves are generated and detected by a piezoelectric transducer\n3 understand how the reflection of pulses of ultrasound at boundaries between tissues can be used to obtain diagnostic information about internal structures\n4 define the specific acoustic impedance of a medium as Z = ρc, where c is the speed of sound in the medium\n5 use IR/I0 = (Z₁ - Z₂)² / (Z₁ + Z₂)² for the intensity reflection coefficient of a boundary between two media\n6 recall and use I = I0e−μx for the attenuation of ultrasound in matter",
+                        "examples": ""
+                    },
+                    {
+                        "name": "Production and use of X-rays",
+                        "number": 242,
+                        "description": "Candidates should be able to:\n1 explain that X-rays are produced by electron bombardment of a metal target and calculate the minimum wavelength of X-rays produced from the accelerating p.d.\n2 understand the use of X-rays in imaging internal body structures, including an understanding of the term contrast in X-ray imaging\n3 recall and use I = I0e−μx for the attenuation of X-rays in matter\n4 understand that computed tomography (CT) scanning produces a 3D image of an internal structure by first combining multiple X-ray images taken in the same section from different angles to obtain a 2D image of the section, then repeating this process along an axis and combining 2D images of multiple sections",
+                        "examples": ""
+                    },
+                    {
+                        "name": "PET scanning",
+                        "number": 243,
+                        "description": "Candidates should be able to:\n1 understand that a tracer is a substance containing radioactive nuclei that can be introduced into the body and is then absorbed by the tissue being studied\n2 recall that a tracer that decays by β+ decay is used in positron emission tomography (PET scanning)\n3 understand that annihilation occurs when a particle interacts with its antiparticle and that mass-energy and momentum are conserved in the process\n4 explain that, in PET scanning, positrons emitted by the decay of the tracer annihilate when they interact with electrons in the tissue, producing a pair of gamma-ray photons travelling in opposite directions\n5 calculate the energy of the gamma-ray photons emitted during the annihilation of an electron-positron pair\n6 understand that the gamma-ray photons from an annihilation event travel outside the body and can be detected, and an image of the tracer concentration in the tissue can be created by processing the arrival times of the gamma-ray photons",
+                        "examples": ""
+                    }
+                ]
+            },
+            {
+                "name": "Astronomy And Cosmology",
+                "number": 25,
+                "topics": [
+                    {
+                        "name": "Standard candles",
+                        "number": 251,
+                        "description": "Candidates should be able to:\n1 understand the term luminosity as the total power of radiation emitted by a star\n2 recall and use the inverse square law for radiant flux intensity F in terms of the luminosity L of the source F = L/(4πd²)\n3 understand that an object of known luminosity is called a standard candle\n4 understand the use of standard candles to determine distances to galaxies",
+                        "examples": ""
+                    },
+                    {
+                        "name": "Stellar radii",
+                        "number": 252,
+                        "description": "Candidates should be able to:\n1 recall and use Wien's displacement law λmax ∝ 1/T to estimate the peak surface temperature of a star\n2 use the Stefan-Boltzmann law L = 4πσr²T⁴\n3 use Wien's displacement law and the Stefan-Boltzmann law to estimate the radius of a star",
+                        "examples": ""
+                    },
+                    {
+                        "name": "Hubble's law and the Big Bang theory",
+                        "number": 253,
+                        "description": "Candidates should be able to:\n1 understand that the lines in the emission and absorption spectra from distant objects show an increase in wavelength from their known values\n2 use Δλ/λ ≈ Δf/f ≈ v/c for the redshift of electromagnetic radiation from a source moving relative to an observer\n3 explain why redshift leads to the idea that the Universe is expanding\n4 recall and use Hubble's law v ≈ H₀d and explain how this leads to the Big Bang theory (candidates will only be required to use Sl units)",
+                        "examples": ""
+                    }
+                ]
+            }
+        ],
+        "name": "A Level Subject Content",
+        "papers": [
+            4,
+            5
+        ],
+        "paper_to_key": {
+            "4,5": [
+                "description,examples"
+            ]
+        }
+    }
+]

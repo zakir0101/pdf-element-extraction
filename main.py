@@ -13,8 +13,13 @@ if os.name == "nt":  # Windows
     d_drive = "D:"
 else:
     d_drive = "/mnt/d"
+if os.environ.get("IGCSE_PATH"):
+    igcse_path = os.environ["IGCSE_PATH"]
+else:
+    igcse_path = f"{d_drive}{sep}Drive{sep}IGCSE-NEW"
 
-igcse_path = f"{d_drive}{sep}Drive{sep}IGCSE"
+# jwggfg
+
 all_subjects = [
     f
     for f in os.listdir(igcse_path)
@@ -69,6 +74,8 @@ class CmdArgs:
             self.subjects = args.subjects or all_subjects
             self.max = args.max
             self.open_pdf = args.summatra
+            self.open_nvim = args.nvim
+            self.force = args.force
             self.build_test_data()
 
             self.range = self.convet_range_string_to_list(args.range)
@@ -269,6 +276,7 @@ class CmdArgs:
                 "questions-count",
                 "questions-match",
                 "questions-show",
+                "questions-save",
             ],
         )
 
@@ -305,6 +313,19 @@ class CmdArgs:
 
         test.add_argument("--pause", action="store_true", default=False)
         test.add_argument("--summatra", action="store_true", default=False)
+
+        test.add_argument(
+            "--force",
+            action="store_true",
+            default=False,
+            help="REmake the file even if already exited !!",
+        )
+        test.add_argument(
+            "--nvim",
+            action="store_true",
+            default=False,
+            help="open the last 10 created files in neovim",
+        )
         test.add_argument(
             "--subjects",
             "-s",
@@ -314,6 +335,78 @@ class CmdArgs:
             default=None,
         )
         test.set_defaults(func="do_tests")
+
+    @classmethod
+    def add_make_subparser(cls, subparsers: argparse._SubParsersAction):
+        make: argparse.ArgumentParser = subparsers.add_parser(
+            "make",
+            help=(
+                "make json/txt files from OCRing/embeddings the detected question\n"
+                + "Note: required that the pdf is already detected\n"
+                + "subcommands:\n"
+                + "1. ocr : work only if the pdf is already detectd and saved\n"
+                + "2. embedding: work only if the pdf is already detected and OCRed"
+            ),
+        )
+        make.add_argument(
+            "test_type",
+            type=str,
+            choices=["gemini-ocr", "gemini-embedding"],
+        )
+
+        make.add_argument("--path", type=str, default=None, nargs="*")
+        years = []
+        for i in range(11, 24):
+            years.append(f"year{str(i)}")
+        groups = [
+            "latest",
+            "oldest",
+            "oldest2",
+            "oldest4",
+            "oldest6",
+            "gap2",
+            "gap4",
+            "gap6",
+            "random",
+            "all",
+        ] + years
+        make.add_argument(
+            "--group",
+            type=str,
+            choices=groups,
+        )
+
+        make.add_argument("--range", type=str, default=None)
+        make.add_argument(
+            "--size",
+            type=str,
+            choices=["tiny", "small", "medium", "large", "all"],
+        )
+
+        make.add_argument("--max", type=int)
+
+        make.add_argument("--pause", action="store_true", default=False)
+        make.add_argument(
+            "--force",
+            action="store_true",
+            default=False,
+            help="REmake the file even if already exited !!",
+        )
+        make.add_argument(
+            "--nvim",
+            action="store_true",
+            default=False,
+            help="open the last 10 created files in neovim",
+        )
+        make.add_argument(
+            "--subjects",
+            "-s",
+            type=str,
+            nargs="*",
+            choices=all_subjects,
+            default=None,
+        )
+        make.set_defaults(func="do_make")
 
 
 if __name__ == "__main__":
@@ -326,6 +419,7 @@ if __name__ == "__main__":
     CmdArgs.add_clear_subparser(subparsers=subparsers)
     CmdArgs.add_test_subparser(subparsers=subparsers)
     CmdArgs.add_list_subparser(subparsers=subparsers)
+    CmdArgs.add_make_subparser(subparsers=subparsers)
     argcomplete.autocomplete(parser, exclude=["b", "q", "ex", "sub"])
 
     nm = parser.parse_args()

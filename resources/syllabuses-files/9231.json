@@ -1,0 +1,198 @@
+[
+    {
+        "chapters": [
+            {
+                "name": "Roots Of Polynomial Equations",
+                "number": 1,
+                "description": "Candidates should be able to:\n• recall and use the relations between the roots and coefficients of polynomial equations\n• use a substitution to obtain an equation whose roots are related in a simple way to those of the original equation.",
+                "examples": "e.g. to evaluate symmetric functions of the roots or to solve problems involving unknown coefficients in equations; restricted to equations of degree 2, 3 or 4 only.\nSubstitutions will not be given for the easiest cases, e.g. where the new roots are reciprocals or squares or a simple linear function of the old roots."
+            },
+            {
+                "name": "Rational Functions And Graphs",
+                "number": 1,
+                "description": "Candidates should be able to:\n• sketch graphs of simple rational functions, including the determination of oblique asymptotes, in cases where the degree of the numerator and the denominator are at most 2\n• understand and use relationships between the graphs of y = f(x), y² = f(x), y = 1/f(x), y = |f(x)| and y = f(|x|).",
+                "examples": "Including determination of the set of values taken by the function, e.g. by the use of a discriminant.\nDetailed plotting of curves will not be required, but sketches will generally be expected to show significant features, such as turning points, asymptotes and intersections with the axes.\nIncluding use of such sketch graphs in the course of solving equations or inequalities."
+            },
+            {
+                "name": "Summation Of Series",
+                "number": 1,
+                "description": "Candidates should be able to:\n• use the standard results for ∑r, ∑r², ∑r³ to find related sums\n• use the method of differences to obtain the sum of a finite series\n• recognise, by direct consideration of a sum to n terms, when a series is convergent, and find the sum to infinity in such cases.",
+                "examples": "Use of partial fractions to express a general term in a suitable form may be required."
+            },
+            {
+                "name": "Matrices",
+                "number": 1,
+                "description": "Candidates should be able to:\n• carry out operations of matrix addition, subtraction and multiplication, and recognise the terms zero matrix and identity (or unit) matrix\n• recall the meaning of the terms 'singular' and 'non-singular' as applied to square matrices and, for 2 × 2 and 3 × 3 matrices, evaluate determinants and find inverses of non-singular matrices\n• understand and use the result, for non-singular matrices, (AB)⁻¹ = B⁻¹A⁻¹\n• understand the use of 2 × 2 matrices to represent certain geometric transformations in the x-y plane, in particular\n    – understand the relationship between the transformations represented by A and A⁻¹\n    – recognise that the matrix product AB represents the transformation that results from the transformation represented by B followed by the transformation represented by A\n    – recall how the area scale factor of a transformation is related to the determinant of the corresponding matrix\n    – find the matrix that represents a given transformation or sequence of transformations\n• understand the meaning of 'invariant' as applied to points and lines in the context of transformations represented by matrices, and solve simple problems involving invariant points and invariant lines.",
+                "examples": "Including non-square matrices. Matrices will have at most 3 rows and columns.\nThe notations det M for the determinant of a matrix M, and I for the identity matrix, will be used.\nExtension to the product of more than two matrices may be required.\nUnderstanding of the terms 'rotation', 'reflection', 'enlargement', 'stretch' and 'shear' for 2D transformations will be required.\nOther 2D transformations may be included, but no particular knowledge of them is expected.\ne.g. to locate the invariant points of the transformation represented by (2 3) , or to find the invariant lines through the origin for (4 -1) or to show that any line with gradient -1 is invariant for (1 1)."
+            },
+            {
+                "name": "Polar Coordinates",
+                "number": 1,
+                "description": "Candidates should be able to:\n• understand the relations between Cartesian and polar coordinates, and convert equations of curves from Cartesian to polar form and vice versa\n• sketch simple polar curves, for 0 ≤ θ < 2π or -π < θ ≤ π or a subset of either of these intervals\n• recall the formula ∫½r²dθ for the area of a sector, and use this formula in simple cases.",
+                "examples": "The convention r ≥ 0 will be used.\nDetailed plotting of curves will not be required, but sketches will generally be expected to show significant features, such as symmetry, coordinates of intersections with the initial line, the form of the curve at the pole and least/greatest values of r."
+            },
+            {
+                "name": "Vectors",
+                "number": 1,
+                "description": "Candidates should be able to:\n• use the equation of a plane in any of the forms ax + by + cz = d or r.n = p or r = a + λb + μc and convert equations of planes from one form to another as necessary in solving problems\n• recall that the vector product a × b of two vectors can be expressed either as |a||b|sinθn, where n is a unit vector, or in component form as (a₂b₃-a₃b₂)i + (a₃b₁-a₁b₃)j + (a₁b₂-a₂b₁)k\n• use equations of lines and planes, together with scalar and vector products where appropriate, to solve problems concerning distances, angles and intersections, including\n– determining whether a line lies in a plane, is parallel to a plane or intersects a plane, and finding the point of intersection of a line and a plane when it exists\n– finding the foot of the perpendicular from a point to a plane\n– finding the angle between a line and a plane, and the angle between two planes\n– finding an equation for the line of intersection of two planes\n– calculating the shortest distance between two skew lines\n– finding an equation for the common perpendicular to two skew lines.",
+                "examples": ""
+            },
+            {
+                "name": "Proof By Induction",
+                "number": 1,
+                "description": "Candidates should be able to:\n• use the method of mathematical induction to establish a given result\n• recognise situations where conjecture based on a limited trial followed by inductive proof is a useful strategy, and carry this out in simple cases.",
+                "examples": "e.g.  ∑r=1nr³ = ¼n²(n + 1)²,\nun = ½(1 + 3n−1) for the sequence given by un+1 = 3un - 1 and u1 = 1,\n(4 − 1)n  = (3 × 2n−2  − 1 − 2n) / (n − 1) (3 × 2n+1 − 6  3 − 2n+1)\n32n + 2 × 5n − 3 is divisible by 8.\ne.g. find the nth derivative of xex,\nfind ∑r=1n rxr!."
+            }
+        ],
+        "name": "Further Pure Mathematics 1",
+        "papers": [
+            1
+        ],
+        "paper_to_key": {
+            "1": [
+                "description,examples"
+            ]
+        }
+    },
+    {
+        "chapters": [
+            {
+                "name": "Hyberbolic Functions",
+                "number": 21,
+                "description": "Candidates should be able to:\n• understand the definitions of the hyperbolic functions sinhx, coshx, tanhx, sechx, cosechx, cothx in terms of the exponential function\n• sketch the graphs of hyperbolic functions\n• prove and use identities involving hyperbolic functions\n• understand and use the definitions of the inverse hyperbolic functions and derive and use the logarithmic forms.",
+                "examples": "e.g. cosh²x - sinh²x = 1, sinh2x = 2 sinhx coshx,\nand similar results corresponding to the standard trigonometric identities."
+            },
+            {
+                "name": "Matrices",
+                "number": 22,
+                "description": "Candidates should be able to:\n• formulate a problem involving the solution of 3 linear simultaneous equations in 3 unknowns as a problem involving the solution of a matrix equation, or vice versa\n• understand the cases that may arise concerning the consistency or inconsistency of 3 linear simultaneous equations, relate them to the singularity or otherwise of the corresponding matrix, solve consistent systems, and interpret geometrically in terms of lines and planes\n• understand the terms 'characteristic equation', 'eigenvalue' and 'eigenvector', as applied to square matrices\n• find eigenvalues and eigenvectors of 2 × 2 and 3 x 3 matrices\n• express a square matrix in the form QDQ¯¹, where D is a diagonal matrix of eigenvalues and Q is a matrix whose columns are eigenvectors, and use this expression\n• use the fact that a square matrix satisfies its own characteristic equation.",
+                "examples": "e.g. three planes meeting in a common point, or in a common line, or having no common points.\nIncluding use of the definition Ae = λe to prove simple properties, e.g. that λ” is an eigenvalue of Aⁿ.\nRestricted to cases where the eigenvalues are real and distinct.\ne.g. in calculating powers of 2 × 2 or 3 × 3 matrices.\ne.g. in finding successive powers of a matrix or finding an inverse matrix; restricted to 2 × 2 or 3 × 3 matrices only."
+            },
+            {
+                "name": "Differentiation",
+                "number": 23,
+                "description": "Candidates should be able to:\n• differentiate hyperbolic functions and differentiate sin⁻¹x, cos⁻¹x, sinh⁻¹x, cosh⁻¹x and tanh⁻¹x\n• obtain an expression for d²y/dx² in cases where the relation between x and y is defined implicitly or parametrically\n• derive and use the first few terms of a Maclaurin's series for a function.",
+                "examples": "Derivation of a general term is not included, but successive 'implicit' differentiation steps may be required, e.g. for y = tanx following an initial differentiation rearranged as y'= 1 + y²."
+            },
+            {
+                "name": "Integration",
+                "number": 24,
+                "description": "Candidates should be able to:\n• integrate hyperbolic functions and recognise integrals of functions of the form 1/√x²+a² and 1/√x²-a², and integrate associated functions using trigonometric or hyperbolic substitutions as appropriate\n• derive and use reduction formulae for the evaluation of definite integrals\n• understand how the area under a curve may be approximated by areas of rectangles, and use rectangles to estimate or set bounds for the area under a curve or to derive inequalities or limits concerning sums\n• use integration to find\narc lengths for curves with equations in Cartesian coordinates, including the use of a parameter, or in polar coordinates\nsurface areas of revolution about one of the axes for curves with equations in Cartesian coordinates, including the use of a parameter.",
+                "examples": "Including use of completing the square where necessary, e.g. to integrate 1/√x²+x\ne.g. ∫(π,0) sinⁿx dx, or ∫(1,0) xⁿ(1-x)ⁿ dx.\nIn harder cases hints may be given, e.g. ∫(π/4,0) secⁿx dx by considering d/dx (tanx secⁿx).\nQuestions may involve either rectangles of unit width or rectangles whose width can tend to zero, e.g. 1 + ∑(n,r=1) 1/r  ~ ln(n + 1) , ∑(n,r=1) 1/(1+r/n) ~∫(1,0) 1/(1+x) dx.\nAny questions involving integration may require techniques from Cambridge International A Level Mathematics (9709) applied to more difficult cases, e.g. integration by parts for ∫x sinx dx, or use of the substitution t = tanx.\nSurface areas of revolution for curves with equations in polar coordinates will not be required."
+            },
+            {
+                "name": "Complex Numbers",
+                "number": 25,
+                "description": "Candidates should be able to:\n• understand de Moivre's theorem, for a positive or negative integer exponent, in terms of the geometrical effect of multiplication and division of complex numbers\n• prove de Moivre's theorem for a positive integer exponent\n• use de Moivre's theorem for a positive or negative rational exponent\nto express trigonometrical ratios of multiple angles in terms of powers of trigonometrical ratios of the fundamental angle\nto express powers of sine and cose in terms of multiple angles\nin the summation of series\nin finding and using the nth roots of unity.",
+                "examples": "e.g. by induction.\ne.g. expressing cos 5θ in terms of cosθ or tan 5θ in terms of tan θ.\ne.g. expressing sin⁶θ in terms of cos 2θ, cos 4θ and cos 6θ.\ne.g. using the 'C + iS' method to sum series such as ∑(n,r=1) sin rθ."
+            },
+            {
+                "name": "Differential Equations",
+                "number": 26,
+                "description": "Candidates should be able to:\n• find an integrating factor for a first order linear differential equation, and use an integrating factor to find the general solution\n• recall the meaning of the terms 'complementary function' and 'particular integral' in the context of linear differential equations, and recall that the general solution is the sum of the complementary function and a particular integral\n• find the complementary function for a first or second order linear differential equation with constant coefficients\n• recall the form of, and find, a particular integral for a first or second order linear differential equation in the cases where a polynomial or aebx or a cospx + b sinpx is a suitable form, and in other simple cases find the appropriate coefficient(s) given a suitable form of particular integral\n• use a given substitution to reduce a differential equation to a first or second order linear equation with constant coefficients or to a first order equation with separable variables\n• use initial conditions to find a particular solution to a differential equation, and interpret a solution in terms of a problem modelled by a differential equation.",
+                "examples": "e.g. dy/dx + y = x², x dy/dx - 2y = x⁴, dy/dx + y cothx = coshx.\nFor second order equations, including the cases where the auxiliary equation has distinct real roots, a repeated real root or conjugate complex roots.\ne.g. evaluate k given that kx cos 2x is a particular integral of d²y/dx² + 4y = sin 2x.\ne.g. the substitution x = et to reduce to linear form a differential equation with terms of the form a d²y/dx² + b dy/dx + cy, or the substitution y = ux to reduce dy/dx = (x + y)/(x-y) to separable form."
+            }
+        ],
+        "name": "Further Pure Mathematics 2",
+        "papers": [
+            2
+        ],
+        "paper_to_key": {
+            "2": [
+                "description,examples"
+            ]
+        }
+    },
+    {
+        "chapters": [
+            {
+                "name": "Motion Of A Projectile",
+                "number": 3,
+                "description": "Candidates should be able to:\n•\nmodel the motion of a projectile as a particle moving with constant acceleration and understand any limitations of the model\n\n•\nuse horizontal and vertical equations of motion to solve problems on the motion of projectiles, including finding the magnitude and direction of the velocity at a given time or position, the range on a horizontal plane and the greatest height reached\n\n•\nderive and use the Cartesian equation of the trajectory of a projectile, including problems in which the initial speed and/or angle of projection may be unknown.",
+                "examples": "Vector methods are not required.\n\nKnowledge of the 'bounding parabola' for accessible points is not included."
+            },
+            {
+                "name": "Equilibrium Of A Rigid Body",
+                "number": 3,
+                "description": "Candidates should be able to:\n•\ncalculate the moment of a force about a point\n\n•\nuse the result that the effect of gravity on a rigid body is equivalent to a single force acting at the centre of mass of the body, and identify the position of the centre of mass of a uniform body using considerations of symmetry\n\n•\nuse given information about the position of the centre of mass of a triangular lamina and other simple shapes\n\n•\ndetermine the position of the centre of mass of a composite body by considering an equivalent system of particles\n\n•\nuse the principle that if a rigid body is in equilibrium under the action of coplanar forces then the vector sum of the forces is zero and the sum of the moments of the forces about any point is zero, and the converse of this\n\n•\nsolve problems involving the equilibrium of a single rigid body under the action of coplanar forces, including those involving toppling or sliding.",
+                "examples": "For questions involving coplanar forces only; understanding of the vector nature of moments is not required.\n\nProofs of results given in the MF19 List of formulae are not required.\n\nSimple cases only, e.g. a uniform L-shaped lamina, or a uniform cone joined at its base to a uniform hemisphere of the same radius."
+            },
+            {
+                "name": "Circular Motion",
+                "number": 3,
+                "description": "Candidates should be able to:\n•\nunderstand the concept of angular speed for a particle moving in a circle, and use the relation v = ro\n\n•\nunderstand that the acceleration of a particle moving in a circle with constant speed is directed towards the centre of the circle, and use the formulae rw² and  v²/r\n\n•\nsolve problems which can be modelled by the motion of a particle moving in a horizontal circle with constant speed\n\n•\nsolve problems which can be modelled by the motion of a particle in a vertical circle without loss of energy.",
+                "examples": "Proof of the acceleration formulae is not required.\n\nIncluding finding a normal contact force or the tension in a string, locating points at which these are zero, and conditions for complete circular motion."
+            },
+            {
+                "name": "Hooke'S Law",
+                "number": 3,
+                "description": "Candidates should be able to:\n•\nuse Hooke's law as a model relating the force in an elastic string or spring to the extension or compression, and understand the term modulus of elasticity\n\n•\nuse the formula for the elastic potential energy stored in a string or spring\n\n•\nsolve problems involving forces due to elastic strings or springs, including those where considerations of work and energy are needed.",
+                "examples": "Proof of the formula is not required.\n\ne.g. a particle moving horizontally or vertically or on an inclined plane while attached to one or more strings or springs, or a particle attached to an elastic string acting as a 'conical pendulum'."
+            },
+            {
+                "name": "Linear Motion Under A Variable Force",
+                "number": 3,
+                "description": "Candidates should be able to:\n•\nsolve problems which can be modelled as the linear motion of a particle under the action of a variable force, by setting up and solving an appropriate differential equation.",
+                "examples": "Including use of dv/dx for acceleration, where appropriate.\n\nCalculus required is restricted to content from Pure Mathematics 3 in Cambridge International A Level Mathematics (9709).\n\nOnly differential equations in which the variables are separable are included."
+            },
+            {
+                "name": "Momentum",
+                "number": 3,
+                "description": "Candidates should be able to:\n•\nrecall Newton's experimental law and the definition of the coefficient of restitution, the property 0 ≤ e ≤ 1, and the meaning of the terms 'perfectly elastic' (e = 1) and 'inelastic' (e = 0)\n\n•\nuse conservation of linear momentum and/or Newton's experimental law to solve problems that may be modelled as the direct or oblique impact of two smooth spheres, or the direct or oblique impact of a smooth sphere with a fixed surface.",
+                "examples": ""
+            }
+        ],
+        "name": "Further Mechanics",
+        "papers": [
+            3
+        ],
+        "paper_to_key": {
+            "3": [
+                "description,examples"
+            ]
+        }
+    },
+    {
+        "chapters": [
+            {
+                "name": "Continuous Random Variables",
+                "number": 41,
+                "description": "use a probability density function which may be defined piecewise\nuse the general result E(g(x)) = [f(x)g(x)dx where f(x) is the probability density function of the continuous random variable X and g(X) is a function of X\nunderstand and use the relationship between the probability density function (PDF) and the cumulative distribution function (CDF), and use either to evaluate probabilities or percentiles\nuse cumulative distribution functions (CDFs) of related variables in simple cases.",
+                "examples": "e.g. given the CDF of a variable X, find the CDF of a related variable Y, and hence its PDF, e.g. where Y=X³."
+            },
+            {
+                "name": "Inference Using Normal And T-Distributions",
+                "number": 42,
+                "description": "formulate hypotheses and apply a hypothesis test concerning the population mean using a small sample drawn from a normal population of unknown variance, using a t-test\ncalculate a pooled estimate of a population variance from two samples\nformulate hypotheses concerning the difference of population means, and apply, as appropriate\na 2-sample t-test\na paired sample t-test\na test using a normal distribution\ndetermine a confidence interval for a population mean, based on a small sample from a normal population with unknown variance, using a t-distribution\ndetermine a confidence interval for a difference of population means, using a t-distribution or a normal distribution, as appropriate.",
+                "examples": "Calculations based on either raw or summarised data may be required.\nThe ability to select the test appropriate to the circumstances of a problem is expected."
+            },
+            {
+                "name": "X²-Tests",
+                "number": 43,
+                "description": "fit a theoretical distribution, as prescribed by a given hypothesis, to given data\nuse a x²-test, with the appropriate number of degrees of freedom, to carry out the corresponding goodness of fit analysis\nuse a x²-test, with the appropriate number of degrees of freedom, for independence in a contingency table.",
+                "examples": "Questions will not involve lengthy calculations.\nClasses should be combined so that each expected frequency is at least 5.\nYates' correction is not required.\nWhere appropriate, either rows or columns should be combined so that the expected frequency in each cell is at least 5."
+            },
+            {
+                "name": "Non-Parametric Tests",
+                "number": 44,
+                "description": "understand the idea of a non-parametric test and appreciate situations in which such a test might be useful\nunderstand the basis of the sign test, the Wilcoxon signed-rank test and the Wilcoxon rank-sum test\nuse a single-sample sign test and a single-sample Wilcoxon signed-rank test to test a hypothesis concerning a population median\nuse a paired-sample sign test, a Wilcoxon matched-pairs signed-rank test and a Wilcoxon rank-sum test, as appropriate, to test for identity of populations.",
+                "examples": "e.g. when sampling from a population which cannot be assumed to be normally distributed.\nIncluding knowledge that Wilcoxon tests are valid only for symmetrical distributions.\nIncluding the use of normal approximations where appropriate.\nQuestions will not involve tied ranks or observations equal to the population median value being tested.\nIncluding the use of normal approximations where appropriate.\nQuestions will not involve tied ranks or zero-difference pairs."
+            },
+            {
+                "name": "Probability Generating Functions",
+                "number": 45,
+                "description": "understand the concept of a probability generating function (PGF) and construct and use the PGF for given distributions\nuse formulae for the mean and variance of a discrete random variable in terms of its PGF, and use these formulae to calculate the mean and variance of a given probability distribution\nuse the result that the PGF of the sum of independent random variables is the product of the PGFs of those random variables.",
+                "examples": "Including the discrete uniform, binomial, geometric and Poisson distributions."
+            }
+        ],
+        "name": "Further Probability & Statistics",
+        "papers": [
+            4
+        ],
+        "paper_to_key": {
+            "4": [
+                "description,examples"
+            ]
+        }
+    }
+]

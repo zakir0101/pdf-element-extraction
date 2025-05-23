@@ -1,0 +1,888 @@
+[
+    {
+        "name": "Core Subjects",
+        "papers": [
+            1,
+            3
+        ],
+        "paper_to_key": {
+            "1,3": [
+                "topics.description,examples"
+            ]
+        },
+        "chapters": [
+            {
+                "name": "Number",
+                "number": 1,
+                "topics": [
+                    {
+                        "name": "Types of number",
+                        "number": 1,
+                        "description": "Identify and use:\n• natural numbers\n• integers (positive, zero and negative)\n• prime numbers\n• square numbers\n• cube numbers\n• common factors\n• common multiples\n• rational and irrational numbers\n• reciprocals.",
+                        "examples": "Example tasks include:\n• convert between numbers and words, e.g.\nsix billion is 6000000000\n10007 is ten thousand and seven\n• express 72 as a product of its prime factors\n• find the highest common factor (HCF) of two\nnumbers\n• find the lowest common multiple (LCM) of two\nnumbers."
+                    },
+                    {
+                        "name": "Sets",
+                        "number": 2,
+                        "description": "Understand and use set language, notation and\nVenn diagrams to describe sets.",
+                        "examples": "Venn diagrams are limited to two sets.\nThe following set notation will be used:\n• n(A) Number of elements in set A\n• A' Complement of set A\n• E Universal set\n• A ∪ B Union of A and B\n• A ∩ B Intersection of A and B.\nExample definition of sets:\nA = {x: x is a natural number}\nB = {a, b, c, ...}\nC = {x: a < x < b}."
+                    },
+                    {
+                        "name": "Powers and roots",
+                        "number": 3,
+                        "description": "Calculate with the following:\n• squares\n• square roots\n• cubes\n• cube roots\n• other powers and roots of numbers.",
+                        "examples": "Includes recall of squares and their corresponding\nroots from 1 to 15, and recall of cubes and their\ncorresponding roots of 1, 2, 3, 4, 5 and 10, e.g.:\n• Write down the value of √169 .\n• Work out 52 × ³√8 ."
+                    },
+                    {
+                        "name": "Fractions, decimals and percentages",
+                        "number": 4,
+                        "description": "1 Use the language and notation of the following in\nappropriate contexts:\n• proper fractions\n• improper fractions\n• mixed numbers\n• decimals\n• percentages.\n2 Recognise equivalence and convert between\nthese forms.",
+                        "examples": "Candidates are expected to be able to write\nfractions in their simplest form.\nCandidates are not expected to use recurring\ndecimal notation.\n\nCandidates are not expected to demonstrate the\nconversion of a recurring decimal to a fraction and\nvice versa."
+                    },
+                    {
+                        "name": "Ordering",
+                        "number": 5,
+                        "description": "Order quantities by magnitude and demonstrate\nfamiliarity with the symbols =, ≠, >, <, ≥ and ≤.",
+                        "examples": ""
+                    },
+                    {
+                        "name": "The four operations",
+                        "number": 6,
+                        "description": "Use the four operations for calculations with\nintegers, fractions and decimals, including correct\nordering of operations and use of brackets.",
+                        "examples": "Includes:\n• negative numbers\n• improper fractions\n• mixed numbers\n• practical situations, e.g. temperature changes."
+                    },
+                    {
+                        "name": "Indices I",
+                        "number": 7,
+                        "description": "1 Understand and use indices (positive, zero and\nnegative integers).\n2 Understand and use the rules of indices.",
+                        "examples": "e.g. find the value of 7-2.\ne.g. find the value of 2-3 × 24, (23)2, 23 ÷ 24."
+                    },
+                    {
+                        "name": "Standard form",
+                        "number": 8,
+                        "description": "1 Use the standard form A x 10n where n is a\npositive or negative integer and 1 ≤ A < 10.\n2 Convert numbers into and out of standard form.\n3 Calculate with values in standard form.",
+                        "examples": "Core candidates are expected to calculate with\nstandard form only on Paper 3."
+                    },
+                    {
+                        "name": "Estimation",
+                        "number": 9,
+                        "description": "1 Round values to a specified degree of accuracy.\n2 Make estimates for calculations involving\nnumbers, quantities and measurements.\n3 Round answers to a reasonable degree of\naccuracy in the context of a given problem.",
+                        "examples": "Includes decimal places and significant figures.\ne.g. write 5764 correct to the nearest thousand.\ne.g. by writing each number correct to 1 significant\nfigure, estimate the value of 41.3 / 9.79 × 0.765"
+                    },
+                    {
+                        "name": "Limits of accuracy",
+                        "number": 10,
+                        "description": "Give upper and lower bounds for data rounded to a\nspecified accuracy.",
+                        "examples": "e.g. write down the upper bound of a length\nmeasured correct to the nearest metre.\n\nCandidates are not expected to find the bounds\nof the results of calculations which have used data\nrounded to a specified accuracy."
+                    },
+                    {
+                        "name": "Ratio and proportion",
+                        "number": 11,
+                        "description": "Understand and use ratio and proportion to:\n• give ratios in their simplest form\n• divide a quantity in a given ratio\n• use proportional reasoning and ratios in\ncontext.",
+                        "examples": "e.g. 20:30:40 in its simplest form is 2:3:4.\ne.g. adapt recipes; use map scales; determine best\nvalue."
+                    },
+                    {
+                        "name": "Rates",
+                        "number": 12,
+                        "description": "1 Use common measures of rate.\n2 Apply other measures of rate.\n3 Solve problems involving average speed.",
+                        "examples": "e.g. calculate with:\n• hourly rates of pay\n• exchange rates between currencies\n• flow rates\n• fuel consumption.\ne.g. calculate with:\n• pressure\n• density\n• population density.\nRequired formulas will be given in the question.\nKnowledge of speed/distance/time formula is\nrequired.\ne.g. A cyclist travels 45 km in 3 hours 45 minutes.\nWhat is their average speed?\nNotation used will be, e.g. m/s (metres per second),\ng/cm³ (grams per cubic centimetre)."
+                    },
+                    {
+                        "name": "Percentages",
+                        "number": 13,
+                        "description": "1 Calculate a given percentage of a quantity.\n2 Express one quantity as a percentage of another.\n3 Calculate percentage increase or decrease.\n4 Calculate with simple and compound interest.",
+                        "examples": "Formulas are not given.\nPercentage calculations may include:\n• deposit\n• discount\n• profit and loss (as an amount or a percentage)\n• earnings\n• percentages over 100%."
+                    },
+                    {
+                        "name": "Using a calculator",
+                        "number": 14,
+                        "description": "1 Use a calculator efficiently.\n2 Enter values appropriately on a calculator.\n3 Interpret the calculator display appropriately.",
+                        "examples": "e.g. know not to round values within a calculation\nand to only round the final answer.\ne.g. enter 2 hours 30 minutes as 2.5 hours or\n2° 30' 0\".\ne.g. in money 4.8 means $4.80; in time 3.25 means\n3 hours 15 minutes."
+                    },
+                    {
+                        "name": "Time",
+                        "number": 15,
+                        "description": "1 Calculate with time: seconds (s), minutes (min),\nhours (h), days, weeks, months, years, including\nthe relationship between units.\n2 Calculate times in terms of the 24-hour and\n12-hour clock.\n3 Read clocks and timetables.",
+                        "examples": "1 year = 365 days.\nIn the 24-hour clock, for example, 3.15 a.m. will be\ndenoted by 03 15 and 3.15 p.m. by 15 15.\nIncludes problems involving time zones, local times\nand time differences."
+                    },
+                    {
+                        "name": "Money",
+                        "number": 16,
+                        "description": "1 Calculate with money.\n2 Convert from one currency to another.",
+                        "examples": ""
+                    }
+                ]
+            },
+            {
+                "name": "Algebra and graphs",
+                "number": 2,
+                "topics": [
+                    {
+                        "name": "Introduction to algebra",
+                        "number": 1,
+                        "description": "1 Know that letters can be used to represent\ngeneralised numbers.\n2 Substitute numbers into expressions and\nformulas.",
+                        "examples": ""
+                    },
+                    {
+                        "name": "Algebraic manipulation",
+                        "number": 2,
+                        "description": "1 Simplify expressions by collecting like terms.\n2 Expand products of algebraic expressions.\n3 Factorise by extracting common factors.",
+                        "examples": "Simplify means give the answer in its simplest form,\ne.g. 2a + 3b + 5a – 9b = 7a – 6b.\ne.g. expand 3x(2x – 4y).\nIncludes products of two brackets involving one\nvariable, e.g. expand (2x + 1)(x – 4).\nFactorise means factorise fully,\ne.g. 9x² + 15xy = 3x(3x + 5y)."
+                    },
+                    {
+                        "name": "Indices II",
+                        "number": 4,
+                        "description": "1 Understand and use indices (positive, zero and\nnegative).\n2 Understand and use the rules of indices.",
+                        "examples": "e.g. 2x = 32. Find the value of x.\ne.g. simplify:\n• (5x3)2\n• 12a5 ÷ 3a-2\n• 6x7y4 x 5xy.\nKnowledge of logarithms is not required."
+                    },
+                    {
+                        "name": "Equations",
+                        "number": 5,
+                        "description": "1 Construct simple expressions, equations and\nformulas.\n2 Solve linear equations in one unknown.\n3 Solve simultaneous linear equations in two\nunknowns.\n4 Change the subject of simple formulas.",
+                        "examples": "e.g. write an expression for a number that is 2 more\nthan n.\nIncludes constructing linear simultaneous\nequations.\nExamples include:\n• 3x + 4 = 10\n• 5 - 2x = 3(x + 7).\ne.g. change the subject of formulas where:\n• the subject only appears once\n• there is not a power or root of the subject."
+                    },
+                    {
+                        "name": "Inequalities",
+                        "number": 6,
+                        "description": "Represent and interpret inequalities, including on a\nnumber line.",
+                        "examples": "When representing and interpreting inequalities on\na number line:\n• open circles should be used to represent strict\ninequalities (<, >)\n• closed circles should be used to represent\ninclusive inequalities (≤, ≥)\ne.g. - 3 <x<1"
+                    },
+                    {
+                        "name": "Sequences",
+                        "number": 7,
+                        "description": "1 Continue a given number sequence or pattern.\n2 Recognise patterns in sequences, including the\nterm-to-term rule, and relationships between\ndifferent sequences.\n3 Find and use the nth term of the following\nsequences:\n(a) linear\n(b) simple quadratic\n(c) simple cubic.",
+                        "examples": "e.g. write the next two terms in this sequence:\n1, 3, 6, 10, 15, ..., ...\ne.g. find the nth term of 2, 5, 10, 17"
+                    },
+                    {
+                        "name": "Graphs in practical situations",
+                        "number": 9,
+                        "description": "1 Use and interpret graphs in practical situations\nincluding travel graphs and conversion graphs.\n2 Draw graphs from given data.",
+                        "examples": "e.g. interpret the gradient of a straight-line graph as\na rate of change.\ne.g. draw a distance-time graph to represent a\njourney."
+                    },
+                    {
+                        "name": "Graphs of functions",
+                        "number": 10,
+                        "description": "1 Construct tables of values, and draw, recognise\nand interpret graphs for functions of the following\nforms:\n• ax + b\n• x² + ax + b\n• (x≠ 0)\nwhere a and b are integer constants.\n2 Solve associated equations graphically, including\nfinding and interpreting roots by graphical\nmethods.",
+                        "examples": "e.g. find the intersection of a line and a curve."
+                    },
+                    {
+                        "name": "Sketching curves",
+                        "number": 11,
+                        "description": "Recognise, sketch and interpret graphs of the\nfollowing functions:\n(a) linear\n(b) quadratic.",
+                        "examples": "Knowledge of symmetry and roots is required.\nKnowledge of turning points is not required."
+                    }
+                ]
+            },
+            {
+                "name": "Coordinate geometry",
+                "number": 3,
+                "topics": [
+                    {
+                        "name": "Coordinates",
+                        "number": 1,
+                        "description": "Use and interpret Cartesian coordinates in\ntwo dimensions.",
+                        "examples": ""
+                    },
+                    {
+                        "name": "Drawing linear graphs",
+                        "number": 2,
+                        "description": "Draw straight-line graphs for linear equations.",
+                        "examples": "Equations will be given in the form y = mx + c\n(e.g. y = -2x + 5), unless a table of values is given."
+                    },
+                    {
+                        "name": "Gradient of linear graphs",
+                        "number": 3,
+                        "description": "Find the gradient of a straight line.",
+                        "examples": "From a grid only."
+                    },
+                    {
+                        "name": "Equations of linear graphs",
+                        "number": 5,
+                        "description": "Interpret and obtain the equation of a straight-line\ngraph in the form y = mx + c.",
+                        "examples": "Questions may:\n• use and request lines in the forms\ny = mx + c\nx = k\n• involve finding the equation when the graph is\ngiven\n• ask for the gradient or y-intercept of a graph\nfrom an equation, e.g. find the gradient and\ny-intercept of the graph with the equation\ny = 6x + 3.\nCandidates are expected to give equations of a line\nin a fully simplified form."
+                    },
+                    {
+                        "name": "Parallel lines",
+                        "number": 6,
+                        "description": "Find the gradient and equation of a straight line\nparallel to a given line.",
+                        "examples": "e.g. find the equation of the line parallel to\ny = 4x - 1 that passes through (1, -3)."
+                    }
+                ]
+            },
+            {
+                "name": "Geometry",
+                "number": 4,
+                "topics": [
+                    {
+                        "name": "Geometrical terms",
+                        "number": 1,
+                        "description": "1 Use and interpret the following geometrical\nterms:\n• point\n• vertex\n• line\n• parallel\n• perpendicular\n• bearing\n• right angle\n• acute, obtuse and reflex angles\n• interior and exterior angles\n• similar\n• congruent\n• scale factor.\n2 Use and interpret the vocabulary of:\n• triangles\n• special quadrilaterals\n• polygons\n• nets\n• simple solids.\n3 Use and interpret the vocabulary of a circle.",
+                        "examples": "Candidates are not expected to show that two\nshapes are congruent.\n\nIncludes the following terms:\nTriangles:\n• equilateral\n• isosceles\n• scalene\n• right-angled.\nQuadrilaterals:\n• square\n• rectangle\n• kite\n• rhombus\n• parallelogram\n• trapezium.\nPolygons:\n• regular and irregular polygons\n• pentagon\n• hexagon\n• octagon\n• decagon.\nSimple solids:\n• cube\n• cuboid\n• prism\n• cylinder\n• pyramid\n• cone\n• sphere (term 'hemisphere' not required)\n• face\n• surface\n• edge.\n  Includes the following terms:\n• centre\n• radius (plural radii)\n• diameter\n• circumference\n• semicircle\n• chord\n• tangent\n• arc\n• sector\n• segment."
+                    },
+                    {
+                        "name": "Geometrical constructions",
+                        "number": 2,
+                        "description": "1 Measure and draw lines and angles.\n2 Construct a triangle, given the lengths of all\nsides, using a ruler and pair of compasses only.\n3 Draw, use and interpret nets.",
+                        "examples": "A ruler should be used for all straight edges.\nConstructions of perpendicular bisectors and angle\nbisectors are not required.\ne.g. construct a rhombus by drawing two triangles.\nConstruction arcs must be shown.\nExamples include:\n• draw nets of cubes, cuboids, prisms and\npyramids\n• use measurements from nets to calculate\nvolumes and surface areas."
+                    },
+                    {
+                        "name": "Scale drawings",
+                        "number": 3,
+                        "description": "1 Draw and interpret scale drawings.\n2 Use and interpret three-figure bearings.",
+                        "examples": "A ruler must be used for all straight edges.\nBearings are measured clockwise from north\n(000° to 360°).\ne.g. find the bearing of A from B if the bearing of B\nfrom A is 025°.\nIncludes an understanding of the terms north, east,\nsouth and west.\ne.g. point D is due east of point C."
+                    },
+                    {
+                        "name": "Similarity",
+                        "number": 4,
+                        "description": "Calculate lengths of similar shapes.",
+                        "examples": ""
+                    },
+                    {
+                        "name": "Symmetry",
+                        "number": 5,
+                        "description": "Recognise line symmetry and order of rotational\nsymmetry in two dimensions.",
+                        "examples": "Includes properties of triangles, quadrilaterals and\npolygons directly related to their symmetries."
+                    },
+                    {
+                        "name": "Angles",
+                        "number": 6,
+                        "description": "1 Calculate unknown angles and give simple\nexplanations using the following geometrical\nproperties:\n• sum of angles at a point = 360°\n• sum of angles at a point on a straight line = 180°\n• vertically opposite angles are equal\n• angle sum of a triangle = 180° and angle sum\nof a quadrilateral = 360°.\n2 Calculate unknown angles and give geometric\nexplanations for angles formed within parallel lines:\n• corresponding angles are equal\n• alternate angles are equal\n• co-interior (supplementary) angles sum to 180°.\n3 Know and use angle properties of regular\npolygons.",
+                        "examples": "Knowledge of three-letter notation for angles is\nrequired, e.g. angle ABC. Candidates are expected\nto use the correct geometrical terminology when\ngiving reasons for answers.\n\nIncludes exterior and interior angles, and angle\nsum."
+                    },
+                    {
+                        "name": "Circle theorems",
+                        "number": 7,
+                        "description": "Calculate unknown angles and give explanations\nusing the following geometrical properties of circles:\n• angle in a semicircle = 90°\n• angle between tangent and radius = 90°.",
+                        "examples": "Candidates will be expected to use the geometrical\nproperties listed in the syllabus when giving\nreasons for answers."
+                    }
+                ]
+            },
+            {
+                "name": "Mensuration",
+                "number": 5,
+                "topics": [
+                    {
+                        "name": "Units of measure",
+                        "number": 1,
+                        "description": "Use metric units of mass, length, area, volume\nand capacity in practical situations and convert\nquantities into larger or smaller units.",
+                        "examples": "Units include:\n• mm, cm, m, km\n• mm², cm², m², km²\n• mm³, cm³, m³\n• ml, l\n• g, kg.\nConversion between units includes:\n• between different units of area, e.g. cm² ↔ m²\n• between units of volume and capacity,\ne.g. m³ ↔ litres."
+                    },
+                    {
+                        "name": "Area and perimeter",
+                        "number": 2,
+                        "description": "Carry out calculations involving the perimeter and\narea of a rectangle, triangle, parallelogram and\ntrapezium.",
+                        "examples": "Except for area of a triangle, formulas are not\ngiven."
+                    },
+                    {
+                        "name": "Circles, arcs and sectors",
+                        "number": 3,
+                        "description": "1 Carry out calculations involving the\ncircumference and area of a circle.\n2 Carry out calculations involving arc length and\nsector area as fractions of the circumference and\narea of a circle, where the sector angle is a factor\nof 360°.",
+                        "examples": "Answers may be asked for in terms of π.\nFormulas are given in the List of formulas."
+                    },
+                    {
+                        "name": "Surface area and volume",
+                        "number": 4,
+                        "description": "Carry out calculations and solve problems involving\nthe surface area and volume of a:\n• cuboid\n• prism\n• cylinder\n• sphere\n• pyramid\n• cone.",
+                        "examples": "Answers may be asked for in terms of π.\nThe following formulas are given in the List of\nformulas:\n• curved surface area of a cylinder\n• curved surface area of a cone\n• surface area of a sphere\n• volume of a prism\n• volume of a pyramid\n• volume of a cylinder\n• volume of a cone\n• volume of a sphere."
+                    },
+                    {
+                        "name": "Compound shapes and parts of shapes",
+                        "number": 5,
+                        "description": "1 Carry out calculations and solve problems\ninvolving perimeters and areas of:\n• compound shapes\n• parts of shapes.\n2 Carry out calculations and solve problems\ninvolving surface areas and volumes of:\n• compound solids\n• parts of solids.",
+                        "examples": "Answers may be asked for in terms of π.\ne.g. find the volume of half of a sphere."
+                    }
+                ]
+            },
+            {
+                "name": "Trigonometry",
+                "number": 6,
+                "topics": [
+                    {
+                        "name": "Pythagoras' theorem",
+                        "number": 1,
+                        "description": "Know and use Pythagoras' theorem.",
+                        "examples": ""
+                    },
+                    {
+                        "name": "Right-angled triangles",
+                        "number": 2,
+                        "description": "1 Know and use the sine, cosine and tangent\nratios for acute angles in calculations involving\nsides and angles of a right-angled triangle.\n2 Solve problems in two dimensions using\nPythagoras' theorem and trigonometry.",
+                        "examples": "Angles will be given in degrees and answers should\nbe written in degrees, with decimals correct to one\ndecimal place.\nKnowledge of bearings may be required."
+                    }
+                ]
+            },
+            {
+                "name": "Transformations and vectors",
+                "number": 7,
+                "topics": [
+                    {
+                        "name": "Transformations",
+                        "number": 1,
+                        "description": "Recognise, describe and draw the following\ntransformations:\n1 Reflection of a shape in a vertical or horizontal\nline.\n2 Rotation of a shape about the origin, vertices\nor midpoints of edges of the shape, through\nmultiples of 90°.\n3 Enlargement of a shape from a centre by a scale\nfactor.\n4 Translation of a shape by a vector\n",
+                        "examples": "Questions will not involve combinations of\ntransformations. A ruler must be used for all straight\nedges.\nPositive and fractional scale factors only."
+                    }
+                ]
+            },
+            {
+                "name": "Probability",
+                "number": 8,
+                "topics": [
+                    {
+                        "name": "Introduction to probability",
+                        "number": 1,
+                        "description": "1 Understand and use the probability scale from\n0 to 1.\n2 Calculate the probability of a single event.\n3 Understand that the probability of an event\nnot occurring = 1 - the probability of the event\noccurring.",
+                        "examples": "Probability notation is not required.\nProbabilities should be given as a fraction, decimal\nor percentage. Problems may require using\ninformation from tables, graphs or Venn diagrams\n(limited to two sets).\ne.g. The probability that a counter is blue is 0.8.\nWhat is the probability that it is not blue?"
+                    },
+                    {
+                        "name": "Relative and expected frequencies",
+                        "number": 2,
+                        "description": "1 Understand relative frequency as an estimate of\nprobability.\n2 Calculate expected frequencies.",
+                        "examples": "e.g. use results of experiments with a spinner to\nestimate the probability of a given outcome.\ne.g. use probability to estimate an expected value\nfrom a population.\nIncludes understanding what is meant by fair and\nbias."
+                    },
+                    {
+                        "name": "Probability of combined events",
+                        "number": 3,
+                        "description": "Calculate the probability of combined events using,\nwhere appropriate:\n• sample space diagrams\n• Venn diagrams\n• tree diagrams.",
+                        "examples": "Combined events will only be with replacement.\nVenn diagrams will be limited to two sets.\nIn tree diagrams, outcomes will be written at the\nend of the branches and probabilities by the side of\nthe branches."
+                    }
+                ]
+            },
+            {
+                "name": "Statistics",
+                "number": 9,
+                "topics": [
+                    {
+                        "name": "Classifying statistical data",
+                        "number": 1,
+                        "description": "Classify and tabulate statistical data.",
+                        "examples": "e.g. tally tables, two-way tables."
+                    },
+                    {
+                        "name": "Interpreting statistical data",
+                        "number": 2,
+                        "description": "1 Read, interpret and draw inferences from tables\nand statistical diagrams.\n2 Compare sets of data using tables, graphs and\nstatistical measures.\n3 Appreciate restrictions on drawing conclusions\nfrom given data.",
+                        "examples": "e.g. compare averages and ranges between two\ndata sets."
+                    },
+                    {
+                        "name": "Averages and range",
+                        "number": 3,
+                        "description": "Calculate the mean, median, mode and range\nfor individual data and distinguish between the\npurposes for which these are used.",
+                        "examples": "Data may be in a list or frequency table, but will not\nbe grouped."
+                    },
+                    {
+                        "name": "Statistical charts and diagrams",
+                        "number": 4,
+                        "description": "Draw and interpret:\n(a) bar charts\n(b) pie charts\n(c) pictograms\n(d) stem-and-leaf diagrams\n(e) simple frequency distributions.",
+                        "examples": "Includes composite (stacked) and dual (side-by\nside) bar charts.\nStem-and-leaf diagrams should have ordered data\nwith a key."
+                    },
+                    {
+                        "name": "Scatter diagrams",
+                        "number": 5,
+                        "description": "1 Draw and interpret scatter diagrams.\n2 Understand what is meant by positive, negative\nand zero correlation.\n3 Draw by eye, interpret and use a straight line of\nbest fit.",
+                        "examples": "Plotted points should be clearly marked, for\nexample as small crosses (x).\nA line of best fit:\n• should be a single ruled line drawn by\ninspection\n• should extend across the full data set\n• does not need to coincide exactly with any of\nthe points but there should be a roughly even\ndistribution of points either side of the line over\nits entire length."
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        "name": "Extended Subjects",
+        "papers": [
+            2,
+            4
+        ],
+        "paper_to_key": {
+            "2,4": [
+                "topics.description,examples"
+            ]
+        },
+        "chapters": [
+            {
+                "name": "Number",
+                "number": 1,
+                "topics": [
+                    {
+                        "name": "Types of number",
+                        "number": 1,
+                        "description": "Identify and use:\n• natural numbers\n• integers (positive, zero and negative)\n• prime numbers\n• square numbers\n• cube numbers\n• common factors\n• common multiples\n• rational and irrational numbers\n• reciprocals.",
+                        "examples": "Example tasks include:\n• convert between numbers and words, e.g. six billion is 6000000000\n• 10007 is ten thousand and seven\n• express 72 as a product of its prime factors\n• find the highest common factor (HCF) of two numbers\n• find the lowest common multiple (LCM) of two numbers."
+                    },
+                    {
+                        "name": "Sets",
+                        "number": 2,
+                        "description": "Understand and use set language, notation and\nVenn diagrams to describe sets and represent\nrelationships between sets.",
+                        "examples": "Venn diagrams are limited to two or three sets.\nThe following set notation will be used:\n• n(A) Number of elements in set A\n•  ∈ \"... is an element of ...\"\n•  ∉ \"... is not an element of ...\"\n•  A′ Complement of set A\n• ∅ The empty set\n•  𝜀 Universal set\n•  A ⊆ B A is a subset of B\n•  A ⊈ B A is not a subset of B\n•  A ∪ B Union of A and B\n•  A ∩ B Intersection of A and B.\nExample definition of sets:\nA = {x: x is a natural number}\nB = {(x, y): y = mx + c}\nC = {x: a < x < b}\nD = {a, b, c, ...}."
+                    },
+                    {
+                        "name": "Powers and roots",
+                        "number": 3,
+                        "description": "Calculate with the following:\n• squares\n• square roots\n• cubes\n• cube roots\n• other powers and roots of numbers.",
+                        "examples": "Includes recall of squares and their corresponding roots from 1 to 15, and recall of cubes and their corresponding roots of 1, 2, 3, 4, 5 and 10, e.g.:\n• Write down the value of √169 .\n• Work out 52 × ³√8."
+                    },
+                    {
+                        "name": "Fractions, decimals and percentages",
+                        "number": 4,
+                        "description": "1 Use the language and notation of the following in\nappropriate contexts:\n• proper fractions\n• improper fractions\n• mixed numbers\n• decimals\n• percentages.\n2 Recognise equivalence and convert between\nthese forms.",
+                        "examples": "Candidates are expected to be able to write\nfractions in their simplest form.\nRecurring decimal notation is required, e.g.\n• 0.17 = 0.1777…\n• 0.123 = 0.1232323…\n• 0.123 = 0.123123…\nIncludes converting between recurring decimals\nand fractions and vice versa,\ne.g. write 0.17 as a fraction."
+                    },
+                    {
+                        "name": "Ordering",
+                        "number": 5,
+                        "description": "Order quantities by magnitude and demonstrate\nfamiliarity with the symbols =, ≠, >, <, ≥ and ≤.",
+                        "examples": ""
+                    },
+                    {
+                        "name": "The four operations",
+                        "number": 6,
+                        "description": "Use the four operations for calculations with\nintegers, fractions and decimals, including correct\nordering of operations and use of brackets.",
+                        "examples": "Includes:\n• negative numbers\n• improper fractions\n• mixed numbers\n• practical situations, e.g. temperature changes."
+                    },
+                    {
+                        "name": "Indices I",
+                        "number": 7,
+                        "description": "1 Understand and use indices (positive, zero,\nnegative, and fractional).\n2 Understand and use the rules of indices.",
+                        "examples": "Examples include:\n• 61/2 =√6\n• 161/4= 4√16\n• find the value of 7–2, 81/4, 82/3.\ne.g. find the value of 2–3 × 24, (23)2, 23 ÷ 24."
+                    },
+                    {
+                        "name": "Standard form",
+                        "number": 8,
+                        "description": "1 Use the standard form A × 10n where n is a\npositive or negative integer and 1 ≤ A < 10.\n2 Convert numbers into and out of standard form.\n3 Calculate with values in standard form.",
+                        "examples": ""
+                    },
+                    {
+                        "name": "Estimation",
+                        "number": 9,
+                        "description": "1 Round values to a specified degree of accuracy.\n2 Make estimates for calculations involving\nnumbers, quantities and measurements.\n3 Round answers to a reasonable degree of\naccuracy in the context of a given problem.",
+                        "examples": "Includes decimal places and significant figures.\ne.g. write 5764 correct to the nearest thousand.\ne.g. by writing each number correct to 1 significant\nfigure, estimate the value of\n41.3\n9.79 × 0.765"
+                    },
+                    {
+                        "name": "Limits of accuracy",
+                        "number": 10,
+                        "description": "1 Give upper and lower bounds for data rounded\nto a specified accuracy.\n2 Find upper and lower bounds of the results of\ncalculations which have used data rounded to a\nspecified accuracy.",
+                        "examples": "e.g. write down the upper bound of a length\nmeasured correct to the nearest metre.\nExample calculations include:\n• calculate the upper bound of the perimeter or\nthe area of a rectangle given dimensions\nmeasured to the nearest centimetre\n• find the lower bound of the speed given\nrounded values of distance and time."
+                    },
+                    {
+                        "name": "Ratio and proportion",
+                        "number": 11,
+                        "description": "Understand and use ratio and proportion to:\n• give ratios in their simplest form\n• divide a quantity in a given ratio\n• use proportional reasoning and ratios in\ncontext.",
+                        "examples": "e.g. 20:30:40 in its simplest form is 2:3:4.\ne.g. adapt recipes; use map scales; determine best\nvalue."
+                    },
+                    {
+                        "name": "Rates",
+                        "number": 12,
+                        "description": "1 Use common measures of rate.\n2 Apply other measures of rate.\n3 Solve problems involving average speed.",
+                        "examples": "e.g. calculate with:\n• hourly rates of pay\n• exchange rates between currencies\n• flow rates\n• fuel consumption.\ne.g. calculate with:\n• pressure\n• density\n• population density.\nRequired formulas will be given in the question.\nKnowledge of speed/distance/time formula is\nrequired.\ne.g. A cyclist travels 45 km in 3 hours 45 minutes.\nWhat is their average speed?\nNotation used will be, e.g. m/s (metres per second),\ng/cm³ (grams per cubic centimetre)."
+                    },
+                    {
+                        "name": "Percentages",
+                        "number": 13,
+                        "description": "1 Calculate a given percentage of a quantity.\n2 Express one quantity as a percentage of another.\n3 Calculate percentage increase or decrease.\n4 Calculate with simple and compound interest.\n5 Calculate using reverse percentages.",
+                        "examples": "Problems may include repeated percentage\nchange.\nFormulas are not given.\ne.g. find the cost price given the selling price and\nthe percentage profit.\nPercentage calculations may include:\n• deposit\n• discount\n• profit and loss (as an amount or a percentage)\n• earnings\n• percentages over 100%."
+                    },
+                    {
+                        "name": "Using a calculator",
+                        "number": 14,
+                        "description": "1 Use a calculator efficiently.\n2 Enter values appropriately on a calculator.\n3 Interpret the calculator display appropriately.",
+                        "examples": "e.g. know not to round values within a calculation\nand to only round the final answer.\ne.g. enter 2 hours 30 minutes as 2.5 hours or\n2° 30' 0\".\ne.g. in money 4.8 means $4.80; in time 3.25 means\n3 hours 15 minutes."
+                    },
+                    {
+                        "name": "Time",
+                        "number": 15,
+                        "description": "1 Calculate with time: seconds (s), minutes (min),\nhours (h), days, weeks, months, years, including\nthe relationship between units.\n2 Calculate times in terms of the 24-hour and\n12-hour clock.\n3 Read clocks and timetables.",
+                        "examples": "1 year = 365 days.\nIn the 24-hour clock, for example, 3.15 a.m. will be\ndenoted by 03 15 and 3.15 p.m. by 15 15.\nIncludes problems involving time zones, local times\nand time differences."
+                    },
+                    {
+                        "name": "Money",
+                        "number": 16,
+                        "description": "1 Calculate with money.\n2 Convert from one currency to another.",
+                        "examples": ""
+                    },
+                    {
+                        "name": "Exponential growth and decay",
+                        "number": 17,
+                        "description": "Use exponential growth and decay.",
+                        "examples": "e.g. depreciation, population change.\nKnowledge of e is not required."
+                    },
+                    {
+                        "name": "Surds",
+                        "number": 18,
+                        "description": "1 Understand and use surds, including simplifying\nexpressions.\n2 Rationalise the denominator.",
+                        "examples": "Examples include:\n• √20 = 2√5\n• √200 - √32 = 6√2.\nExamples include:\n• 10/ √5  = 2√5\n• 1/(-1+√3) = 1+√3/2"
+                    }
+                ]
+            },
+            {
+                "name": "Algebra and graphs",
+                "number": 2,
+                "topics": [
+                    {
+                        "name": "Introduction to algebra",
+                        "number": 1,
+                        "description": "1 Know that letters can be used to represent\ngeneralised numbers.\n2 Substitute numbers into expressions and\nformulas.",
+                        "examples": ""
+                    },
+                    {
+                        "name": "Algebraic manipulation",
+                        "number": 2,
+                        "description": "1 Simplify expressions by collecting like terms.\n2 Expand products of algebraic expressions.\n3 Factorise by extracting common factors.\n4 Factorise expressions of the form:\n• ax + bx + kay + kby\n• a²x²-b²y²\n• a² + 2ab + b²\n• ax² + bx + c\n• ax³ + bx² + cx.\n5 Complete the square for expressions in the form\nax² + bx + c.",
+                        "examples": "Simplify means give the answer in its simplest form,\ne.g. 2a² + 3ab − 1 + 5a² – 9ab + 4 = 7a² – 6ab + 3.\ne.g. expand 3x(2x – 4y), (3x + y)(x – 4y).\nIncludes products of more than two brackets,\ne.g. expand (x – 2)(x + 3)(2x + 1).\nFactorise means factorise fully,\ne.g. 9x² + 15xy = 3x(3x + 5y)."
+                    },
+                    {
+                        "name": "Algebraic fractions",
+                        "number": 3,
+                        "description": "1 Manipulate algebraic fractions.\n2 Factorise and simplify rational expressions.",
+                        "examples": "Examples include:\n• x/3 + x-4/2\n• (2x/3) (x-5/2)\n• x/3 ÷ 4/10\n• 3a/4 + 9a/10\n• 1/(x-2) + (x+1)/(x-3)\ne.g. x² - 2x / x²-5x+6"
+                    },
+                    {
+                        "name": "Indices II",
+                        "number": 4,
+                        "description": "1 Understand and use indices (positive, zero,\nnegative and fractional).\n2 Understand and use the rules of indices.",
+                        "examples": "e.g. solve:\n• 32x= 2\n• 5x + 1 = 25x.\ne.g. simplify:\n• 3x-4 × x2\n• x3 ÷ 2x-2\n• (2x)3.\nKnowledge of logarithms is not required."
+                    },
+                    {
+                        "name": "Equations",
+                        "number": 5,
+                        "description": "1 Construct expressions, equations and formulas.\n2 Solve linear equations in one unknown.\n3 Solve fractional equations with numerical and\nlinear algebraic denominators.\n4 Solve simultaneous linear equations in two\nunknowns.\n5 Solve simultaneous equations, involving one\nlinear and one non-linear.\n6 Solve quadratic equations by factorisation,\ncompleting the square and by use of the\nquadratic formula.\n7 Change the subject of formulas.",
+                        "examples": "e.g. write an expression for the product of two\nconsecutive even numbers.\nIncludes constructing simultaneous equations.\nExamples include:\n• 3x + 4 = 10\n• 5 - 2x = 3(x + 7).\nExamples include:\n• x/2 + 1/(2x+1)=4\n• 3/x + 2/(x-1) =1\n• x/(x+2) = 3/(x-6)\nWith powers no higher than two.\nIncludes writing a quadratic expression in\ncompleted square form.\nCandidates may be expected to give solutions in\nsurd form.\nThe quadratic formula is given in the List of\nformulas.\ne.g. change the subject of a formula where:\n• the subject appears twice\n• there is a power or root of the subject."
+                    },
+                    {
+                        "name": "Inequalities",
+                        "number": 6,
+                        "description": "1 Represent and interpret inequalities, including on\na number line.\n2 Construct, solve and interpret linear inequalities.\n3 Represent and interpret linear inequalities in two\nvariables graphically.\n4 List inequalities that define a given region.",
+                        "examples": "When representing and interpreting inequalities on\na number line:\n• open circles should be used to represent strict\ninequalities (<, >)\n• closed circles should be used to represent\ninclusive inequalities (≤, ≥).\ne.g. -3<x≤1\nExamples include:\n• 3x < 2x + 4\n• -3≤ 3x - 2 < 7.\nThe following conventions should be used:\n• broken lines should be used to represent strict\ninequalities (<, >)\n• solid lines should be used to represent inclusive\ninequalities (≤, ≥)\n• shading should be used to represent unwanted\nregions (unless otherwise directed in the\nquestion).\ne.g. graphs for x<1 and y≥1\nLinear programming problems are not included."
+                    },
+                    {
+                        "name": "Sequences",
+                        "number": 7,
+                        "description": "1 Continue a given number sequence or pattern.\n2 Recognise patterns in sequences, including the\nterm-to-term rule, and relationships between\ndifferent sequences.\n3 Find and use the nth term of sequences.",
+                        "examples": "Subscript notation may be used, e.g. Tn is the nth\nterm of sequence T.\nIncludes linear, quadratic, cubic and exponential\nsequences and simple combinations of these."
+                    },
+                    {
+                        "name": "Proportion",
+                        "number": 8,
+                        "description": "Express direct and inverse proportion in algebraic\nterms and use this form of expression to find\nunknown quantities.",
+                        "examples": "Includes linear, square, square root, cube and cube\nroot proportion.\nKnowledge of proportional symbol (∝) is required."
+                    },
+                    {
+                        "name": "Graphs in practical situations",
+                        "number": 9,
+                        "description": "1 Use and interpret graphs in practical situations\nincluding travel graphs and conversion graphs.\n2 Draw graphs from given data.\n3 Apply the idea of rate of change to simple\nkinematics involving distance-time and\nspeed-time graphs, acceleration and\ndeceleration.\n4 Calculate distance travelled as area under a\nspeed-time graph.",
+                        "examples": "Includes estimation and interpretation of the\ngradient of a tangent at a point.\nAreas will involve linear sections of the graph only."
+                    },
+                    {
+                        "name": "Graphs of functions",
+                        "number": 10,
+                        "description": "1 Construct tables of values, and draw, recognise\nand interpret graphs for functions of the following\nforms:\n• axn (includes sums of no more than three of\nthese)\n• abx + c\nwhere n = −2, -1, -½, 0, ½, 1, 2, 3; a and c are\nrational numbers; and b is a positive integer.\n2 Solve associated equations graphically, including\nfinding and interpreting roots by graphical\nmethods.\n3 Draw and interpret graphs representing\nexponential growth and decay problems.",
+                        "examples": "Examples include:\n• y = x² + x − 4\n• y = 2x + 3/x\n• y = ½ × 2x.\ne.g. finding the intersection of a line and a curve."
+                    },
+                    {
+                        "name": "Sketching curves",
+                        "number": 11,
+                        "description": "Recognise, sketch and interpret graphs of the\nfollowing functions:\n(a) linear\n(b) quadratic\n(c) cubic\n(d) reciprocal\n(e) exponential.",
+                        "examples": "Where a, b, c, and d are rational numbers, functions\nwill be equivalent to:\n• ax + by = c\n• y = ax2 + bx + c\n• y = ax3 + d\n• y = ax3 + bx² + cx.\nWhere m and n are integers, functions will be\nequivalent to:\n• y = m/x + n\n• y = m* + n.\nKnowledge of turning points, vertical and horizontal\nasymptotes, roots and symmetry is required.\nFinding turning points of quadratics by completing\nthe square may be required."
+                    },
+                    {
+                        "name": "Differentiation",
+                        "number": 12,
+                        "description": "1 Estimate gradients of curves by drawing\ntangents.\n2 Use the derivatives of functions of the form axn,\nwhere a is a rational constant and n is a positive\ninteger or zero, and simple sums of not more\nthan three of these.\n3 Apply differentiation to gradients and stationary\npoints (turning points).\n4 Discriminate between maxima and minima by\nany method.",
+                        "examples": "dy/dx notation will be expected.\nMaximum and minimum points may be identified by:\n• an accurate sketch\n• use of the second differential\n• inspecting the gradient either side of a turning\npoint.\nCandidates are not expected to identify points of\ninflection."
+                    },
+                    {
+                        "name": "Functions",
+                        "number": 13,
+                        "description": "1 Understand functions, domain and range and\nuse function notation.\n2 Understand and find inverse functions f-1(x).\n3 Form composite functions as defined by\ngf(x) = g(f(x)).",
+                        "examples": "Examples include:\n• f(x) = 3x − 5\n• g(x) = 3(x+4)/5\n• h(x) = 2x² + 3.\ne.g. f(x) = 3/(x+2) and g(x) = (3x + 5)². Find fg(x).\nGive your answer as a fraction in its simplest form.\nCandidates are not expected to find the domains\nand ranges of composite functions.\nThis topic may include mapping diagrams."
+                    }
+                ]
+            },
+            {
+                "name": "Coordinate geometry",
+                "number": 3,
+                "topics": [
+                    {
+                        "name": "Coordinates",
+                        "number": 1,
+                        "description": "Use and interpret Cartesian coordinates in two\ndimensions.",
+                        "examples": ""
+                    },
+                    {
+                        "name": "Drawing linear graphs",
+                        "number": 2,
+                        "description": "Draw straight-line graphs for linear equations.",
+                        "examples": "Examples include:\n• y = -2x + 5\n• y = 7 - 4x\n• 3x + 2y = 5."
+                    },
+                    {
+                        "name": "Gradient of linear graphs",
+                        "number": 3,
+                        "description": "1 Find the gradient of a straight line.\n2 Calculate the gradient of a straight line from the\ncoordinates of two points on it.",
+                        "examples": ""
+                    },
+                    {
+                        "name": "Length and midpoint",
+                        "number": 4,
+                        "description": "1 Calculate the length of a line segment.\n2 Find the coordinates of the midpoint of a line\nsegment.",
+                        "examples": ""
+                    },
+                    {
+                        "name": "Equations of linear graphs",
+                        "number": 5,
+                        "description": "Interpret and obtain the equation of a straight-line\ngraph.",
+                        "examples": "Questions may:\n• use and request lines in different forms, e.g.\nax + by = c,  y = mx + c, x = k\n• involve finding the equation when the graph is\ngiven\n• ask for the gradient or y-intercept of a graph\nfrom an equation, e.g. find the gradient and\ny-intercept of the graph with equation\n5x + 4y = 8.\nCandidates are expected to give equations of a line\nin a fully simplified form."
+                    },
+                    {
+                        "name": "Parallel lines",
+                        "number": 6,
+                        "description": "Find the gradient and equation of a straight line\nparallel to a given line.",
+                        "examples": "e.g. find the equation of the line parallel to\ny = 4x – 1 that passes through (1, -3)."
+                    },
+                    {
+                        "name": "Perpendicular lines",
+                        "number": 7,
+                        "description": "Find the gradient and equation of a straight line\nperpendicular to a given line.",
+                        "examples": "Examples include:\n• find the gradient of a line perpendicular to\n2y = 3x + 1\n• find the equation of the perpendicular bisector\nof the line joining the points (-3, 8) and (9, -2)."
+                    }
+                ]
+            },
+            {
+                "name": "Geometry",
+                "number": 4,
+                "topics": [
+                    {
+                        "name": "Geometrical terms",
+                        "number": 1,
+                        "description": "1 Use and interpret the following geometrical\nterms:\n• point\n• vertex\n• line\n• plane\n• parallel\n• perpendicular\n• perpendicular bisector\n• bearing\n• right angle\n• acute, obtuse and reflex angles\n• interior and exterior angles\n• similar\n• congruent\n• scale factor.\n2 Use and interpret the vocabulary of:\n• triangles\n• special quadrilaterals\n• polygons\n• nets\n• solids.\n3 Use and interpret the vocabulary of a circle.",
+                        "examples": "Candidates are not expected to show that two\nshapes are congruent.\nIncludes the following terms.\nTriangles:\n• equilateral\n• isosceles\n• scalene\n• right-angled.\nQuadrilaterals:\n• square\n• rectangle\n• kite\n• rhombus\n• parallelogram\n• trapezium.\n Polygons:\n• regular and irregular polygons\n• pentagon\n• hexagon\n• octagon\n• decagon.\nSolids:\n• cube\n• cuboid\n• prism\n• cylinder\n• pyramid\n• cone\n• sphere\n• hemisphere\n• frustum\n• face\n• surface\n• edge.\nIncludes the following terms:\n• centre\n• radius (plural radii)\n• diameter\n• circumference\n• semicircle\n• chord\n• tangent\n• major and minor arc\n• sector\n• segment."
+                    },
+                    {
+                        "name": "Geometrical constructions",
+                        "number": 2,
+                        "description": "1 Measure and draw lines and angles.\n2 Construct a triangle, given the lengths of all\nsides, using a ruler and pair of compasses only.\n3 Draw, use and interpret nets.",
+                        "examples": "A ruler should be used for all straight edges.\nConstructions of perpendicular bisectors and angle\nbisectors are not required.\ne.g. construct a rhombus by drawing two triangles.\nConstruction arcs must be shown.\nExamples include:\n• draw nets of cubes, cuboids, prisms and\npyramids\n• use measurements from nets to calculate\nvolumes and surface areas."
+                    },
+                    {
+                        "name": "Scale drawings",
+                        "number": 3,
+                        "description": "1 Draw and interpret scale drawings.\n2 Use and interpret three-figure bearings.",
+                        "examples": "A ruler must be used for all straight edges.\nBearings are measured clockwise from north\n(000° to 360°).\ne.g. find the bearing of A from B if the bearing of B\nfrom A is 025°.\nIncludes an understanding of the terms north, east,\nsouth and west.\ne.g. point D is due east of point C."
+                    },
+                    {
+                        "name": "Similarity",
+                        "number": 4,
+                        "description": "1 Calculate lengths of similar shapes.\n2 Use the relationships between lengths and areas\nof similar shapes and lengths, surface areas and\nvolumes of similar solids.\n3 Solve problems and give simple explanations\ninvolving similarity.",
+                        "examples": "Includes use of scale factor, e.g.\nVolume of A/Volume of B = (Length of A/Length of B)³\nIncludes showing that two triangles are similar\nusing geometric reasons."
+                    },
+                    {
+                        "name": "Symmetry",
+                        "number": 5,
+                        "description": "1 Recognise line symmetry and order of rotational\nsymmetry in two dimensions.\n2 Recognise symmetry properties of prisms,\ncylinders, pyramids and cones.",
+                        "examples": "Includes properties of triangles, quadrilaterals and\npolygons directly related to their symmetries.\ne.g. identify planes and axes of symmetry."
+                    },
+                    {
+                        "name": "Angles",
+                        "number": 6,
+                        "description": "1 Calculate unknown angles and give simple\nexplanations using the following geometrical\nproperties:\n• sum of angles at a point = 360°\n• sum of angles at a point on a straight line = 180°\n• vertically opposite angles are equal\n• angle sum of a triangle = 180° and angle sum\nof a quadrilateral = 360°.\n2 Calculate unknown angles and give geometric\nexplanations for angles formed within parallel lines:\n• corresponding angles are equal\n• alternate angles are equal\n• co-interior (supplementary) angles sum to 180°.\n3 Know and use angle properties of regular and\nirregular polygons.",
+                        "examples": "Knowledge of 3-letter notation for angles is\nrequired, e.g. angle ABC. Candidates are expected\nto use the correct geometrical terminology when\ngiving reasons for answers.\nIncludes exterior and interior angles, and angle\nsum."
+                    },
+                    {
+                        "name": "Circle theorems I",
+                        "number": 7,
+                        "description": "Calculate unknown angles and give explanations\nusing the following geometrical properties of circles:\n• angle in a semicircle = 90°\n• angle between tangent and radius = 90°\n• angle at the centre is twice the angle at the\ncircumference\n• angles in the same segment are equal\n• opposite angles of a cyclic quadrilateral sum to\n180° (supplementary)\n• alternate segment theorem.",
+                        "examples": "Candidates are expected to use the geometrical\nproperties listed in the syllabus when giving\nreasons for answers."
+                    },
+                    {
+                        "name": "Circle theorems II",
+                        "number": 8,
+                        "description": "Use the following symmetry properties of circles:\n• equal chords are equidistant from the centre\n• the perpendicular bisector of a chord passes\nthrough the centre\n• tangents from an external point are equal in\nlength.",
+                        "examples": "Candidates are expected to use the geometrical\nproperties listed in the syllabus when giving\nreasons for answers."
+                    }
+                ]
+            },
+            {
+                "name": "Mensuration",
+                "number": 5,
+                "topics": [
+                    {
+                        "name": "Units of measure",
+                        "number": 1,
+                        "description": "Use metric units of mass, length, area, volume\nand capacity in practical situations and convert\nquantities into larger or smaller units.",
+                        "examples": "Units include:\n• mm, cm, m, km\n• mm², cm², m², km²\n• mm³, cm³, m³\n• ml, l\n• g, kg.\nConversion between units includes:\n• between different units of area, e.g. cm² ↔ m²\n• between units of volume and capacity,\ne.g. m³ ↔ litres."
+                    },
+                    {
+                        "name": "Area and perimeter",
+                        "number": 2,
+                        "description": "Carry out calculations involving the perimeter and\narea of a rectangle, triangle, parallelogram and\ntrapezium.",
+                        "examples": "Except for area of a triangle, formulas are not\ngiven."
+                    },
+                    {
+                        "name": "Circles, arcs and sectors",
+                        "number": 3,
+                        "description": "1 Carry out calculations involving the\ncircumference and area of a circle.\n2 Carry out calculations involving arc length and\nsector area as fractions of the circumference and\narea of a circle",
+                        "examples": "Answers may be asked for in terms of π.\nFormulas are given in the List of formulas.\nIncludes minor and major sectors."
+                    },
+                    {
+                        "name": "Surface area and volume",
+                        "number": 4,
+                        "description": "Carry out calculations and solve problems involving\nthe surface area and volume of a:\n• cuboid\n• prism\n• cylinder\n• sphere\n• pyramid\n• cone.",
+                        "examples": "Answers may be asked for in terms of π.\nThe following formulas are given in the List of\nformulas:\n• curved surface area of a cylinder\n• curved surface area of a cone\n• surface area of a sphere\n• volume of a prism\n• volume of a pyramid\n• volume of a cylinder\n• volume of a cone\n• volume of a sphere."
+                    },
+                    {
+                        "name": "Compound shapes and parts of shapes",
+                        "number": 5,
+                        "description": "1 Carry out calculations and solve problems\ninvolving perimeters and areas of:\n• compound shapes\n• parts of shapes.\n2 Carry out calculations and solve problems\ninvolving surface areas and volumes of:\n• compound solids\n• parts of solids.",
+                        "examples": "Answers may be asked for in terms of π.\ne.g. find the volume of half of a sphere."
+                    }
+                ]
+            },
+            {
+                "name": "Trigonometry",
+                "number": 6,
+                "topics": [
+                    {
+                        "name": "Pythagoras' theorem",
+                        "number": 1,
+                        "description": "Know and use Pythagoras' theorem.",
+                        "examples": ""
+                    },
+                    {
+                        "name": "Right-angled triangles",
+                        "number": 2,
+                        "description": "1 Know and use the sine, cosine and tangent\nratios for acute angles in calculations involving\nsides and angles of a right-angled triangle.\n2 Solve problems in two dimensions using\nPythagoras' theorem and trigonometry.\n3 Know that the perpendicular distance from a\npoint to a line is the shortest distance to the line.\n4 Carry out calculations involving angles of\nelevation and depression.",
+                        "examples": "Angles will be given in degrees and answers should\nbe written in degrees, with decimals correct to one\ndecimal place.\nKnowledge of bearings may be required."
+                    },
+                    {
+                        "name": "Exact trigonometric values",
+                        "number": 3,
+                        "description": "Know the exact values of:\n1 sin x and cos x for x = 0°, 30°, 45°, 60° and 90°.\n2 tan x for x = 0°, 30°, 45° and 60°.",
+                        "examples": ""
+                    },
+                    {
+                        "name": "Trigonometric functions",
+                        "number": 4,
+                        "description": "1 Recognise, sketch and interpret the following\ngraphs for 0° ≤ x ≤ 360°:\n• y = sinx\n• y = cosx\n• y = tanx.\n2 Solve trigonometric equations involving sin x,\ncos x or tan x, for 0° ≤ x ≤ 360°.",
+                        "examples": "e.g. solve:\n• sin x = √3/2 for 0° ≤ x ≤ 360°\n• 2 cos x + 1 = 0 for 0° ≤ x ≤ 360°."
+                    },
+                    {
+                        "name": "Non-right-angled triangles",
+                        "number": 5,
+                        "description": "1 Use the sine and cosine rules in calculations\ninvolving lengths and angles for any triangle.\n2 Use the formula area of triangle = ½ab sin C.",
+                        "examples": "Includes problems involving obtuse angles and the\nambiguous case.\nThe sine and cosine rules and the formula for area\nof a triangle are given in the List of formulas."
+                    },
+                    {
+                        "name": "Pythagoras' theorem and trigonometry\nin 3D",
+                        "number": 6,
+                        "description": "Carry out calculations and solve problems in\nthree dimensions using Pythagoras' theorem\nand trigonometry, including calculating the angle\nbetween a line and a plane.",
+                        "examples": ""
+                    }
+                ]
+            },
+            {
+                "name": "Transformations and vectors",
+                "number": 7,
+                "topics": [
+                    {
+                        "name": "Transformations",
+                        "number": 1,
+                        "description": "Recognise, describe and draw the following\ntransformations:\n1 Reflection of a shape in a straight line.\n2 Rotation of a shape about a centre through\nmultiples of 90°.\n3 Enlargement of a shape from a centre by a scale\nfactor.\n4 Translation of a shape by a vector X/Y.",
+                        "examples": "Questions may involve combinations of\ntransformations. A ruler must be used for all straight\nedges.\nPositive, fractional and negative scale factors may\nbe used."
+                    },
+                    {
+                        "name": "Vectors in two dimensions",
+                        "number": 2,
+                        "description": "1 Describe a translation using a vector represented X/Y\nby AB or a.\n2 Add and subtract vectors.\n3 Multiply a vector by a scalar.",
+                        "examples": "Vectors will be printed as AB or a."
+                    },
+                    {
+                        "name": "Magnitude of a vector",
+                        "number": 3,
+                        "description": "Calculate the magnitude of a vector X/Y as\n√ x²+y².",
+                        "examples": "The magnitudes of vectors will be denoted by\nmodulus signs, e.g.\n• | a | is the magnitude of a\n• |AB| is the magnitude of AB."
+                    },
+                    {
+                        "name": "Vector geometry",
+                        "number": 4,
+                        "description": "1 Represent vectors by directed line segments.\n2 Use position vectors.\n3 Use the sum and difference of two or more\nvectors to express given vectors in terms of two\ncoplanar vectors.\n4 Use vectors to reason and to solve geometric\nproblems.",
+                        "examples": "Examples include:\n• show that vectors are parallel\n• show that 3 points are collinear\n• solve vector problems involving ratio and\nsimilarity."
+                    }
+                ]
+            },
+            {
+                "name": "Probability",
+                "number": 8,
+                "topics": [
+                    {
+                        "name": "Introduction to probability",
+                        "number": 1,
+                        "description": "1 Understand and use the probability scale from\n0 to 1.\n2 Understand and use probability notation.\n3 Calculate the probability of a single event.\n4 Understand that the probability of an event\nnot occurring = 1 - the probability of the event\noccurring.",
+                        "examples": "P(A) is the probability of A\nP(A') is the probability of not A\nProbabilities should be given as a fraction, decimal\nor percentage.\nProblems may require using information from\ntables, graphs or Venn diagrams.\ne.g. P(B) = 0.8, find P(B')"
+                    },
+                    {
+                        "name": "Relative and expected frequencies",
+                        "number": 2,
+                        "description": "1 Understand relative frequency as an estimate of\nprobability.\n2 Calculate expected frequencies.",
+                        "examples": "e.g. use results of experiments with a spinner to\nestimate the probability of a given outcome.\ne.g. use probability to estimate an expected value\nfrom a population.\nIncludes understanding what is meant by fair and\nbias."
+                    },
+                    {
+                        "name": "Probability of combined events",
+                        "number": 3,
+                        "description": "Calculate the probability of combined events using,\nwhere appropriate:\n• sample space diagrams\n• Venn diagrams\n• tree diagrams.",
+                        "examples": "Combined events could be with or without\nreplacement.\nThe notation P(A ∩ B) and P(A∪B) may be used\nin the context of Venn diagrams.\nOn tree diagrams outcomes will be written at the\nend of branches and probabilities by the side of the\nbranches."
+                    },
+                    {
+                        "name": "Conditional probability",
+                        "number": 4,
+                        "description": "Calculate conditional probability using Venn\ndiagrams, tree diagrams and tables.",
+                        "examples": "Knowledge of notation, P(A|B), and formulas\nrelating to conditional probability is not required."
+                    }
+                ]
+            },
+            {
+                "name": "Statistics",
+                "number": 9,
+                "topics": [
+                    {
+                        "name": "Classifying statistical data",
+                        "number": 1,
+                        "description": "Classify and tabulate statistical data.",
+                        "examples": "e.g. tally tables, two-way tables."
+                    },
+                    {
+                        "name": "Interpreting statistical data",
+                        "number": 2,
+                        "description": "1 Read, interpret and draw inferences from tables\nand statistical diagrams.\n2 Compare sets of data using tables, graphs and\nstatistical measures.\n3 Appreciate restrictions on drawing conclusions\nfrom given data.",
+                        "examples": "e.g. compare averages and measures of spread\nbetween two data sets."
+                    },
+                    {
+                        "name": "Averages and measures of spread",
+                        "number": 3,
+                        "description": "1 Calculate the mean, median, mode, quartiles,\nrange and interquartile range for individual data\nand distinguish between the purposes for which\nthese are used.\n2 Calculate an estimate of the mean for grouped\ndiscrete or grouped continuous data.\n3 Identify the modal class from a grouped\nfrequency distribution.",
+                        "examples": ""
+                    },
+                    {
+                        "name": "Statistical charts and diagrams",
+                        "number": 4,
+                        "description": "Draw and interpret:\n(a) bar charts\n(b) pie charts\n(c) pictograms\n(d) stem-and-leaf diagrams\n(e) simple frequency distributions.",
+                        "examples": "Includes composite (stacked) and dual (side-by-\nside) bar charts.\nStem-and-leaf diagrams should have ordered data\nwith a key."
+                    },
+                    {
+                        "name": "Scatter diagrams",
+                        "number": 5,
+                        "description": "1 Draw and interpret scatter diagrams.\n2 Understand what is meant by positive, negative\nand zero correlation.\n3 Draw by eye, interpret and use a straight line of\nbest fit.",
+                        "examples": "Plotted points should be clearly marked, for\nexample as small crosses (x).\nA line of best fit:\n• should be a single ruled line drawn by\ninspection\n• should extend across the full data set\n• does not need to coincide exactly with any of\nthe points but there should be a roughly even\ndistribution of points either side of the line over\nits entire length."
+                    },
+                    {
+                        "name": "Cumulative frequency diagrams",
+                        "number": 6,
+                        "description": "1 Draw and interpret cumulative frequency tables\nand diagrams.\n2 Estimate and interpret the median, percentiles,\nquartiles and interquartile range from cumulative\nfrequency diagrams.",
+                        "examples": "Plotted points on a cumulative frequency diagram\nshould be clearly marked, for example as small\ncrosses (x), and be joined with a smooth curve."
+                    },
+                    {
+                        "name": "Histograms",
+                        "number": 7,
+                        "description": "1 Draw and interpret histograms.\n2 Calculate with frequency density.",
+                        "examples": "On histograms, the vertical axis is labelled\n'Frequency density'.\nFrequency density is defined as\nfrequency density = frequency ÷ class width."
+                    }
+                ]
+            }
+        ]
+    }
+]

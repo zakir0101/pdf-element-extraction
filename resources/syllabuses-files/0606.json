@@ -1,0 +1,86 @@
+[
+    {
+        "name": "All",
+        "papers": [
+            1,
+            2
+        ],
+        "paper_to_key": {
+            "1,2": [
+                "description"
+            ]
+        },
+        "chapters": [
+            {
+                "name": "Functions",
+                "number": 1,
+                "description": "understand the terms: function, domain, range (image set), one-one function, inverse function and composition of functions use the notation f(x) = sin x, f: x → lg x, (x > 0), f⁻¹(x) and f²(x) [= f(f(x))] understand the relationship between y = f(x) and y = |f(x)|, where f(x) may be linear, quadratic or trigonometric explain in words why a given function is a function or why it does not have an inverse find the inverse of a one-one function and form composite functions use sketch graphs to show the relationship between a function and its inverse"
+            },
+            {
+                "name": "Quadratic Functions",
+                "number": 2,
+                "description": "find the maximum or minimum value of the quadratic function f : x → ax² + bx + c by any method use the maximum or minimum value of f(x) to sketch the graph or determine the range for a given domain know the conditions for f(x) = 0 to have: (i) two real roots, (ii) two equal roots, (iii) no real roots and the related conditions for a given line to (i) intersect a given curve, (ii) be a tangent to a given curve, (iii) not intersect a given curve solve quadratic equations for real roots and find the solution set for quadratic inequalities"
+            },
+            {
+                "name": "Equations, Inequalities And Graphs",
+                "number": 3,
+                "description": "solve graphically or algebraically equations of the type |ax + b| = c (c > 0) and |ax + b| = |cx + d| solve graphically or algebraically inequalities of the type |ax + b| > c (c ≥ 0), |ax + b| ≤ c (c > 0) and |ax + b| < |cx + d| use substitution to form and solve a quadratic equation in order to solve a related equation sketch the graphs of cubic polynomials and their moduli, when given in factorised form y = k(x – a)(x – b)(x – c) solve cubic inequalities in the form k(x – a)(x – b)(x – c) < d graphically"
+            },
+            {
+                "name": "Indices And Surds",
+                "number": 4,
+                "description": "perform simple operations with indices and with surds, including rationalising the denominator"
+            },
+            {
+                "name": "Factors Of Polynomials",
+                "number": 5,
+                "description": "know and use the remainder and factor theorems find factors of polynomials solve cubic equations"
+            },
+            {
+                "name": "Simultaneous Equations",
+                "number": 6,
+                "description": "solve simple simultaneous equations in two unknowns by elimination or substitution"
+            },
+            {
+                "name": "Logarithmic And Exponential Functions",
+                "number": 7,
+                "description": "know simple properties and graphs of the logarithmic and exponential functions including lnx and ex (series expansions are not required) and graphs of ke^nx + a and k ln(ax + b) where n, k, a and b are integers know and use the laws of logarithms (including change of base of logarithms) solve equations of the form ax = b"
+            },
+            {
+                "name": "Straight Line Graphs",
+                "number": 8,
+                "description": "interpret the equation of a straight line graph in the form y = mx + c transform given relationships, including y = axn and y = Abx, to straight line form and hence determine unknown constants by calculating the gradient or intercept of the transformed graph solve questions involving mid-point and length of a line know and use the condition for two lines to be parallel or perpendicular, including finding the equation of perpendicular bisectors"
+            },
+            {
+                "name": "Circular Measure",
+                "number": 9,
+                "description": "solve problems involving the arc length and sector area of a circle, including knowledge and use of radian measure"
+            },
+            {
+                "name": "Trigonometry",
+                "number": 10,
+                "description": "know the six trigonometric functions of angles of any magnitude (sine, cosine, tangent, secant, cosecant, cotangent) understand amplitude and periodicity and the relationship between graphs of related trigonometric functions, e.g. sin x and sin 2x draw and use the graphs of y = a sin bx + c y = a cos bx + c y = a tan bx + c where a is a positive integer, b is a simple fraction or integer (fractions will have a denominator of 2, 3, 4, 6 or 8 only), and c is an integer use the relationships sin² A + cos² A = 1 sec² A = 1 + tan² A, cosec² A = 1 + cot² A  sin A / cos A = tan A, cos A / sin A = cot A solve simple trigonometric equations involving the six trigonometric functions and the above relationships (not including general solution of trigonometric equations) prove simple trigonometric identities"
+            },
+            {
+                "name": "Permutations And Combinations",
+                "number": 11,
+                "description": "recognise and distinguish between a permutation case and a combination case know and use the notation n! (with 0! = 1), and the expressions for permutations and combinations of n items taken r at a time answer simple problems on arrangement and selection (cases with repetition of objects, or with objects arranged in a circle, or involving both permutations and combinations, are excluded)"
+            },
+            {
+                "name": "Series",
+                "number": 12,
+                "description": "use the Binomial Theorem for expansion of (a + b)n for positive integer n use the general term  (n r) a(n-r) b(r) , 0<r<n (knowledge of the greatest term and properties of the coefficients is not required) recognise arithmetic and geometric progressions use the formulae for the nth term and for the sum of the first n terms to solve problems involving arithmetic or geometric progressions use the condition for the convergence of a geometric progression, and the formula for the sum to infinity of a convergent geometric progression"
+            },
+            {
+                "name": "Vectors In Two Dimensions",
+                "number": 13,
+                "description": "use vectors in any form, e.g. AB, p, ai – bj know and use position vectors and unit vectors find the magnitude of a vector; add and subtract vectors and multiply vectors by scalars compose and resolve velocities"
+            },
+            {
+                "name": "Differentiation And Integration",
+                "number": 14,
+                "description": "understand the idea of a derived function use the notations f'(x), f''(x), dy/dx, d²y/dx² use the derivatives of the standard functions xn (for any rational n), sin x, cos x, tan x, ex, ln x, together with constant multiples, sums and composite functions of these differentiate products and quotients of functions apply differentiation to gradients, tangents and normals, stationary points, connected rates of change, small increments and approximations and practical maxima and minima problems use the first and second derivative tests to discriminate between maxima and minima understand integration as the reverse process of differentiation integrate sums of terms in powers of x including 1/x and 1/(ax + b) integrate functions of the form (ax + b)n for any rational n, sin (ax + b), cos (ax + b), e(ax + b) evaluate definite integrals and apply integration to the evaluation of plane areas apply differentiation and integration to kinematics problems that involve displacement, velocity and acceleration of a particle moving in a straight line with variable or constant acceleration, and the use of x-t and v-t graphs"
+            }
+        ]
+    }
+]

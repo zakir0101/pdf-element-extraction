@@ -7,6 +7,24 @@ import os
 import numpy as np  # speeds things up; pure-Python fallback shown later
 
 
+if os.name == "nt":  # Windows
+    d_drive = "D:"
+else:
+    d_drive = "/mnt/d"
+if os.environ.get("IGCSE_PATH"):
+    igcse_path = os.environ["IGCSE_PATH"]
+else:
+    igcse_path = f"{d_drive}{sep}Drive{sep}IGCSE-NEW"
+
+# jwggfg
+
+all_subjects = [
+    f
+    for f in os.listdir(igcse_path)
+    if os.path.isdir(igcse_path + sep + f) and f.isdigit()
+]
+
+
 def _surface_as_uint32(surface: cairo.ImageSurface):
     """
     Return a (h, stride//4) view where each element is one ARGB32 pixel
@@ -328,7 +346,26 @@ def open_pdf_using_sumatra(pdf_full_path):
         stdout=None,
         stderr=None,
         stdin=None,
-    ).wait
+    )
+
+
+def open_files_in_nvim(files: list[str]):
+    # if os.name != "nt":  # Windows
+    #     png_full_path = pdf_full_path.replace("/mnt/d", "D:")
+    # files = "   ".join(files)
+    print(files)
+    subprocess.run(
+        args=[
+            f"nvim",
+            "-p10",
+            *files,
+        ],
+        check=False,
+        # start_new_session=True,
+        # stdout=None,
+        # stderr=None,
+        # stdin=None,
+    )
 
 
 def open_image_in_irfan(img_path):

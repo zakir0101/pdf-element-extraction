@@ -1,3 +1,4 @@
+import json
 import pprint
 import random
 import traceback
@@ -14,6 +15,7 @@ from engine.pdf_utils import (
     open_image_in_irfan,
     kill_with_taskkill,
     open_pdf_using_sumatra,
+    open_files_in_nvim,
 )
 from engine.pdf_detectors import Question
 from engine.pdf_question_renderer import QuestionRenderer
@@ -22,6 +24,13 @@ import os
 from os.path import sep
 import gui.pdf_tester_gui as gui
 from engine.pdf_detectors import set_dubugging
+
+
+# ******************************************************************
+# ********************* CMD_MAKE **********************************
+# ------------------------------------------------------------------
+def do_tests(args: CmdArgs):
+    pass
 
 
 # ******************************************************************
@@ -41,6 +50,7 @@ def do_tests(args: CmdArgs):
         "questions-count": do_test_question,
         "questions-match": do_test_question,
         "questions-show": do_test_question,
+        "questions-save": do_test_question,
     }
     if callbacks.get(args.test):
         callbacks[args.test](args)
@@ -272,6 +282,7 @@ def do_test_question(
     is_show = args.test == "questions-show"
     is_match = args.test == "questions-match"
     is_count = args.test == "questions-count"
+    is_save = args.test == "questions-save"
     clean = False  # args.clean
     engine: PdfEngine = PdfEngine(
         scaling=4, debug=True, clean=(is_show and clean)
@@ -290,9 +301,21 @@ def do_test_question(
         pass
         # gui.start(-1000, -1)
     wrong_rendered = []
+    created_files = []
     for pdf in tqdm.tqdm(args.data):
         if stop:
             break
+
+        exam_name = pdf[0].split(".")[0]
+        subject_name = exam_name[:4]
+        out_dir = f"{igcse_path}{sep}{subject_name}{sep}detected"
+        os.makedirs(out_dir, exist_ok=True)
+        out_file_name = f"{igcse_path}{sep}{subject_name}{sep}detected{sep}{exam_name}.json"
+        if os.path.exists(out_file_name) and not args.force:
+            created_files.append(out_file_name)
+            print(f"skipping pre-saved file {pdf[1]}")
+            continue
+
         surfs_dict = {}
         args.curr_file = pdf[1]
         args.max_tj = 4000
@@ -300,13 +323,6 @@ def do_test_question(
         args.set_engine(engine)
         pages_range = [i for i in range(1, args.page_count + 1)]
         detector = engine.question_detector
-        if args.range:
-            if args.range == "random":
-                pages_range = random.sample(pages_range, k=args.size)
-            elif isinstance(args.range, list):
-                pages_range = [i for i in args.range if i in pages_range]
-            else:
-                raise Exception("unsupported range", args.range)
         for page in pages_range:
             total_pages += 1
             try:
@@ -315,6 +331,8 @@ def do_test_question(
                 engine.execute_stream_extract_question(
                     max_show=args.max_tj, mode=1
                 )
+
+                total_passed += 1
                 if is_show:
                     pass
                     # raise
@@ -336,7 +354,7 @@ def do_test_question(
                     #     stop = True
                     #     break
                 else:
-                    total_passed += 1
+                    pass
             except Exception as e:
                 location = f"{pdf[1]}:{page}"
                 print(f"Error: {location}")
@@ -354,15 +372,25 @@ def do_test_question(
             if args.open_pdf:
                 open_pdf_using_sumatra(pdf[1])
                 input("enter any key to continue")
-        else:
-            count_q = len(questions)
-            if count_q <= 3:
-                bad_exams.append(pdf[1])
+        if is_save:
+            q_dict_list = [q.__to_dict__() for q in questions]
+            with open(out_file_name, "w", encoding="utf-8") as out_f:
+                out_f.write(
+                    json.dumps(q_dict_list, ensure_ascii=False, indent=4)
+                )
 
-            exams_count_by_question_number[count_q] += 1
-            exams_names_by_question_number[count_q].append(pdf[1])
+            created_files.append(out_file_name)
 
-    if is_count:
+            pass
+
+        count_q = len(questions)
+        if count_q <= 3:
+            bad_exams.append(pdf[1])
+
+        exams_count_by_question_number[count_q] += 1
+        exams_names_by_question_number[count_q].append(pdf[1])
+
+    if is_count or is_save:
         print("\n**********************************")
         print("Total number of Exams = ", len(args.data))
         print("Total number of pages= ", total_passed)
@@ -391,11 +419,10 @@ def do_test_question(
             print(ex_names)
 
         print("\n\n\n")
-    else:
-        pass
-        # for i, f in enumerate(wrong_rendered):
-        #     print(f"{i}. {f}")
-        # pass
+
+    if is_save:
+        limit = min(len(created_files) - 1, 10)
+        open_files_in_nvim(created_files[-limit:])
 
 
 # ******************************************************************

@@ -250,6 +250,21 @@ class Question(Box):
             rep += str(p)
         return rep
 
+    def __to_dict__(self):
+        if len(self.parts) > 1:
+            part_dict = ([p.__to_dict__() for p in self.parts],)
+        else:
+            part_dict = []
+        return {
+            "label": self.label,
+            "pages": self.pages,
+            "x": self.x,
+            "y": self.y,
+            "y1": self.y1,
+            "h": self.h,
+            "parts": part_dict,
+        }
+
     def get_title(self):
         return (
             " " * self.level * 4
