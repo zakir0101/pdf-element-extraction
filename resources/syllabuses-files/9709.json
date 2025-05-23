@@ -9,43 +9,43 @@
             },
             {
                 "name": "Functions",
-                "number": 12,
+                "number": 2,
                 "description": "Candidates should be able to:\n• understand the terms function, domain,\nrange, one-one function, inverse function and\ncomposition of functions\n\n• identify the range of a given function in simple\ncases, and find the composition of two given\nfunctions\n\n• determine whether or not a given function is\none-one, and find the inverse of a one-one\nfunction in simple cases\n\n• illustrate in graphical terms the relation between\na one-one function and its inverse\n\n• understand and use the transformations of the\ngraph of y = f(x) given by\ny = f(x) + a, y = f(x + a),\ny = af(x), y = f(ax) and simple combinations of\nthese.",
                 "examples": "e.g. range of f:x →  1/x for x ≥ 1 and\nrange of g : x → x² + 1 for x ∈ R. Including the\ncondition that a composite function gf can only be\nformed when the range of f is within the domain of g.\n\ne.g. finding the inverse of\nh:x → (2x + 3)² - 4 for x < -\n3/2\n\nSketches should include an indication of the mirror\nline y = x.\n\nIncluding use of the terms 'translation', 'reflection'\nand 'stretch' in describing transformations. Questions\nmay involve algebraic or trigonometric functions, or\nother graphs with given features."
             },
             {
                 "name": "Coordinate Geometry",
-                "number": 13,
+                "number": 3,
                 "description": "Candidates should be able to:\n• find the equation of a straight line given\nsufficient information\n\n• interpret and use any of the forms y = mx + c,\ny - y₁ = m(x − x₁), ax + by + c = 0 in solving\nproblems\n\n• understand that the equation\n(x − a)² + (y - b)² = r² represents the circle\nwith centre (a, b) and radius r\n\n• use algebraic methods to solve problems\ninvolving lines and circles\n\n• understand the relationship between a graph and\nits associated algebraic equation, and use the\nrelationship between points of intersection of\ngraphs and solutions of equations.",
                 "examples": "e.g. given two points, or one point and the gradient.\n\nIncluding calculations of distances, gradients,\nmidpoints, points of intersection and use of the\nrelationship between the gradients of parallel and\nperpendicular lines.\n\nIncluding use of the expanded form\nx² + y² + 2gx + 2fy + c = 0.\n\nIncluding use of elementary geometrical properties of\ncircles, e.g. tangent perpendicular to radius, angle in a\nsemicircle, symmetry.\n\nImplicit differentiation is not included.\n\ne.g. to determine the set of values of k for which the\nline y = x + k intersects, touches or does not meet a\nquadratic curve."
             },
             {
                 "name": "Circular Measure",
-                "number": 14,
+                "number": 4,
                 "description": "Candidates should be able to:\n• understand the definition of a radian, and use the\nrelationship between radians and degrees\n\n• use the formulae s = rθ and A = 1/2 r²θ\nin solving problems concerning the arc length\nand sector area of a circle.",
                 "examples": "Including calculation of lengths and angles in\ntriangles and areas of triangles."
             },
             {
                 "name": "Trigonometry",
-                "number": 15,
+                "number": 5,
                 "description": "Candidates should be able to:\n• sketch and use graphs of the sine, cosine and\ntangent functions (for angles of any size, and\nusing either degrees or radians)\n\n• use the exact values of the sine, cosine and\ntangent of 30°, 45°, 60°, and related angles\n\n• use the notations sin⁻¹x, cos⁻¹x, tan⁻¹x to denote\nthe principal values of the inverse trigonometric\nrelations\n\n• use the identities sinθ/cosθ = tanθ and\nsin²θ + cos²θ = 1\n\n• find all the solutions of simple trigonometrical\nequations lying in a specified interval (general\nforms of solution are not included).",
                 "examples": "Including e.g. y = 3 sinx, y = 1 - cos 2x,\ny = tan(x + 1/4π).\n\ne.g. cos 150° =-√3/2, sin π/4 = 1/√2\n\nNo specialised knowledge of these functions is\nrequired, but understanding of them as examples of\ninverse functions is expected.\n\ne.g. in proving identities, simplifying expressions and\nsolving equations.\n\ne.g. solve 3 sin 2x + 1 = 0 for -π < x < π,\n3 sin²θ- 5 cosθ-1 = 0 for 0° ≤ θ ≤ 360°."
             },
             {
                 "name": "Series",
-                "number": 16,
+                "number": 6,
                 "description": "Candidates should be able to:\n• use the expansion of (a + b)",
                 "examples": "Including the notations nCr and n!\nKnowledge of the greatest term and properties of the\ncoefficients are not required.\n\nIncluding knowledge that numbers a, b, c are 'in\narithmetic progression' if 2b = a + c (or equivalent)\nand are 'in geometric progression' if b² = ac (or\nequivalent).\n\nQuestions may involve more than one progression."
             },
             {
                 "name": "Differentiation",
-                "number": 17,
+                "number": 7,
                 "description": "Candidates should be able to:\n• understand the gradient of a curve at a point as\nthe limit of the gradients of a suitable sequence\nof chords, and use the notations\nf'(x), f''(x), dy/dx, and d²y/dx² for first and second\nderivatives\n\n• use the derivative of xⁿ (for any rational n),\ntogether with constant multiples, sums and\ndifferences of functions, and of composite\nfunctions using the chain rule\n\n• apply differentiation to gradients, tangents and\nnormals, increasing and decreasing functions and\nrates of change\n\n• locate stationary points and determine their\nnature, and use information about stationary\npoints in sketching graphs.",
                 "examples": "Only an informal understanding of the idea of a limit\nis expected.\n\ne.g. includes consideration of the gradient of the\nchord joining the points with x coordinates 2 and\n(2 + h) on the curve y = x³. Formal use of the general\nmethod of differentiation from first principles is not\nrequired.\n\ndy/dx given y = √2x² + 5\n\nIncluding connected rates of change, e.g. given the\nrate of increase of the radius of a circle, find the rate\nof increase of the area for a specific value of one of\nthe variables.\n\nIncluding use of the second derivative for identifying\nmaxima and minima; alternatives may be used in\nquestions where no method is specified.\nKnowledge of points of inflexion is not included."
             },
             {
                 "name": "Integration",
-                "number": 18,
+                "number": 8,
                 "description": "Candidates should be able to:\n• understand integration as the reverse process of\ndifferentiation, and integrate (ax + b)ⁿ (for any\nrational n except –1), together with constant\nmultiples, sums and differences\n\n• solve problems involving the evaluation of a\nconstant of integration\n\n• evaluate definite integrals\n\n• use definite integration to find\n- the area of a region bounded by a curve and\nlines parallel to the axes, or between a curve\nand a line or between two curves\n- a volume of revolution about one of the axes.",
                 "examples": "e.g. ∫(2x² - 5x + 1)dx, ∫1/(2x+3)²dx.\n\ne.g. to find the equation of the curve through (1, -2)\nfor which dy/dx = √2x + 1.\n\nIncluding simple cases of 'improper' integrals, such as\n∫1/x²dx and ∫ x¹/2dx.\n\nA volume of revolution may involve a region not\nbounded by the axis of rotation, e.g. the region\nbetween y = 9 – x² and y = 5 rotated about the\nx-axis."
             }
@@ -64,37 +64,37 @@
         "chapters": [
             {
                 "name": "Algebra",
-                "number": 21,
+                "number": 1,
                 "description": "Candidates should be able to:\n• understand the meaning of |x|, sketch the graph of y = |ax + b| and use relations such as |a| = |b| ⇔ a² = b² and |x-a|< b ⇔ a - b < x < a + b when solving equations and inequalities\n• divide a polynomial, of degree not exceeding 4, by a linear or quadratic polynomial, and identify the quotient and remainder (which may be zero)\n• use the factor theorem and the remainder theorem.",
                 "examples": "Graphs of y = |f(x)| and y = f(|x|) for non-linear functions f are not included.\ne.g. |3x - 2| = |2x + 7], 2x + 5 < |x + 1|\ne.g. to find factors and remainders, solve polynomial equations or evaluate unknown coefficients.\nIncluding factors of the form (ax + b) in which the coefficient of x is not unity, and including calculation of remainders."
             },
             {
                 "name": "Logarithmic And Exponential Functions",
-                "number": 22,
+                "number": 2,
                 "description": "Candidates should be able to:\n• understand the relationship between logarithms and indices, and use the laws of logarithms (excluding change of base)\n• understand the definition and properties of ex and Inx, including their relationship as inverse functions and their graphs\n• use logarithms to solve equations and inequalities in which the unknown appears in indices\n• use logarithms to transform a given relationship to linear form, and hence determine unknown constants by considering the gradient and/or intercept.",
                 "examples": "Including knowledge of the graph of y = e^x for both positive and negative values of k.\ne.g. 2* < 5, 3 × 23x−1 < 5, 3x+1 = 42x−1.\ne.g.\ny = kx\" gives lny = lnk + n lnx which is linear in lnx and Iny\ny = k(ax) gives lny = lnk + x In a which is linear in x and Iny."
             },
             {
                 "name": "Trigonometry",
-                "number": 23,
+                "number": 3,
                 "description": "Candidates should be able to:\n• understand the relationship of the secant, cosecant and cotangent functions to cosine, sine and tangent, and use properties and graphs of all six trigonometric functions for angles of any magnitude\n• use trigonometrical identities for the simplification and exact evaluation of expressions, and in the course of solving equations, and select an identity or identities appropriate to the context, showing familiarity in particular with the use of\n\n   sec²0=1+tan²0 and cosec²0=1+ cot²0\n   the expansions of sin(A + B), cos(A + B) and tan(A + B)\n   the formulae for sin 2A, cos 24 and tan 2A\n   the expression of a sin + b cos e in the forms Rsin (0±α) and R cos(θ±α).",
                 "examples": "e.g. simplifying cos(x – 30°) – 3 sin(x – 60°).\ne.g. solving tan + cot0 = 4, 2 sec20 - tan 0 = 5, 3 cos + 2 sin 0 = 1."
             },
             {
                 "name": "Differentiation",
-                "number": 24,
+                "number": 4,
                 "description": "Candidates should be able to:\n• use the derivatives of ex, Inx, sinx, cosx, tan x, together with constant multiples, sums, differences and composites\n• differentiate products and quotients\n• find and use the first derivative of a function which is defined parametrically or implicitly.",
                 "examples": "e.g. 3x + 2' 2x-4/3, x² lnx, xe-x²\ne.g. x = t - e², y = t + e²².\ne.g. x² + y² = xy + 7.\nIncluding use in problems involving tangents and normals."
             },
             {
                 "name": "Integration",
-                "number": 25,
+                "number": 5,
                 "description": "Candidates should be able to:\n• extend the idea of 'reverse differentiation' to include the integration of eax + b, 1/ax + b, sin(ax + b), cos(ax + b) and sec²(ax + b)\n• use trigonometrical relationships in carrying out integration\n• understand and use the trapezium rule to estimate the value of a definite integral.",
                 "examples": "Knowledge of the general method of integration by substitution is not required.\ne.g. use of double-angle formulae to integrate sin²x or cos²(2x).\nIncluding use of sketch graphs in simple cases to determine whether the trapezium rule gives an over-estimate or an under-estimate."
             },
             {
                 "name": "Numerical Solution Of Equations",
-                "number": 26,
+                "number": 6,
                 "description": "Candidates should be able to:\n• locate approximately a root of an equation, by means of graphical considerations and/or searching for a sign change\n• understand the idea of, and use the notation for, a sequence of approximations which converges to a root of an equation\n• understand how a given simple iterative formula of the form xn + 1 = F(xn) relates to the equation being solved, and use a given iteration, or an iteration based on a given rearrangement of an equation, to determine a root to a prescribed degree of accuracy.",
                 "examples": "e.g. finding a pair of consecutive integers between which a root lies.\nKnowledge of the condition for convergence is not included, but an understanding that an iteration may fail to converge is expected."
             }
@@ -113,55 +113,55 @@
         "chapters": [
             {
                 "name": "Algebra",
-                "number": 31,
+                "number": 1,
                 "description": "understand the meaning of |x|, sketch the graph of y = |ax + b| and use relations such as |a| = |b| ⇔ a² = b² and |x-a|< b ⇔ a - b < x < a + b when solving equations and inequalities\ndivide a polynomial, of degree not exceeding 4, by a linear or quadratic polynomial, and identify the quotient and remainder (which may be zero)\nuse the factor theorem and the remainder theorem\nrecall an appropriate form for expressing rational functions in partial fractions, and carry out the decomposition, in cases where the denominator is no more complicated than\n(ax + b)(cx + d)(ex+f)\n(ax + b)(cx + d)²\n(ax + b)(cx² + d)\nuse the expansion of (1 + x)",
                 "examples": "Graphs of y = |f(x)| and y = f(|x|) for non-linear functions f are not included.\ne.g. |3x - 2| = |2x + 7], 2x + 5 < |x + 1].\ne.g. to find factors and remainders, solve polynomial equations or evaluate unknown coefficients.\nIncluding factors of the form (ax + b) in which the coefficient of x is not unity, and including calculation of remainders.\nExcluding cases where the degree of the numerator exceeds that of the denominator\nFinding the general term in an expansion is not included.\nAdapting the standard series to expand e.g. (2-x)^-1/2 is included, and determining the set of values of x for which the expansion is valid in such cases is also included."
             },
             {
                 "name": "Logarithmic And Exponential Functions",
-                "number": 32,
+                "number": 2,
                 "description": "understand the relationship between logarithms and indices, and use the laws of logarithms (excluding change of base)\nunderstand the definition and properties of ex and Inx, including their relationship as inverse functions and their graphs\nuse logarithms to solve equations and inequalities in which the unknown appears in indices\nuse logarithms to transform a given relationship to linear form, and hence determine unknown constants by considering the gradient and/or intercept.",
                 "examples": "Including knowledge of the graph of y = e^x for both positive and negative values of k.\ne.g. 2^x < 5, 3 × 2^(3x−1) < 5, 3^(x+1) = 4^(2x-1).\ne.g.\ny = kx^n gives ln y = lnk + n lnx which is linear in lnx and lny.\ny = k(a^x) gives ln y = ln k + x lna which is linear in x and lny."
             },
             {
                 "name": "Trigonometry",
-                "number": 33,
+                "number": 3,
                 "description": "understand the relationship of the secant, cosecant and cotangent functions to cosine, sine and tangent, and use properties and graphs of all six trigonometric functions for angles of any magnitude\nuse trigonometrical identities for the simplification and exact evaluation of expressions, and in the course of solving equations, and select an identity or identities appropriate to the context, showing familiarity in particular with the use of\nsec²θ=1+tan²θ and cosec²θ=1+ cot²θ\nthe expansions of sin(A + B), cos(A + B) and tan(A + B)\nthe formulae for sin 2A, cos 2A and tan 2A\nthe expression of a sinθ + b cosθ in the forms Rsin (θ± α) and Rcos (θ±α).",
                 "examples": "e.g. simplifying cos(x – 30°) – 3 sin(x – 60°).\ne.g. solving tan θ + cot θ = 4, 2 sec² θ - tan θ = 5, 3 cos θ + 2 sin θ = 1."
             },
             {
                 "name": "Differentiation",
-                "number": 34,
+                "number": 4,
                 "description": "use the derivatives of e^x, lnx, sinx, cosx, tanx, tan⁻¹x, together with constant multiples, sums, differences and composites\ndifferentiate products and quotients\nfind and use the first derivative of a function which is defined parametrically or implicitly.",
                 "examples": "Derivatives of sin⁻¹x and cos⁻¹x are not required.\ne.g. (2x-4)/(3x+2), x² lnx, xe^(1-x²)\ne.g. x = t - e^(2t), y = t + e^(2t)\ne.g. x² + y² = xy + 7.\nIncluding use in problems involving tangents and normals."
             },
             {
                 "name": "Integration",
-                "number": 35,
+                "number": 5,
                 "description": "extend the idea of 'reverse differentiation' to include the integration of e^(ax+b), 1/(ax + b), sin(ax + b), cos(ax + b), sec²(ax + b) and 1/(x² + a²)\nuse trigonometrical relationships in carrying out integration\nintegrate rational functions by means of decomposition into partial fractions\nrecognise an integrand of the form f'(x)/f(x) and integrate such functions\nrecognise when an integrand can usefully be regarded as a product, and use integration by parts\nuse a given substitution to simplify and evaluate either a definite or an indefinite integral.",
                 "examples": "Including examples such as 1/(2+3x²)\ne.g. use of double-angle formulae to integrate sin²x or cos²(2x).\nRestricted to types of partial fractions as specified in topic 3.1 above.\ne.g. integration of 1/(x²+1) tan x.\ne.g. integration of x sin 2x, x²e^x, lnx, x tan⁻¹x.\ne.g. to integrate sin² 2x cosx using the substitution u = sinx."
             },
             {
                 "name": "Numerical Solution Of Equations",
-                "number": 36,
+                "number": 6,
                 "description": "locate approximately a root of an equation, by means of graphical considerations and/or searching for a sign change\nunderstand the idea of, and use the notation for, a sequence of approximations which converges to a root of an equation\nunderstand how a given simple iterative formula of the form xn+1 = F(xn) relates to the equation being solved, and use a given iteration, or an iteration based on a given rearrangement of an equation, to determine a root to a prescribed degree of accuracy.",
                 "examples": "e.g. finding a pair of consecutive integers between which a root lies.\nKnowledge of the condition for convergence is not included, but an understanding that an iteration may fail to converge is expected."
             },
             {
                 "name": "Vectors",
-                "number": 37,
+                "number": 7,
                 "description": "use standard notations for vectors, i.e.\nx\ny , xi + yj, xi + yj + zk, AB, a\nz\ncarry out addition and subtraction of vectors and multiplication of a vector by a scalar, and interpret these operations in geometrical terms\ncalculate the magnitude of a vector, and use unit vectors, displacement vectors and position vectors\nunderstand the significance of all the symbols used when the equation of a straight line is expressed in the form r = a + tb, and find the equation of a line, given sufficient information\ndetermine whether two lines are parallel, intersect or are skew, and find the point of intersection of two lines when it exists\nuse formulae to calculate the scalar product of two vectors, and use scalar products in problems involving lines and points.",
                 "examples": "e.g. 'OABC is a parallelogram' is equivalent to OB = OA + OC.\nThe general form of the ratio theorem is not included, but understanding that the midpoint of AB has position vector ½(OA + OB) is expected.\nIn 2 or 3 dimensions.\ne.g. finding the equation of a line given the position vector of a point on the line and a direction vector, or the position vectors of two points on the line.\nCalculation of the shortest distance between two skew lines is not required. Finding the equation of the common perpendicular to two skew lines is also not required.\ne.g. finding the angle between two lines, and finding the foot of the perpendicular from a point to a line; questions may involve 3D objects such as cuboids, tetrahedra (pyramids), etc.\nKnowledge of the vector product is not required."
             },
             {
                 "name": "Differential Equations",
-                "number": 38,
+                "number": 8,
                 "description": "formulate a simple statement involving a rate of change as a differential equation\nfind by integration a general form of solution for a first order differential equation in which the variables are separable\nuse an initial condition to find a particular solution\ninterpret the solution of a differential equation in the context of a problem being modelled by the equation.",
                 "examples": "The introduction and evaluation of a constant of proportionality, where necessary, is included.\nIncluding any of the integration techniques from topic 3.5 above.\nWhere a differential equation is used to model a 'real-life' situation, no specialised knowledge of the context will be required."
             },
             {
                 "name": "Complex Numbers",
-                "number": 39,
+                "number": 9,
                 "description": "understand the idea of a complex number, recall the meaning of the terms real part, imaginary part, modulus, argument, conjugate, and use the fact that two complex numbers are equal if and only if both real and imaginary parts are equal\ncarry out operations of addition, subtraction, multiplication and division of two complex numbers expressed in Cartesian form x + iy\nuse the result that, for a polynomial equation with real coefficients, any non-real roots occur in conjugate pairs\nrepresent complex numbers geometrically by means of an Argand diagram\ncarry out operations of multiplication and division of two complex numbers expressed in polar form r(cos θ + i sin θ) = re^(iθ)\nfind the two square roots of a complex number\nunderstand in simple terms the geometrical effects of conjugating a complex number and of adding, subtracting, multiplying and dividing two complex numbers\nillustrate simple equations and inequalities involving complex numbers by means of loci in an Argand diagram",
                 "examples": "Notations Rez, Imz, |z|, argz, z* should be known.\nThe argument of a complex number will usually refer to an angle θ such that -π < θ < π, but in some cases the interval 0 ≤ θ < 2π may be more convenient. Answers may use either interval unless the question specifies otherwise.\nFor calculations involving multiplication or division, full details of the working should be shown.\ne.g. in solving a cubic or quartic equation where one complex root is given.\nIncluding the results |z1z2| = |z1||z2| and arg(z1z2) = arg(z1) + arg(z2), and corresponding results for division.\ne.g. the square roots of 5 + 12i in exact Cartesian form. Full details of the working should be shown.\ne.g. |z-a| < k, |z – a| = |z – b|, arg(z – a) = α."
             }
@@ -180,31 +180,31 @@
         "chapters": [
             {
                 "name": "Forces And Equilibrium",
-                "number": 41,
+                "number": 1,
                 "description": "identify the forces acting in a given situation\nunderstand the vector nature of force, and find and use components and resultants\nuse the principle that, when a particle is in equilibrium, the vector sum of the forces acting is zero, or equivalently, that the sum of the components in any direction is zero\nunderstand that a contact force between two surfaces can be represented by two components, the normal component and the frictional component\nuse the model of a 'smooth' contact, and understand the limitations of this model\nunderstand the concepts of limiting friction and limiting equilibrium, recall the definition of coefficient of friction, and use the relationship F = µR or F < uR, as appropriate\nuse Newton's third law.",
                 "examples": "e.g. by drawing a force diagram.\nCalculations are always required, not approximate solutions by scale drawing.\nSolutions by resolving are usually expected, but equivalent methods (e.g. triangle of forces, Lami's Theorem, where suitable) are also acceptable; these other methods are not required knowledge, and will not be referred to in questions.\nTerminology such as 'about to slip' may be used to mean 'in limiting equilibrium' in questions.\ne.g. the force exerted by a particle on the ground is equal and opposite to the force exerted by the ground on the particle."
             },
             {
                 "name": "Kinematics Of Motion In A Straight Line",
-                "number": 42,
+                "number": 2,
                 "description": "understand the concepts of distance and speed as scalar quantities, and of displacement, velocity and acceleration as vector quantities\nsketch and interpret displacement-time graphs and velocity-time graphs, and in particular appreciate that\nthe area under a velocity-time graph represents displacement,\nthe gradient of a displacement-time graph represents velocity,\nthe gradient of a velocity-time graph represents acceleration\nuse differentiation and integration with respect to time to solve simple problems concerning displacement, velocity and acceleration\nuse appropriate formulae for motion with constant acceleration in a straight line.",
                 "examples": "Restricted to motion in one dimension only.\nThe term 'deceleration' may sometimes be used in the context of decreasing speed.\nCalculus required is restricted to techniques from the content for Paper 1: Pure Mathematics 1.\nQuestions may involve setting up more than one equation, using information about the motion of different particles."
             },
             {
                 "name": "Momentum",
-                "number": 43,
+                "number": 3,
                 "description": "use the definition of linear momentum and show understanding of its vector nature\nuse conservation of linear momentum to solve problems that may be modelled as the direct impact of two bodies.",
                 "examples": "For motion in one dimension only.\nIncluding direct impact of two bodies where the bodies coalesce on impact.\nKnowledge of impulse and the coefficient of restitution is not required."
             },
             {
                 "name": "Newton'S Laws Of Motion",
-                "number": 44,
+                "number": 4,
                 "description": "apply Newton's laws of motion to the linear motion of a particle of constant mass moving under the action of constant forces, which may include friction, tension in an inextensible string and thrust in a connecting rod\nuse the relationship between mass and weight\nsolve simple problems which may be modelled as the motion of a particle moving vertically or on an inclined plane with constant acceleration\nsolve simple problems which may be modelled as the motion of connected particles.",
                 "examples": "If any other forces resisting motion are to be considered (e.g. air resistance) this will be indicated in the question.\nW = mg. In this component, questions are mainly numerical, and use of the approximate numerical value 10 (ms¯²) for g is expected.\nIncluding, for example, motion of a particle on a rough plane where the acceleration while moving up the plane is different from the acceleration while moving down the plane.\ne.g. particles connected by a light inextensible string passing over a smooth pulley, or a car towing a trailer by means of either a light rope or a light rigid tow-bar."
             },
             {
                 "name": "Energy, Work And Power",
-                "number": 45,
+                "number": 5,
                 "description": "understand the concept of the work done by a force, and calculate the work done by a constant force when its point of application undergoes a displacement not necessarily parallel to the force\nunderstand the concepts of gravitational potential energy and kinetic energy, and use appropriate formulae\nunderstand and use the relationship between the change in energy of a system and the work done by the external forces, and use in appropriate cases the principle of conservation of energy\nuse the definition of power as the rate at which a force does work, and use the relationship between power, force and velocity for a force acting in the direction of motion\nsolve problems involving, for example, the instantaneous acceleration of a car moving on a hill against a resistance.",
                 "examples": "W = Fdcos θ;\nUse of the scalar product is not required.\nIncluding cases where the motion may not be linear (e.g. a child on a smooth curved 'slide'), where only overall energy changes need to be considered.\nIncluding calculation of (average) power as\nWork done\nTime taken\nP = Fv."
             }
@@ -223,31 +223,31 @@
         "chapters": [
             {
                 "name": "Representation Of Data",
-                "number": 51,
+                "number": 1,
                 "description": "select a suitable way of presenting raw\nstatistical data, and discuss advantages and/or\ndisadvantages that particular representations\nmay have\ndraw and interpret stem-and-leaf diagrams, box-\nand-whisker plots, histograms and cumulative\nfrequency graphs\nunderstand and use different measures of central\ntendency (mean, median, mode) and variation\n(range, interquartile range, standard deviation)\nuse a cumulative frequency graph\ncalculate and use the mean and standard\ndeviation of a set of data (including grouped\ndata) either from the data itself or from given\ntotals Ex and Ex², or coded totals ∑(x − a)\nand ∑(x – a)², and use such totals in solving\nproblems which may involve up to two data sets.",
                 "examples": "Including back-to-back stem-and-leaf diagrams.\ne.g. in comparing and contrasting sets of data.\ne.g. to estimate medians, quartiles, percentiles, the\nproportion of a distribution above (or below) a given\nvalue, or between two values."
             },
             {
                 "name": "Permutations And Combinations",
-                "number": 52,
+                "number": 2,
                 "description": "understand the terms permutation and\ncombination, and solve simple problems\ninvolving selections\nsolve problems about arrangements of objects in\na line, including those involving\nrepetition (e.g. the number of ways of\narranging the letters of the word 'NEEDLESS')\nrestriction (e.g. the number of ways several\npeople can stand in a line if two particular\npeople must, or must not, stand next to each\nother).",
                 "examples": "Questions may include cases such as people sitting in\ntwo (or more) rows.\nQuestions about objects arranged in a circle will not\nbe included."
             },
             {
                 "name": "Probability",
-                "number": 53,
+                "number": 3,
                 "description": "evaluate probabilities in simple cases by means\nof enumeration of equiprobable elementary\nevents, or by calculation using permutations or\ncombinations\nuse addition and multiplication of probabilities,\nas appropriate, in simple cases\nunderstand the meaning of exclusive and\nindependent events, including determination\nof whether events A and B are independent\nby comparing the values of P(A ∩ B) and\nP(A) × P(B)\ncalculate and use conditional probabilities in\nsimple cases.",
                 "examples": "e.g. the total score when two fair dice are thrown.\ne.g. drawing balls at random from a bag containing\nballs of different colours.\nExplicit use of the general formula\nP(AUB) = P(A) + P(B) – P(A ∩ B) is not required.\ne.g. situations that can be represented by a sample\nspace of equiprobable elementary events, or a tree\ndiagram. The use of P(AB) = P(A∩B) / P(B) may be\nrequired in simple cases."
             },
             {
                 "name": "Discrete Random Variables",
-                "number": 54,
+                "number": 4,
                 "description": "draw up a probability distribution table relating\nto a given situation involving a discrete random\nvariable X, and calculate E(X) and Var(X)\nuse formulae for probabilities for the binomial\nand geometric distributions, and recognise\npractical situations where these distributions are\nsuitable models\nuse formulae for the expectation and variance of\nthe binomial distribution and for the expectation\nof the geometric distribution.",
                 "examples": "Including the notations B(n, p) and Geo(p). Geo(p)\ndenotes the distribution in which p = p(1 – p)'-1 for\nr = 1, 2, 3, ....\nProofs of formulae are not required."
             },
             {
                 "name": "The Normal Distribution",
-                "number": 55,
+                "number": 5,
                 "description": "understand the use of a normal distribution to\nmodel a continuous random variable, and use\nnormal distribution tables\nsolve problems concerning a variable X, where\nX ~ N(μ, σ²), including\nfinding the value of P(X > x₁), or a related\nprobability, given the values of x₁, μ,σ.\nfinding a relationship between x₁, μ and σ\ngiven the value of P(X > x₁) or a related\nprobability\nrecall conditions under which the normal\ndistribution can be used as an approximation\nto the binomial distribution, and use this\napproximation, with a continuity correction, in\nsolving problems.",
                 "examples": "Sketches of normal curves to illustrate distributions\nor probabilities may be required.\nFor calculations involving standardisation, full details\nof the working should be shown.\ne.g. Z = (Χ-μ)/σ\nn sufficiently large to ensure that both np > 5 and\nnq > 5."
             }
@@ -266,31 +266,31 @@
         "chapters": [
             {
                 "name": "The Poisson Distribution",
-                "number": 61,
+                "number": 1,
                 "description": "Candidates should be able to: use formulae to calculate probabilities for the distribution Po(λ) use the fact that if X ~ Po(a) then the mean and variance of X are each equal to λ understand the relevance of the Poisson distribution to the distribution of random events, and use the Poisson distribution as a model use the Poisson distribution as an approximation to the binomial distribution where appropriate use the normal distribution, with continuity correction, as an approximation to the Poisson distribution where appropriate.",
                 "examples": "Proofs are not required. The conditions that n is large and p is small should be known; n > 50 and np < 5, approximately. The condition that A is large should be known; λ > 15, approximately."
             },
             {
                 "name": "Linear Combinations Of Random Variables",
-                "number": 62,
+                "number": 2,
                 "description": "Candidates should be able to: use, when solving problems, the results that E(aX + b) = aE(X) + b and Var(aX + b) = a² Var(X) E(aX+ bY) = aE(X) + bE(Y) Var(aX+bY) = a²Var(X) + b² Var(Y) for independent X and Y if X has a normal distribution then so does ax + b if X and Y have independent normal distributions then ax + by has a normal distribution if X and Y have independent Poisson distributions then X + Y has a Poisson distribution.",
                 "examples": "Proofs of these results are not required."
             },
             {
                 "name": "Continuous Random Variables",
-                "number": 63,
+                "number": 3,
                 "description": "Candidates should be able to: understand the concept of a continuous random variable, and recall and use properties of a probability density function use a probability density function to solve problems involving probabilities, and to calculate the mean and variance of a distribution.",
                 "examples": "For density functions defined over a single interval only; the domain may be infinite, e.g. 3/x^4 for x ≥ 1. Including location of the median or other percentiles of a distribution by direct consideration of an area using the density function. Explicit knowledge of the cumulative distribution function is not included."
             },
             {
                 "name": "Sampling And Estimation",
-                "number": 64,
+                "number": 4,
                 "description": "Candidates should be able to: understand the distinction between a sample and a population, and appreciate the necessity for randomness in choosing samples explain in simple terms why a given sampling method may be unsatisfactory recognise that a sample mean can be regarded as a random variable, and use the facts that E(X) = μ and that Var(X) = σ²/n use the fact that X has a normal distribution if X has a normal distribution use the Central Limit Theorem where appropriate calculate unbiased estimates of the population mean and variance from a sample, using either raw or summarised data determine and interpret a confidence interval for a population mean in cases where the population is normally distributed with known variance or where a large sample is used determine, from a large sample, an approximate confidence interval for a population proportion.",
                 "examples": "Including an elementary understanding of the use of random numbers in producing random samples. Knowledge of particular sampling methods, such as quota or stratified sampling, is not required. Only an informal understanding of the Central Limit Theorem (CLT) is required; for large sample sizes, the distribution of a sample mean is approximately normal. Only a simple understanding of the term 'unbiased' is required, e.g. that although individual estimates will vary the process gives an accurate result 'on average'."
             },
             {
                 "name": "Hypothesis Tests",
-                "number": 65,
+                "number": 5,
                 "description": "Candidates should be able to: understand the nature of a hypothesis test, the difference between one-tailed and two-tailed tests, and the terms null hypothesis, alternative hypothesis, significance level, rejection region (or critical region), acceptance region and test statistic formulate hypotheses and carry out a hypothesis test in the context of a single observation from a population which has a binomial or Poisson distribution, using direct evaluation of probabilities a normal approximation to the binomial or the Poisson distribution, where appropriate formulate hypotheses and carry out a hypothesis test concerning the population mean in cases where the population is normally distributed with known variance or where a large sample is used understand the terms Type I error and Type II error in relation to hypothesis tests calculate the probabilities of making Type I and Type II errors in specific situations involving tests based on a normal distribution or direct evaluation of binomial or Poisson probabilities.",
                 "examples": "Outcomes of hypothesis tests are expected to be interpreted in terms of the contexts in which questions are set."
             }

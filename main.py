@@ -64,7 +64,10 @@ class CmdArgs:
             )  # parser , detector-count , detector-full,
             self.group = args.group
             self.data = (
-                [(os.path.basename(f), f) for f in args.path]
+                [
+                    (os.path.basename(f), f) if os.path.exists(f) else f
+                    for f in args.path
+                ]
                 if args.path
                 else None
             )
@@ -76,11 +79,12 @@ class CmdArgs:
             self.open_pdf = args.summatra
             self.open_nvim = args.nvim
             self.force = args.force
-            self.build_test_data()
-
             self.range = self.convet_range_string_to_list(args.range)
+            if self.test == "subjects":
+                return
+            self.build_test_data()
             if not self.data:
-                raise Exception("missing data for test-type font")
+                raise Exception("missing data for ")
 
         if self.mode in ["list"]:
             self.item = args.item
@@ -277,6 +281,7 @@ class CmdArgs:
                 "questions-match",
                 "questions-show",
                 "questions-save",
+                "subjects",
             ],
         )
 
@@ -349,7 +354,7 @@ class CmdArgs:
             ),
         )
         make.add_argument(
-            "test_type",
+            "make_type",
             type=str,
             choices=["gemini-ocr", "gemini-embedding"],
         )

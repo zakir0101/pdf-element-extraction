@@ -270,7 +270,7 @@
         ],
         "paper_to_key": {
             "1,2,3,4,5": [
-                "description,examples"
+                "topics.description"
             ]
         }
     },
@@ -632,7 +632,7 @@
         ],
         "paper_to_key": {
             "4,5": [
-                "description,examples"
+                "topics.description"
             ]
         }
     }

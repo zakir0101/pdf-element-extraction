@@ -16,8 +16,8 @@
             ],
             "2,4": [
                 "topics.core,extended",
-                "topics.sub-topics.core,extended",
-            ],
+                "topics.sub-topics.core,extended"
+            ]
         },
         "chapters": [
             {

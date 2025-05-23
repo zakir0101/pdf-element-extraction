@@ -2,7 +2,7 @@ import numpy as np
 import cairo
 import subprocess
 import os
-
+from os.path import sep
 
 import numpy as np  # speeds things up; pure-Python fallback shown later
 

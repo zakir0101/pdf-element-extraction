@@ -24,6 +24,7 @@ import os
 from os.path import sep
 import gui.pdf_tester_gui as gui
 from engine.pdf_detectors import set_dubugging
+from models.core_models import Subject
 
 
 # ******************************************************************
@@ -51,9 +52,48 @@ def do_tests(args: CmdArgs):
         "questions-match": do_test_question,
         "questions-show": do_test_question,
         "questions-save": do_test_question,
+        "subjects": do_test_subjects_syllabus,
     }
     if callbacks.get(args.test):
         callbacks[args.test](args)
+
+
+def do_test_subjects_syllabus(args: CmdArgs):
+    from engine.pdf_gui_api import load_subjects_files
+
+    subjects_dict = load_subjects_files()
+    for sub in args.subjects:
+        sub_obj: Subject = subjects_dict[sub]
+        print(f"\n\n******************************************")
+        print(f"****************  {sub} *****************")
+        for paper in sub_obj.papers.values():
+            if args.data and str(paper.number) not in args.data:
+                print(f"skipping paper {paper.number}", args.data)
+                continue
+            print(f"\n************+ Paper Nr {paper.number} ***************")
+            print(f"************+ Paper {paper.name} ***************")
+            empty_chaps = []
+            for chap in paper.chapters:
+                if args.range and chap.number not in args.range:
+                    print(args.range, chap.number)
+                    continue
+                print(f"\n{chap.number}: {chap.name}, .... description =>")
+                print("___________________________")
+                if args.pause:
+                    print(chap.description, "\n\n")
+                cleaned_desc = (
+                    chap.description.replace("description", "")
+                    .replace("examples", "")
+                    .replace("\n", "")
+                    .replace("core", "")
+                    .replace("extended", "")
+                    .replace("*", "")
+                    .replace(" ", "")
+                    .replace(":", "")
+                )
+                print("char_count = ", len(cleaned_desc))
+                if not chap.description or len(cleaned_desc) == 0:
+                    raise Exception(f"Found an emtpy chapter ... ")
 
 
 def do_list(args: CmdArgs):
