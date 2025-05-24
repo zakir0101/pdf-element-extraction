@@ -1,27 +1,11 @@
-# import enum
-# from math import isnan
-# import time
-# import re
-# import string
-# import sys
-# from typing import Tuple
-# from .pdf_operator import PdfOperator
-# from .engine_state import EngineState
-# from .pdf_renderer import BaseRenderer
-# import cairo
-# import subprocess
-# from cairo import Context, Glyph, ImageSurface
-# from .pdf_utils import get_segments
-# import os
-# from fontTools.agl import UV2AGL
-# from os.path import sep
-
-
 from collections import UserList
 import enum
 import os
 from os.path import sep
+from typing import Sequence
 import cairo
+
+from models.core_models import Symbol, QuestionBase, SymSequence, BaseDetector
 
 from .pdf_utils import get_next_label, checkIfRomanNumeral, get_segments
 
@@ -44,158 +28,6 @@ def print(*args):
     file.flush()
 
 
-class Box:
-    def __init__(self):
-        self.box = (0, 0, 0, 0)
-        pass
-
-
-class Symbol(Box):
-    def __init__(self, ch, x, y, w, h) -> None:
-        super().__init__()
-        self.ch = ch
-        self.x = x
-        self.y = y
-        self.w = w
-        self.h = h
-        self.threshold_y = 0.45 * h
-        self.threshold_x = 0.45 * w
-        self.box = self.get_box()
-
-        pass
-
-    def __str__(
-        self,
-    ):
-        return f"Smybole({self.ch}, x={self.x}, y={self.y}, w={self.w}, h={self.h})"
-
-    def get_box(self):
-        """shift the origin of the symbole !! IMPORTANT"""
-        return self.x, self.y - self.h, self.x + self.w, self.y
-
-    def is_connected_with(self, s2):
-        s2: Symbol = s2
-        diff1 = abs(s2.x + s2.w - self.x)
-        diff2 = abs(s2.x - self.x + self.w)
-        inner_diff = min(diff1, diff2)
-        return inner_diff < self.threshold_x or inner_diff < s2.threshold_x
-
-
-class Sequence(Box):
-    def __init__(self, symboles: list[Symbol] | None = None) -> None:
-        self.data: list[Symbol] = []
-        self.box = (0, 0, 0, 0)
-        self.mean = (0, 0)
-        self.threshold_y = 20
-        self.threshold_x = 20
-        if symboles is not None:
-            self.data = symboles.copy()
-            self.__set_box__()
-            self.__set_mean__(self.box)
-
-            self.threshold_y = 0.3 * (self.box[-1] - self.box[1])
-            self.threshold_x = 0.3 * (self.box[-2] - self.box[0])
-        pass
-
-    def __getitem__(self, index) -> Symbol:
-        return self.data[index]
-
-    def iterate_split(self, char: str = " "):
-        sub = []
-        for sym in self.data:
-            if sym.ch in char:
-                if len(sub) > 0:
-                    yield Sequence(sub)
-                sub = []
-            else:
-                sub.append(sym)
-
-        if len(sub) > 0:
-            yield Sequence(sub)
-
-    def __len__(self):
-        return len(self.data)
-
-    def __str__(self) -> str:
-        rep = f"Sequence(lenght={len(self.data)}) =>\n"
-        for sym in self.data:
-            rep += "   " + str(sym) + "\n"
-        return rep  #
-
-    def get_text(self, verbose=True) -> str:
-        rep = ""
-        for sym in self.data:
-            rep += sym.ch
-        if verbose:
-            return f"Sequence(lenght={len(self.data)}, content={rep}, box={self.box})"
-        else:
-            return rep
-
-    def size(self):
-        return self.data.__len__()
-
-    def __set_box__(self):
-        # maxx,maxy , maxw,maxh =
-        if len(self.box) == 0:
-            return
-        x0, y0, x1, y1 = self.data[0].get_box()
-        for d in self.data[1:]:
-            nx0, ny0, nx1, ny1 = d.get_box()
-            x0 = min(x0, nx0)
-            y0 = min(y0, ny0)
-            x1 = max(x1, nx1)
-            y1 = max(y1, ny1)
-        self.box = (x0, y0, x1, y1)
-
-    def __set_mean__(self, box):
-        x0, y0, x1, y1 = box
-        self.mean = []
-        self.mean.append((x0 + x1) / 2)
-        self.mean.append((y0 + y1) / 2)
-
-    def row_align_with(self, seq_other):
-        seq_other: Sequence = seq_other
-        return (
-            abs(self.mean[1] - seq_other.mean[1]) < self.threshold_y
-            or abs(self.box[-1] - seq_other.box[-1]) < self.threshold_y
-        )
-
-    def column_align_with(self, seq_other):
-        seq_other: Sequence = seq_other
-        return (
-            abs(self.mean[0] - seq_other.mean[0]) < self.threshold_x
-            or abs(self.box[0] - seq_other.box[0]) < self.threshold_x
-        )
-
-
-class BaseDetector:
-    def __init__(self) -> None:
-        pass
-
-    # def detect(self, char):
-    #     pass
-
-
-class LineDetector(BaseDetector):
-    pass
-
-
-class ParagraphDetector(BaseDetector):
-    pass
-
-
-class TableDetector(BaseDetector):
-    pass
-
-
-class GraphDetector(BaseDetector):
-    pass
-
-
-class InlineImageDetector(BaseDetector):
-    pass
-
-
 # Content = List[]
 UNKNOWN = 0
 NUMERIC = 1
@@ -211,74 +43,10 @@ LEVEL_SUBPART = 2
 TITLE_DICT = ["Question", "PART", "SUBPART"]
 
 
-class Question(Box):
-
-    TITLE_DICT = ["Question", "PART", "SUBPART"]
-
-    def __init__(
-        self,
-        label: int | str,
-        page: int,
-        level: int,
-        x: float,
-        y: float,
-        h: float,
-    ):
-        super().__init__()
-        self.parts: Question = []
-        self.label: int | str = label
-        self.pages: int = [page]
-        self.level: int = level
-        self.contents: list[Box] = []
-        self.x: float = float(x)
-        self.y: float = float(y)
-        self.y1: float | None = None
-        self.h: int = float(h)
-
-    def __str__(self):
-        # in_page = f" In Page {self.pages[0]}" if self.level == 0 else ""
-        rep = (
-            " " * self.level * 4
-            + TITLE_DICT[self.level]
-            + " "
-            + self.label
-            # + in_page
-            + f"(x={self.x}, y={self.y}, y1={self.y1 or "None"}, page={self.pages})"
-            + "\n"
-        )
-        for p in self.parts:
-            rep += str(p)
-        return rep
-
-    def __to_dict__(self):
-        if len(self.parts) > 1:
-            part_dict = ([p.__to_dict__() for p in self.parts],)
-        else:
-            part_dict = []
-        return {
-            "label": self.label,
-            "pages": self.pages,
-            "x": self.x,
-            "y": self.y,
-            "y1": self.y1,
-            "h": self.h,
-            "parts": part_dict,
-        }
-
-    def get_title(self):
-        return (
-            " " * self.level * 4
-            + TITLE_DICT[self.level]
-            + " "
-            + self.label
-            # + in_page
-            + f"(x={self.x}, y={self.y}, y1={self.y1 or 'None'}, page={self.pages})"
-            + ""
-        )
-
-
-def find_questions_part_in_page(q: Question, page: int) -> list[Question]:
-    parts: list[Question] = []
+def find_questions_part_in_page(
+    q: QuestionBase, page: int
+) -> list[QuestionBase]:
+    parts: list[QuestionBase] = []
     if page not in q.pages:
         return []
 
@@ -290,23 +58,20 @@ def find_questions_part_in_page(q: Question, page: int) -> list[Question]:
     return parts
 
 
-# DEBUG_DETECTOR = True
-
-
 class QuestionDetector(BaseDetector):
     def __init__(self) -> None:
         super().__init__()
         self.curr_page = -1
-        self.height = 100
-        self.width = 100
+        self.height = 0
+        self.width = 0
         self.MINIMAL_X = 0
         self.LEVEL_2_X = None
         self.is_first_detection = True
         self.out_surf: cairo.ImageSurface | None = None
         self.out_ctx: cairo.Context | None = None
         self.page_segments: dict[int, list[tuple]] = {}
-        self.page_parts: dict[int, list[Question]] = {}
-        self.page_parts_per_question: dict[int, dict[int, Question]] = {}
+        self.page_parts: dict[int, list[QuestionBase]] = {}
+        self.page_parts_per_question: dict[int, dict[int, QuestionBase]] = {}
         self.page_heights: dict[int, int] = {}
         self.allowed_skip_chars = [
             " ",
@@ -322,10 +87,10 @@ class QuestionDetector(BaseDetector):
         self.allowed_chars_startup = ["1", "a", "i"]
 
         self.tolerance = 20
-        self.question_list: list[Question] = []
+        self.question_list: list[QuestionBase] = []
 
         self.left_most_x: list[int] = [0] * 3
-        self.current: list[Question] = [None, None, None]
+        self.current: list[QuestionBase] = [None, None, None]
         self.type: list[int] = [UNKNOWN, UNKNOWN, UNKNOWN]
         pass
 
@@ -367,7 +132,7 @@ class QuestionDetector(BaseDetector):
         self.current[level:] = [None] * (3 - level)
         self.reset_current(level)
 
-    def replace_question(self, q: Question, level: int):
+    def replace_question(self, q: QuestionBase, level: int):
         old_curr = self.current[level]
         if old_curr and len(old_curr.parts) > 1:
 
@@ -444,7 +209,7 @@ class QuestionDetector(BaseDetector):
         if last.parts and len(last.parts[-1].parts) < 2:
             last.parts[-1].parts = []
 
-    def set_question(self, q: Question, level: int):
+    def set_question(self, q: QuestionBase, level: int):
         print(f"trying to set question ..(level={level})")
         self.set_page_number_for_first_detection(level)
         old_cur = self.current[level]
@@ -489,7 +254,7 @@ class QuestionDetector(BaseDetector):
             if level > 1:
                 self.current[1].pages.append(self.curr_page)
 
-    def get_question_type(self, q: Question):
+    def get_question_type(self, q: QuestionBase):
         n_type = ALPHAPET
         if type(q.label) is int or q.label.isdigit():
             n_type = NUMERIC
@@ -514,7 +279,7 @@ class QuestionDetector(BaseDetector):
     def get_alternative_allowed(self, level):
         # TODO: fix this
         n_type = self.type[level]
-        curr: Question = self.current[level]
+        curr: QuestionBase = self.current[level]
         """we can assume that this function will only be called if curr is already set
         following condition can be commented (if everything else is logically correct)
         I will leave it for debugging purposes uncommented"""
@@ -600,7 +365,7 @@ class QuestionDetector(BaseDetector):
             for q in self.question_list:
                 print(q)
 
-    def handle_sequence(self, seq: Sequence, page: int):
+    def handle_sequence(self, seq: SymSequence, page: int):
         if page != self.curr_page:
 
             self.print_internal_status("Befor:")
@@ -629,7 +394,7 @@ class QuestionDetector(BaseDetector):
             if self.current[level] is None:
                 break
 
-    def __handle_sequence(self, seq: Sequence, level: int):
+    def __handle_sequence(self, seq: SymSequence, level: int):
         # first_valid : Symbol | None = None
         prev_valid: Symbol | None = None
         is_next_candidate = False
@@ -637,7 +402,7 @@ class QuestionDetector(BaseDetector):
         is_overwrite_and_reset = False
 
         char_all = ""
-        char, x, y, h, diff, old_diff = "", 0, 0, 0, None, 10000
+        char, x, y, symbole_height, diff, old_diff = "", 0, 0, 0, None, 10000
         can_append, can_overwrite = None, None
         # is_alternative_better = False
 
@@ -654,7 +419,7 @@ class QuestionDetector(BaseDetector):
 
             if diff is None:
                 x, y, x1, y1 = sym.get_box()
-                h = y1 - y
+                symbole_height = y1 - y
                 self.tolerance = x1 - x
                 diff = x - self.left_most_x[level]
 
@@ -712,7 +477,9 @@ class QuestionDetector(BaseDetector):
         if is_overwrite_and_reset:
             print("OV_AND_RESET :\n" + seq.get_text())
             self.reset(0)  # current level == 0
-            new_q = Question("1", self.curr_page, level, x, y, 2 * h)
+            new_q = QuestionBase(
+                "1", self.curr_page, level, x, y, 2 * symbole_height
+            )
             self.set_question(new_q, level)
             return True
 
@@ -721,7 +488,9 @@ class QuestionDetector(BaseDetector):
         ):
 
             print("\n" + seq.get_text())
-            new_q = Question(char_all, self.curr_page, level, x, y, 2 * h)
+            new_q = QuestionBase(
+                char_all, self.curr_page, level, x, y, 2 * symbole_height
+            )
             self.set_question(new_q, level)
             return True
 
@@ -730,142 +499,19 @@ class QuestionDetector(BaseDetector):
         ):
 
             print("\n" + seq.get_text())
-            new_q = Question(char_all, self.curr_page, level, x, y, 2 * h)
+            new_q = QuestionBase(
+                char_all, self.curr_page, level, x, y, 2 * symbole_height
+            )
             self.replace_question(new_q, level)
             return True
 
         else:
             return False
 
-    def calc_page_segments_and_height(
-        self, surface: cairo.ImageSurface, page_number: int, args
-    ):
-
-        out_height = 0
-        self.page_segments[page_number] = []
-        if args.type == "questions":
-            if len(self.question_list) == 0:
-                print("skipping empty page :", page_number)
-                return
-            d0 = self.question_list[0].h
-        else:
-            d0 = self.height * 0.01
-
-        if args.type == "questions":
-            segments = get_segments(surface, 0, self.height, d0, factor=0.5)
-        else:
-            segments = [(0, self.height, d0)]
-
-        out_height += sum(seg_h + 2 * d2 for _, seg_h, d2 in segments)
-        out_height += 2 * d0
-
-        # ********************************************
-        # parts = []
-        # first_question = None
-        # for i, q in enumerate(self.question_list):
-        #     q: Question = q
-        #     if page_number not in q.pages:
-        #         continue
-        #     if not first_question:
-        #         first_question = q
-        #     q_parts_in_page = find_questions_part_in_page(q, page_number)
-        #     parts.extend(q_parts_in_page)
-        # self.page_parts[page_number] = parts
-
-        # *********************************************
-
-        self.page_segments[page_number] = segments
-        self.page_heights[page_number] = out_height
-
-    def draw_all_pages_to_single_png(
-        self,
-        surf_dict: dict[int, cairo.ImageSurface],
-        args,
-        t_range: list[int],
-        per_question: bool,
-    ):
-        pdf_file = args.curr_file
-        # if per_question:
-        #     self.question_list[-1].y1 = self.height
-
-        total_height = sum(self.page_heights.values())
-
-        if total_height == 0:
-            raise Exception("Total Height = 0")
-            return None
-        i = 0
-        while True:
-
-            height = total_height - (i / 10) * total_height
-            try:
-                out_surf = cairo.ImageSurface(
-                    cairo.FORMAT_ARGB32, self.width, int(height)
-                )
-                break
-            except Exception as e:
-                print(f"reducing suface height form {height} to ")
-                i += 1
-        out_ctx = cairo.Context(out_surf)
-
-        out_ctx.set_source_rgb(1, 1, 1)  # White
-        out_ctx.paint()
-        out_ctx.set_source_rgb(0, 0, 0)  # Black
-        self.dest_y = 0
-        self.default_d0 = None
-        if per_question:
-            for nr in t_range:
-                if nr > len(self.question_list):
-                    continue
-                q = self.question_list[nr - 1]
-                for page in q.pages:
-                    segments = self.page_segments.get(page) or []
-                    q_segments = self.filter_question_segments(
-                        q, segments, page
-                    )
-                    if not segments:
-                        print(f"WARN: skipping page {page}, no Segments found")
-                        continue
-                    self.__draw_page_content(
-                        q_segments, surf_dict[page], out_ctx
-                    )
-
-            pass
-        else:
-            for page, surf in surf_dict.items():
-                if page in t_range:
-                    segments = self.page_segments.get(page)
-                    if not segments:
-                        print(f"WARN: skipping page {page}, no Segments found")
-                        continue
-                    self.__draw_page_content(segments, surf, out_ctx)
-        if self.dest_y == 0:
-            return None
-        exam_name = os.path.basename(pdf_file).split(".")[0]
-        filename = f"output{sep}{exam_name}.png"
-        out_surf = out_surf.create_for_rectangle(
-            0, 0, self.width, self.dest_y + 2 * (self.default_d0)
-        )
-        out_surf.write_to_png(filename)
-        return filename
-
-    def filter_question_segments(
-        self, q: Question, segments: list[tuple], curr_page
-    ):
-        q_segs = []
-        q_pages = q.pages
-        y0, y1 = 0, self.height
-        if q_pages[0] == curr_page:
-            y0 = q.y - 1.5 * q.h
-        if q_pages[-1] == curr_page:
-            y1 = q.y1 - 1.5 * q.h
-        # print(y0, "   ", y1, "for debugging")
-        # print("seq length = ", len(segments))
-        for sy, sh, d0 in segments:
-            if not self.default_d0 and d0:
-                self.default_d0 = d0
-            if sy < y1 and sy >= y0:
-                q_segs.append((sy, sh, d0))
-        return q_segs
+    def preset_detectors(self, height, width, q_list: list[QuestionBase]):
+        self.width = width
+        self.height = height
+        self.question_list = q_list
 
     def __draw_page_content(
         self,
@@ -899,11 +545,9 @@ class QuestionDetector(BaseDetector):
             self.dest_y += h0 + (0.55 * d0)
         return d0
 
-    # def export_whole_surface_to_png(self,pdf_file)
-
 
 if __name__ == "__main__":
-    syms = Sequence()
+    syms = SymSequence()
     for i in range(10):
         syms.append(Symbol(chr(i + 65), 0, 0, 10, 10))
 

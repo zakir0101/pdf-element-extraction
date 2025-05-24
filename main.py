@@ -280,6 +280,7 @@ class CmdArgs:
                 "questions-count",
                 "questions-match",
                 "questions-show",
+                "pre-questions-show",
                 "questions-save",
                 "subjects",
             ],

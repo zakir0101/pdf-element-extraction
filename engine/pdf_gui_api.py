@@ -1,6 +1,13 @@
+from pprint import pprint
 import cairo
 
+from engine.pdf_detectors import QuestionBase
+from engine.pdf_engine import PdfEngine
+from engine.pdf_renderer import BaseRenderer
 from models.core_models import Subject
+from os.path import sep
+import os
+import json
 from .pdf_utils import igcse_path, all_subjects
 
 
@@ -28,8 +35,77 @@ def get_question_surface(question_id: str) -> cairo.ImageSurface:
     pass
 
 
-def get_exams_question(exam_id: str):
-    pass
+exam_id, subj_id, ex_path_json, ex_path_pdf = ["not-a-subject"] + [""] * 3
+ex_q_list, engine = [None] * 2
+
+
+def set_current_exam(exam_id_or_pdf_name):
+    global exam_id, subj_id, ex_path_json, ex_path_pdf, ex_q_list, engine
+    if exam_id in exam_id_or_pdf_name:
+        return
+
+    exam_id = exam_id_or_pdf_name
+    exam_id = exam_id.split(".")[0]
+    subj_id = exam_id.split("_")[0]
+    ex_path_json = (
+        f"{igcse_path}{sep}{subj_id}{sep}detected{sep}{exam_id}.json"
+    )
+    ex_path_pdf = f"{igcse_path}{sep}{subj_id}{sep}exams{sep}{exam_id}.pdf"
+    engine = None
+    ex_q_list = []
+
+
+def get_curr_exam_questions() -> list[QuestionBase]:
+    global ex_path_json, ex_q_list
+    if ex_q_list:
+        return ex_q_list
+    ex_json = json.loads(open(ex_path_json, "r", encoding="utf-8").read())
+    q_list: QuestionBase = []
+    for qd in ex_json:
+        q_list.append(QuestionBase.__from_dict__(qd, shallow=True))
+    ex_q_list = q_list
+    return q_list
+
+
+def render_curr_exam_question_on_surface(
+    q_nr, scale=4, clean=False, debug=False
+):
+    global exam_id, subj_id, ex_path_json, ex_path_pdf, engine
+    q_list = get_curr_exam_questions()
+    if q_nr > len(ex_q_list):
+        print(f"SKIPING: exam {exam_id} has only {len(q_list)} Question !!")
+        return None
+    engine = PdfEngine(scale, debug, clean)
+    engine.initialize_file(ex_path_pdf)
+
+    engine.question_detector.preset_detectors(
+        engine.default_height * scale, engine.default_width * scale, q_list
+    )
+    q = q_list[q_nr - 1]
+    surfs_dict: dict[int, cairo.ImageSurface] = {}
+
+    for page in q.pages:
+        print("rendering page ..", page)
+        engine.perpare_page_stream(page, BaseRenderer)
+        if debug:
+            engine.debug_original_stream()
+        engine.execute_page_stream(mode=-1)
+        curr_surf = engine.renderer.surface
+        surfs_dict[page] = curr_surf
+        engine.question_detector.calc_page_segments_and_height(
+            curr_surf, page, is_question=True
+        )
+        print(
+            "number of seq", len(engine.question_detector.page_segments[page])
+        )
+
+    # engine.question_detector.on_finish()
+
+    out_surf = engine.question_detector.draw_all_pages_to_single_png(
+        surfs_dict, None, [q_nr], per_question=True
+    )
+
+    return out_surf
 
 
 def get_question_orc_text(question_id: str):

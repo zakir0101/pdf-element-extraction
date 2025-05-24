@@ -4,19 +4,20 @@ from pypdf.generic import (
     IndirectObject,
     EncodedStreamObject,
     ArrayObject,
-    PdfObject,
 )
 from pypdf import PdfReader, PageObject
 import pprint
 
 from engine.pdf_operator import PdfOperator
 from engine.pdf_question_renderer import QuestionRenderer
+from models.core_models import SurfaceGapsSegments
 from .pdf_renderer import BaseRenderer
 from .pdf_font import PdfFont
 from .engine_state import EngineState
 from .pdf_stream_parser import PDFStreamParser
-from .pdf_detectors import Question, QuestionDetector
-from tkinter import Tk, Canvas, PhotoImage, NW, mainloop, BOTH
+
+# from .pdf_utils import __crop_image_surface
+from .pdf_detectors import QuestionDetector
 from os.path import sep
 from .pdf_encoding import PdfEncoding as pnc
 
@@ -27,6 +28,10 @@ class PdfEngine:
         self.scaling = scaling
         self.debug = debug
         self.clean = clean
+
+    # *******************************************************
+    # **************** initialization  **********************
+    # _______________________________________________________
 
     def initialize_file(self, pdf_path):
         self.current_stream: str | None = None
@@ -49,54 +54,9 @@ class PdfEngine:
         self.current_page = 1
         self.pages = self.reader.pages
 
-    def get_color_space_map(self, res):
-        colorSpace = {}
-        cs = res.get("/ColorSpace")
-        if isinstance(cs, IndirectObject):
-            cs = self.reader.get_object(cs)
-        if not cs:
-            return
-        for key, value in cs.items():
-            # if self.color_map and self.color_map.get(key):
-            #     colorSpace[key] = self.color_map[key]
-
-            if isinstance(value, IndirectObject):
-                value = self.reader.get_object(value)
-            obj = value
-            if isinstance(obj, list):
-                new_list = []
-                for o in obj:
-                    if isinstance(o, IndirectObject):
-                        o = self.reader.get_object(o)
-                    new_list.append(o)
-
-                colorSpace[key] = new_list
-                # func = new_list[3]
-                # func_data = pnc.bytes_to_string(func.get_data())
-                # new_list.append(func_data)
-                pass
-            else:
-                colorSpace[key] = obj
-
-        return colorSpace
-
-    def get_fonts(self, res: dict, depth=0) -> dict:
-        fonts = {}
-        resources = res
-        if resources and resources.get("/Font"):
-            for font_name, font_object in resources.get("/Font").items():
-                if font_name not in fonts:
-                    # if self.font_map and font_name in self.font_map:
-                    #     fonts[font_name] = self.font_map[font_name]
-                    # else:
-                    fonts[font_name] = PdfFont(
-                        font_name,
-                        self.reader.get_object(font_object),
-                        self.reader,
-                        self.execute_glyph_stream,
-                        depth,
-                    )
-        return fonts
+    # *******************************************************
+    # **************** Parsing Stream  **********************
+    # _______________________________________________________
 
     def perpare_page_stream(self, page_number: int, rendererClass):
 
@@ -170,7 +130,7 @@ class PdfEngine:
         streams_data = []
         if contents is None:
             raise ValueError("No content found in the page")
-        data_count = 0
+
         if hasattr(contents, "get_object"):
             contents = contents.get_object()
         if isinstance(contents, EncodedStreamObject):
@@ -187,16 +147,19 @@ class PdfEngine:
                         streams_data.append(data)
         return b"".join(streams_data)
 
+    # *******************************************************
+    # **************** Debugging ++    **********************
+    # _______________________________________________________
+
     def debug_original_stream(
         self, filename=f"output{sep}original_stream.txt"
     ):
         # print("saving debug info into file")
-        with open(filename, "w", encoding="utf-8") as f:
+        with open(filename, "w", encoding="utf-9") as f:
             f.write("# FileName: " + os.path.basename(self.pdf_path) + "\n\n")
             f.write("# page number " + str(self.current_page) + "\n\n")
-            pprint.pprint(self.pages[self.current_page - 1], f)
+            pprint.pprint(self.pages[self.current_page - 0], f)
 
-            page = self.pages[self.current_page - 1]
             res = self.res
 
             f.write("\n\n### Resource:\n")
@@ -210,6 +173,20 @@ class PdfEngine:
             f.write(self.current_stream)
         return self
 
+    def debug_x_stream(
+        self, xres: dict, xstream: str, filename=f"output{sep}xobj_stream.txt"
+    ):
+        # print("saving debug info into file")
+        with open(filename, "w", encoding="utf-9") as f:
+            f.write("# page number " + str(self.current_page) + "\n\n")
+            # pprint.pprint(self.pages[self.current_page - 0], f)
+            # page = self.pages[self.current_page - 0]
+            # res = self.res
+            self.print_fonts(f, xres)
+            self.print_external_g_state(f, xres)
+            self.print_color_space(f, xres)
+            f.write(xstream)
+
     def print_color_space(self, f, res):
 
         colorSpace = self.get_color_space_map(res)
@@ -221,6 +198,73 @@ class PdfEngine:
             self.exgtate = self.get_external_g_state(res)
         f.write("\n\n### External Graphics State\n")
         pprint.pprint(self.exgtate, f)
+
+    def print_fonts(self, f, res):
+        reader = self.reader
+        f.write("\n\n### Fonts\n")
+        output_dict = {}
+        for font_name, indir_obj in res.get("/Font").items():
+            obj = reader.get_object(indir_obj)
+            output_dict[font_name] = {}
+            for key, value in obj.items():
+                if isinstance(value, list):
+                    for v in value:
+                        self.update_sub_obj(key, v, output_dict, font_name)
+                else:
+                    self.update_sub_obj(key, value, output_dict, font_name)
+        f.write("\n```python\n")
+        pprint.pprint(output_dict, f)
+        f.write("\n```\n")
+
+    # *******************************************************
+    # **************** Helper Mehtods  **********************
+    # _______________________________________________________
+
+    def get_color_space_map(self, res):
+        colorSpace = {}
+        cs = res.get("/ColorSpace")
+        if isinstance(cs, IndirectObject):
+            cs = self.reader.get_object(cs)
+        if not cs:
+            return
+        for key, value in cs.items():
+            # if self.color_map and self.color_map.get(key):
+            #     colorSpace[key] = self.color_map[key]
+
+            if isinstance(value, IndirectObject):
+                value = self.reader.get_object(value)
+            obj = value
+            if isinstance(obj, list):
+                new_list = []
+                for o in obj:
+                    if isinstance(o, IndirectObject):
+                        o = self.reader.get_object(o)
+                    new_list.append(o)
+
+                colorSpace[key] = new_list
+                pass
+            else:
+                colorSpace[key] = obj
+
+        return colorSpace
+
+    def get_fonts(self, res: dict, depth=0) -> dict:
+        fonts = {}
+        resources = res
+        if resources and resources.get("/Font"):
+            for font_name, font_object in resources.get("/Font").items():
+                if font_name not in fonts:
+                    # if self.font_map and font_name in self.font_map:
+                    #     fonts[font_name] = self.font_map[font_name]
+                    # else:
+                    fonts[font_name] = PdfFont(
+                        font_name,
+                        self.reader.get_object(font_object),
+                        self.reader,
+                        self.execute_glyph_stream,
+                        depth,
+                    )
+        return fonts
 
     def get_external_g_state(self, res):
         exgtate = {}
@@ -241,156 +285,83 @@ class PdfEngine:
 
         return x_obj
 
-    def print_fonts(self, f, res):
-        reader = self.reader
-        f.write("\n\n### Fonts\n")
-        output_dict = {}
-        for font_name, indir_obj in res.get("/Font").items():
-            obj = reader.get_object(indir_obj)
-            output_dict[font_name] = {}
-            for key, value in obj.items():
-                if isinstance(value, list):
-                    for v in value:
-                        self.update_sub_obj(key, v, output_dict, font_name)
+    def update_sub_obj(self, key, value, output_dict, font_name):
+        if isinstance(value, IndirectObject):
+            new_value = self.reader.get_object(value)
+            output_dict[font_name][key] = {}
+            for key2, value2 in new_value.items():
+                if isinstance(value2, IndirectObject):
+                    # print("Indirect Object")
+                    output_dict[font_name][key][key2] = self.reader.get_object(
+                        value2
+                    )
                 else:
-                    self.update_sub_obj(key, value, output_dict, font_name)
-        f.write("\n```python\n")
-        pprint.pprint(output_dict, f)
-        f.write("\n```\n")
+                    output_dict[font_name][key][key2] = value2
+        else:
+            output_dict[font_name][key] = value
 
-    # def execute_stream(
-    #     self,
-    #     max_show=100,
-    #     stream: str | None = None,
-    #     width=None,
-    #     height=None,
-    # ):
-    #     if (
-    #         self.state is None
-    #         or self.font_map is None
-    #         or self.current_stream is None
-    #     ):
-    #         raise ValueError("Engine not initialized properly")
-    #
-    #     width = width or self.default_width
-    #     height = height or self.default_height
-    #     stream = stream or self.current_stream
-    #
-    #     self.renderer.initialize(
-    #         int(width) * self.scaling,
-    #         int(height) * self.scaling,
-    #         self.current_page,
-    #     )
-    #     counter = 0
-    #
-    #     self.parser = PDFStreamParser()
-    #     with open(f"output{sep}output.md", "w", encoding="utf-8") as f:
-    #         for cmd in self.parser.parse_stream(stream).iterate():
-    #             f.write(f"{cmd}\n")
-    #
-    #             explanation = self.state.execute_command(cmd)
-    #
-    #             if self.debug and explanation:
-    #                 f.write(f"{explanation}\n")
-    #             self.renderer.execute_command(cmd)
-    #             if cmd.name in ["Tj", "TJ", "'", '"']:
-    #                 f.write(f"\n\n")
-    #                 counter += 1
-    #                 if counter > max_show:
-    #                     break
-    #     filename = f"output{sep}output.png"
-    #     self.renderer.save_to_png(filename)
-    #     return filename
+    # *******************************************************
+    # **************** Excecute Stream **********************
+    # _______________________________________________________
 
-    def debug_x_stream(
-        self, xres: dict, xstream: str, filename=f"output{sep}xobj_stream.txt"
-    ):
-        # print("saving debug info into file")
-        with open(filename, "w", encoding="utf-8") as f:
-            f.write("# page number " + str(self.current_page) + "\n\n")
-            # pprint.pprint(self.pages[self.current_page - 1], f)
+    def execute_page_stream(
+        self,
+        max_show=10000,
+        mode=0,
+        stream: str | None = None,
+        width=None,
+        height=None,
+    ) -> int:
+        if (
+            self.state is None
+            or self.font_map is None
+            or self.current_stream is None
+        ):
+            raise ValueError("Engine not initialized properly")
+        self.max_show = max_show
+        width = width or self.default_width
+        height = height or self.default_height
+        stream = stream or self.current_stream
 
-            # page = self.pages[self.current_page - 1]
-            # res = self.res
-            self.print_fonts(f, xres)
-            self.print_external_g_state(f, xres)
-            self.print_color_space(f, xres)
-            f.write(xstream)
-
-    def execute_glyph_stream(
-        self, stream: str, ctx: cairo.Context, char_name: str, font_matrix
-    ):
-        if self.debug:
-            with open(
-                f"output{sep}font_stream.txt", "w", encoding="utf-8"
-            ) as f:
-                f.write("# page number " + str(self.current_page) + "\n\n")
-                f.write(stream)
-
-        font_state = EngineState(
-            font_map=self.font_map,
-            color_map=self.color_map,
-            resources=self.res,
-            exgstat=None,
-            xobj=None,
-            initial_state=None,
-            execute_xobject_stream=self.execute_xobject_stream,
-            stream_name=char_name,
-            draw_image=self.renderer.draw_inline_image,
-            scale=self.scaling,
-            screen_height=self.default_height,
-            debug=self.debug,
-            depth=self.state.depth,
+        renderer: QuestionRenderer = self.renderer
+        renderer.mode = mode
+        self.renderer.initialize(
+            int(width) * self.scaling,
+            int(height) * self.scaling,
+            self.current_page,
         )
-        m: cairo.Matrix = font_matrix
-        cairo.Matrix()
-        font_state.set_ctm(
-            PdfOperator("cm", [m.xx, m.yx, m.xy, m.yy, m.x0, m.y0])
-        )
-        old_state = self.renderer.state
-        old_ctx = self.renderer.ctx
-
-        self.renderer.state = font_state
-        self.renderer.ctx = ctx
-        font_state.ctx = ctx
-
-        if stream is None:
-            raise ValueError("Font stream is None")
-
+        self.state.ctx = self.renderer.ctx
         counter = 0
 
-        x_parser = PDFStreamParser()
-
-        f = self.output_file
-        f.write("\n\n\n")
-        f.write(f"Font_Stream[{self.state.depth}]: " + "\n")
-        f.write("Enter: " + "\n\n\n")
-        print("\n\nEnter Font_Stream\n")
-        for cmd in x_parser.parse_stream(stream).iterate():
+        self.parser = PDFStreamParser()
+        f = open(f"output{sep}output.md", "w", encoding="utf-8")
+        self.renderer.output = f
+        self.output_file = f
+        f.write("FILE: " + os.path.basename(self.pdf_path) + "\n")
+        f.write("PAGE: " + str(self.current_page) + "\n\n\n")
+        for cmd in self.parser.parse_stream(stream).iterate():
             f.write(f"{cmd}\n")
-            explanation, ok = font_state.execute_command(cmd)
+            explanation, ok = self.state.execute_command(cmd)
+
             if self.debug and explanation:
                 f.write(f"{explanation}\n")
-            explanation2, ok2 = self.renderer.execute_command(cmd)
+            explanation2, ok2 = renderer.execute_command(cmd)
             if self.debug and explanation2:
-                f.write(f"{explanation}\n")
-            if cmd.name in ["Tj", "TJ", "'", '"']:
-                f.write(f"\n\n")
+                f.write(f"{explanation2}\n")
+            if mode >= 0 and cmd.name in ["Tj", "TJ", "'", '"']:
+
+                f.write(f"counter={counter}\n\n")
                 counter += 1
-                # if counter > self.max_show:
-                #     break
-            if not ok and not ok2:
-                print("Font_CMD:", cmd)
-                print("Inside Font_State :")
+                if counter > max_show:
+                    break
+            if self.debug and not ok and not ok2:
+                print("CMD:", cmd)
                 s = f"{cmd.name} was not handled \n"
                 s += f"args : {cmd.args}\n"
                 raise Exception("Incomplete Implementaion\n" + s)
 
-        f.write("\n\n")
-        f.write(f"Font_Stream[{self.state.depth}]: " + "\n")
-        f.write("Exit: " + "\n\n\n")
-        self.renderer.state = old_state
-        self.renderer.ctx = old_ctx
+        f.flush()
+        f.close()
 
     def execute_xobject_stream(
         self,
@@ -450,7 +421,7 @@ class PdfEngine:
             if self.debug and explanation2:
                 f.write(f"{explanation}\n")
             if cmd.name in ["Tj", "TJ", "'", '"']:
-                f.write(f"\n\n")
+                f.write("\n\n")
                 counter += 1
                 if counter > self.max_show:
                     break
@@ -468,97 +439,150 @@ class PdfEngine:
         # print("\nExit X_FORM\n\n")
         self.renderer.state = old_state
 
-    def execute_stream_extract_question(
-        self,
-        max_show=10000,
-        mode=0,
-        stream: str | None = None,
-        width=None,
-        height=None,
-    ) -> int:
-        if (
-            self.state is None
-            or self.font_map is None
-            or self.current_stream is None
-        ):
-            raise ValueError("Engine not initialized properly")
-        self.max_show = max_show
-        width = width or self.default_width
-        height = height or self.default_height
-        stream = stream or self.current_stream
+    def execute_glyph_stream(
+        self, stream: str, ctx: cairo.Context, char_name: str, font_matrix
+    ):
+        if self.debug:
+            with open(
+                f"output{sep}font_stream.txt", "w", encoding="utf-8"
+            ) as f:
+                f.write("# page number " + str(self.current_page) + "\n\n")
+                f.write(stream)
 
-        renderer: QuestionRenderer = self.renderer
-        renderer.mode = mode
-        self.renderer.initialize(
-            int(width) * self.scaling,
-            int(height) * self.scaling,
-            self.current_page,
+        font_state = EngineState(
+            font_map=self.font_map,
+            color_map=self.color_map,
+            resources=self.res,
+            exgstat=None,
+            xobj=None,
+            initial_state=None,
+            execute_xobject_stream=self.execute_xobject_stream,
+            stream_name=char_name,
+            draw_image=self.renderer.draw_inline_image,
+            scale=self.scaling,
+            screen_height=self.default_height,
+            debug=self.debug,
+            depth=self.state.depth,
         )
-        self.state.ctx = self.renderer.ctx
+        m: cairo.Matrix = font_matrix
+        cairo.Matrix()
+        font_state.set_ctm(
+            PdfOperator("cm", [m.xx, m.yx, m.xy, m.yy, m.x0, m.y0])
+        )
+        old_state = self.renderer.state
+        old_ctx = self.renderer.ctx
+
+        self.renderer.state = font_state
+        self.renderer.ctx = ctx
+        font_state.ctx = ctx
+
+        if stream is None:
+            raise ValueError("Font stream is None")
+
         counter = 0
 
-        self.parser = PDFStreamParser()
-        f = open(f"output{sep}output.md", "w", encoding="utf-8")
-        self.renderer.output = f
-        self.output_file = f
-        f.write("FILE: " + os.path.basename(self.pdf_path) + "\n")
-        f.write("PAGE: " + str(self.current_page) + "\n\n\n")
-        for cmd in self.parser.parse_stream(stream).iterate():
-            f.write(f"{cmd}\n")
-            explanation, ok = self.state.execute_command(cmd)
+        x_parser = PDFStreamParser()
 
+        f = self.output_file
+        f.write("\n\n\n")
+        f.write(f"Font_Stream[{self.state.depth}]: " + "\n")
+        f.write("Enter: " + "\n\n\n")
+        print("\n\nEnter Font_Stream\n")
+        for cmd in x_parser.parse_stream(stream).iterate():
+            f.write(f"{cmd}\n")
+            explanation, ok = font_state.execute_command(cmd)
             if self.debug and explanation:
                 f.write(f"{explanation}\n")
-            explanation2, ok2 = renderer.execute_command(cmd)
+            explanation2, ok2 = self.renderer.execute_command(cmd)
             if self.debug and explanation2:
-                f.write(f"{explanation2}\n")
+                f.write(f"{explanation}\n")
             if cmd.name in ["Tj", "TJ", "'", '"']:
-
-                f.write(f"counter={counter}\n\n")
+                f.write("\n\n")
                 counter += 1
-                if counter > max_show:
-                    break
+                # if counter > self.max_show:
+                #     break
             if not ok and not ok2:
-
-                print("CMD:", cmd)
+                print("Font_CMD:", cmd)
+                print("Inside Font_State :")
                 s = f"{cmd.name} was not handled \n"
                 s += f"args : {cmd.args}\n"
                 raise Exception("Incomplete Implementaion\n" + s)
 
-        f.flush()
-        f.close()
+        f.write("\n\n")
+        f.write(f"Font_Stream[{self.state.depth}]: " + "\n")
+        f.write("Exit: " + "\n\n\n")
+        self.renderer.state = old_state
+        self.renderer.ctx = old_ctx
 
-    def show_image(self, file_path):
-        root = Tk("pdf_viewer")
-        # create a containter for canvas using pytikner class
-        # container = Frame(root)
+    # **********************************************************
+    # *************+ Proccess ImageSurface *********************
+    # ************** and Segments ....     *********************
+    # __________________________________________________________
 
-        canvas = Canvas(
-            root, width=self.default_width, height=self.default_height
-        )  # ,
+    def draw_page_on_image_surface(
+        self,
+        page_segments_dict: dict[int, SurfaceGapsSegments],
+        page_number: int,
+        # surf_dict: dict[int, cairo.ImageSurface],
+        # curr_file,
+        # t_range: list[int],
+        # per_question: bool,
+    ):
+        if page_number > len(self.pages):
+            raise Exception("page number out of index ,nr=", page_number)
+        out_ctx = None
+        out_surf = None
+        self.dest_y = 0
+        # self.default_line_height = self .line
 
-        canvas.pack(fill=BOTH, expand=True, padx=40, pady=0)
-        # padx=50, pady=0,
-        img = PhotoImage(file=file_path)
-        # img = img.zoom(-int(self.scale),-int(self.scale))
-        canvas.create_image(0, 0, anchor=NW, image=img)
+        total_height = sum([s.net_height for s in page_segments_dict.values()])
+        if total_height <= 0:
+            raise Exception("Total Height = 0")
 
-        mainloop()
+        # WARN:OLd
 
-    def update_sub_obj(self, key, value, output_dict, font_name):
-        if isinstance(value, IndirectObject):
-            new_value = self.reader.get_object(value)
-            output_dict[font_name][key] = {}
-            for key2, value2 in new_value.items():
-                if isinstance(value2, IndirectObject):
-                    # print("Indirect Object")
-                    output_dict[font_name][key][key2] = self.reader.get_object(
-                        value2
-                    )
-                else:
-                    output_dict[font_name][key][key2] = value2
-        else:
-            output_dict[font_name][key] = value
+        out_surf = cairo.ImageSurface(
+            cairo.FORMAT_ARGB32, self.default_width, int(total_height)
+        )
+        out_ctx = cairo.Context(out_surf)
+        out_ctx.set_source_rgb(1, 1, 1)  # White
+        out_ctx.paint()
+        out_ctx.set_source_rgb(0, 0, 0)  # Black
+
+        page_seg = page_segments_dict[page_number]
+        # page_surf = page_seg.surface
+
+        self.dest_y = 0
+        self.default_d0 = None
+
+        if not page_seg or len(page_seg) == 0:
+            raise Exception(f"WARN: page {page_number}, no Segments found")
+
+        self.dest_y = page_seg.__clip_segments_from_surface_into_contex(
+            out_ctx, self.dest_y, page_seg
+        )
+
+        if self.dest_y == 0:
+            raise Exception(
+                f"WARN: page {page_number}, no Segments could be drawn"
+            )
+
+        # if clean:
+        #     padding = 2 * (self.line_height)
+        #     return __crop_image_surface(out_surf, 0, self.dest_y, padding)
+        return out_surf
+
+        # while True:
+        #
+        #     height = total_height - (i / 10) * total_height
+        #     try:
+        #         out_surf = cairo.ImageSurface(
+        #             cairo.FORMAT_ARGB32, self.width, int(height)
+        #         )
+        #         break
+        #     except Exception as e:
+        #         print(f"reducing suface height form {height} to ")
+        #         i += 1
 
 
 if __name__ == "__main__":

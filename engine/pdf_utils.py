@@ -4,8 +4,6 @@ import subprocess
 import os
 from os.path import sep
 
-import numpy as np  # speeds things up; pure-Python fallback shown later
-
 
 if os.name == "nt":  # Windows
     d_drive = "D:"
@@ -16,13 +14,16 @@ if os.environ.get("IGCSE_PATH"):
 else:
     igcse_path = f"{d_drive}{sep}Drive{sep}IGCSE-NEW"
 
-# jwggfg
 
 all_subjects = [
     f
     for f in os.listdir(igcse_path)
     if os.path.isdir(igcse_path + sep + f) and f.isdigit()
 ]
+
+# ************************************************************************
+# ********************** Page Segmentation *******************************
+# ************************************************************************
 
 
 def _surface_as_uint32(surface: cairo.ImageSurface):
@@ -36,149 +37,33 @@ def _surface_as_uint32(surface: cairo.ImageSurface):
     return np.frombuffer(buf, dtype=np.uint32).reshape(h, stride // 4)
 
 
-OPAQUE_WHITE = 0xFFFFFFFF
-ANY_ALPHA0_WHITE = 0x00FFFFFF  # alpha 0 + white RGB
+def __crop_image_surface(out_surf:cairo.ImageSurface, y_start, y_end, padding):
+    # print("dest_y", self.dest_y)
 
+    o = out_surf
+    s = round(y_start if y_start <= padding else y_start - padding)
+    e = round(y_end + padding ) 
+    #     e = round(y_end + padding if y_end < (out_surf.get_height() - padding) else y_end)
 
-def row_is_blank_old(
-    row, usable_cols, white=OPAQUE_WHITE, twhite=ANY_ALPHA0_WHITE
-):
-    # all() on the first width pixels; ignore the padding on the right edge
-    part = row[:usable_cols]
-    return np.all((part == white) | (part == twhite))
+    s_index = s * o.get_stride
+    e_index = e * o.get_stride()
 
+    surf_width = out_surf.get_width()
+    surf_height = e - s
 
-def row_is_blank(
-    row, usable_cols, white=OPAQUE_WHITE, twhite=ANY_ALPHA0_WHITE
-):
-    # all() on the first width pixels; ignore the padding on the right edge
-    part = row[:usable_cols]
-    f1 = 0.15
-    s_left = round(f1 * usable_cols)
-    s_right = round((1 - f1) * usable_cols)
-    middle = part[s_left:s_right]
-    sides = np.concatenate((part[:s_left], part[s_right:]), axis=0)
-    # print("right > usable_col", s_right, usable_cols)
-    # print("side length = ", len(sides))
-    # print("middle length = ", len(middle))
-    is_side_almost_empty = (
-        np.count_nonzero((sides == white) | (sides == twhite)) / len(sides)
-    ) > 0.99
-    is_middle_completly_empyty = np.all((middle == white) | (middle == twhite))
-
-    # is_part_completly_empyty = np.all((part == white) | (part == twhite))
-    # if (
-    #     is_middle_completly_empyty != is_part_completly_empyty
-    #     and is_side_almost_empty
-    # ):
-    #     print(usable_cols, len(middle))
-    #     print(str(is_part_completly_empyty), str(is_middle_completly_empyty))
-    return is_middle_completly_empyty and is_side_almost_empty
-
-
-def row_is_blank_new(
-    row,
-    usable_cols,
-    *,  # ← star makes kwargs only
-    alpha_thresh=5,
-    white_thresh=200,
-    tolerate=0.2,
-):
-    """
-    Return True if <= `tolerate` fraction of the inspected pixels are
-    non-blank (tolerate small dirt).
-    """
-    part = row[:usable_cols]
-
-    alpha = (part >> 24) & 0xFF
-    red = (part >> 16) & 0xFF
-    green = (part >> 8) & 0xFF
-    blue = part & 0xFF
-
-    transparent = alpha <= alpha_thresh
-    nearly_white = (
-        (alpha >= 255 - alpha_thresh)
-        & (red >= white_thresh)
-        & (green >= white_thresh)
-        & (blue >= white_thresh)
+    out_surf = cairo.ImageSurface.create_for_data(
+        o.get_data()[s_index:e_index],
+        cairo.FORMAT_ARGB32,
+        surf_width,
+        surf_height,
+        o.get_stride(),
     )
-
-    blank_mask = transparent | nearly_white
-    n_bad = (~blank_mask).sum()  # how many “dirty” pixels
-    return n_bad <= tolerate * usable_cols
+    return out_surf
 
 
-def build_blank_mask(surface):
-    pix = _surface_as_uint32(surface)
-    w = surface.get_width()
-    return np.fromiter(
-        (row_is_blank(r, w) for r in pix), dtype=bool, count=pix.shape[0]
-    )
-
-
-def get_segments(surface, min_y, max_y, d0, factor=0.1):
-    min_g = d0 * factor
-    min_h = 0
-    gaps, norm_gaps = find_horizontal_gaps(surface, min_y, d0, min_g)
-    # print("gaps_count ( normal/filterd) = ", len(norm_gaps), len(gaps))
-    # print(norm_gaps)
-    segments = []
-    cursor = min_y
-    for gy, gh in norm_gaps:
-        if gy > cursor:  # rows before the gap
-            h_curr = gy - cursor
-            segments.append((cursor, h_curr, d0))
-        cursor = gy + gh  # skip the gap
-
-    if cursor < max_y:  # rows after the last gap
-        # try:
-        h_curr = max_y - cursor
-        segments.append((cursor, h_curr, d0))
-
-        # except Exception as e:
-        #     print(max_y, cursor)
-        #     segments.append((cursor, (max_y) - cursor))
-
-    return segments
-
-
-def find_horizontal_gaps(surface, min_y, char_h, min_h):
-    mask = build_blank_mask(surface)  # True ↔ blank
-    gaps, h_px = [], len(mask)
-    MIN_COUNT = round(0.1 * char_h)  # int(0.5 * char_h)
-    start = None
-    not_blanck_count = 0
-    blanck_count = 0
-    is_blank_mode = True
-    # if min_y == 0:
-    start = min_y
-    for y, blank in enumerate(mask):
-        if blank:
-            blanck_count += 1
-            not_blanck_count = 0
-        else:
-            not_blanck_count += 1
-            blanck_count = 0
-
-        if blanck_count > MIN_COUNT:
-            is_blank_mode = True
-        elif not_blanck_count > MIN_COUNT:
-            is_blank_mode = False
-
-        if is_blank_mode and start is None:
-            start = y
-        elif not is_blank_mode and start is not None:
-            gaps.append((start, y - start))
-            start = None
-    if start is not None:  # ran off bottom still in blank
-        gaps.append((start, h_px - start))
-
-    # translate back to PDF user-space if you like
-    # scale = dpi / 72.0
-    # page_h_pt = h_px / scale
-    fgaps = [(y, h) for y, h in gaps if h > min_h and y > min_y]
-    # return gaps[-1] if len(gaps) > 0 else (None, 0)
-    return fgaps, gaps
+# *********************************************************
+# *****************++ Numeric, Roman and Alphabet numbering
+# ******************* Handler :
 
 
 def get_alphabet(number):
@@ -333,13 +218,17 @@ def is_first_label(input: str):
 SEP = os.path.sep
 
 
-#  (venv) ➜  pdf-element-extraction git:(master) ✗  '/mnt/d/Drive/IGCSE/0580/exams/0580_s15_qp_11.pdf
+# *********************************************************************
+# *********************+ open Files using system apps *****************
+# ********************** ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ *****************
+
+
 def open_pdf_using_sumatra(pdf_full_path):
     if os.name != "nt":  # Windows
         png_full_path = pdf_full_path.replace("/mnt/d", "D:")
     subprocess.Popen(
         args=[
-            f"SumatraPDF-3.5.2-64.exe",
+            "SumatraPDF-3.5.2-64.exe",
             png_full_path,
         ],
         start_new_session=True,
@@ -350,13 +239,10 @@ def open_pdf_using_sumatra(pdf_full_path):
 
 
 def open_files_in_nvim(files: list[str]):
-    # if os.name != "nt":  # Windows
-    #     png_full_path = pdf_full_path.replace("/mnt/d", "D:")
-    # files = "   ".join(files)
     print(files)
     subprocess.run(
         args=[
-            f"nvim",
+            "nvim",
             "-p10",
             *files,
         ],
@@ -394,63 +280,11 @@ def kill_with_taskkill():
     subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
 
-# ****************** TEMP **********************
-def paeth_predictor(a, b, c):
-    """
-    Calculates the Paeth predictor.
-    a = left, b = above, c = upper-left.
-    """
-    p = a + b - c
-    pa = abs(p - a)
-    pb = abs(p - b)
-    pc = abs(p - c)
-    if pa <= pb and pa <= pc:
-        return a
-    elif pb <= pc:
-        return b
-    else:
-        return c
-
-
-def unfilter_scanline(
-    filter_type, scanline_data, prev_scanline_data, bytes_per_pixel
-):
-    """
-    Applies the inverse of a PNG filter to a scanline.
-    All additions are modulo 256.
-    """
-    recon = bytearray(len(scanline_data))  # Reconstructed scanline
-
-    if filter_type == 0:  # None
-        return scanline_data
-
-    for i in range(len(scanline_data)):
-        filt_x = scanline_data[i]
-
-        if filter_type == 1:  # Sub
-            recon_a = recon[i - bytes_per_pixel] if i >= bytes_per_pixel else 0
-            recon[i] = (filt_x + recon_a) & 0xFF
-        elif filter_type == 2:  # Up
-            prior_b = prev_scanline_data[i] if prev_scanline_data else 0
-            recon[i] = (filt_x + prior_b) & 0xFF
-        elif filter_type == 3:  # Average
-            recon_a = recon[i - bytes_per_pixel] if i >= bytes_per_pixel else 0
-            prior_b = prev_scanline_data[i] if prev_scanline_data else 0
-            recon[i] = (filt_x + ((recon_a + prior_b) // 2)) & 0xFF
-        elif filter_type == 4:  # Paeth
-            recon_a = recon[i - bytes_per_pixel] if i >= bytes_per_pixel else 0
-            prior_b = prev_scanline_data[i] if prev_scanline_data else 0
-            prior_c = (
-                prev_scanline_data[i - bytes_per_pixel]
-                if prev_scanline_data and i >= bytes_per_pixel
-                else 0
-            )
-            paeth_val = paeth_predictor(recon_a, prior_b, prior_c)
-            recon[i] = (filt_x + paeth_val) & 0xFF
-        else:
-            raise ValueError(f"Unknown filter type: {filter_type}")
-
-    return bytes(recon)
+def in_wsl() -> bool:
+    """True if running under Windows Subsystem for Linux."""
+    return os.name == "posix" and (
+        "WSL_DISTRO_NAME" in os.environ or "WSL_INTEROP" in os.environ
+    )
 
 
 if __name__ == "__main__":

@@ -9,9 +9,9 @@ from .pdf_renderer import BaseRenderer
 import cairo
 from .pdf_utils import get_segments
 from .pdf_detectors import (
-    Question,
+    QuestionBase,
     QuestionDetector,
-    Sequence,
+    SymSequence,
     BaseDetector,
     find_questions_part_in_page,
 )
@@ -27,7 +27,7 @@ class QuestionRenderer(BaseRenderer):
         super().__init__(state, main_detector)
         self.question_detector: QuestionDetector = main_detector
 
-    def run_detectors(self, char_seq: Sequence):
+    def run_detectors(self, char_seq: SymSequence):
         self.question_detector.handle_sequence(char_seq, self.page_number)
 
     # def draw_string_array(self, cmd: PdfOperator, is_single=False):

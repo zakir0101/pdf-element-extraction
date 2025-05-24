@@ -17,7 +17,7 @@ from engine.pdf_utils import (
     open_pdf_using_sumatra,
     open_files_in_nvim,
 )
-from engine.pdf_detectors import Question
+from engine.pdf_detectors import QuestionBase
 from engine.pdf_question_renderer import QuestionRenderer
 from main import CmdArgs, all_subjects, igcse_path
 import os
@@ -25,6 +25,7 @@ from os.path import sep
 import gui.pdf_tester_gui as gui
 from engine.pdf_detectors import set_dubugging
 from models.core_models import Subject
+import engine.pdf_gui_api as api
 
 
 # ******************************************************************
@@ -51,6 +52,7 @@ def do_tests(args: CmdArgs):
         "questions-count": do_test_question,
         "questions-match": do_test_question,
         "questions-show": do_test_question,
+        "pre-questions-show": do_show_question,
         "questions-save": do_test_question,
         "subjects": do_test_subjects_syllabus,
     }
@@ -59,9 +61,8 @@ def do_tests(args: CmdArgs):
 
 
 def do_test_subjects_syllabus(args: CmdArgs):
-    from engine.pdf_gui_api import load_subjects_files
 
-    subjects_dict = load_subjects_files()
+    subjects_dict = api.load_subjects_files()
     for sub in args.subjects:
         sub_obj: Subject = subjects_dict[sub]
         print(f"\n\n******************************************")
@@ -228,9 +229,7 @@ def do_test_renderer(args: CmdArgs):
             try:
                 engine.perpare_page_stream(page, QuestionRenderer)
                 engine.debug_original_stream()
-                engine.execute_stream_extract_question(
-                    max_show=args.max_tj, mode=0
-                )
+                engine.execute_page_stream(max_show=args.max_tj, mode=0)
                 if is_show:
                     surf = engine.renderer.surface
                     raitio = engine.default_width / engine.default_height
@@ -243,7 +242,6 @@ def do_test_renderer(args: CmdArgs):
                     elif res == gui.STATE_CORRECT:
                         total_passed += 1
                     else:
-                        gui.end()
                         stop = True
                         break
 
@@ -315,6 +313,30 @@ def get_exception_key(e: Exception):
     # in page loop
 
 
+def do_show_question(args: CmdArgs):
+
+    clean = False  # args.clean
+    stop = False
+    gui.start(-1000, -1)
+    for pdf in tqdm.tqdm(args.data):
+        if stop:
+            break
+        api.set_current_exam(pdf[0])
+        q_list = api.get_curr_exam_questions()
+        for q in q_list:
+            if args.range and int(q.label) not in args.range:
+                continue
+
+            q_surf = api.render_curr_exam_question_on_surface(
+                int(q.label), scale=4, clean=False
+            )
+
+            res = gui.show_page(q_surf)
+            if res == gui.STATE_DONE:
+                stop = True
+                break
+
+
 def do_test_question(
     args: CmdArgs,
 ):
@@ -368,9 +390,7 @@ def do_test_question(
             try:
                 engine.perpare_page_stream(page, QuestionRenderer)
                 engine.debug_original_stream()
-                engine.execute_stream_extract_question(
-                    max_show=args.max_tj, mode=1
-                )
+                engine.execute_page_stream(max_show=args.max_tj, mode=1)
 
                 total_passed += 1
                 if is_show:
@@ -403,7 +423,7 @@ def do_test_question(
                     stop = True
                     break
         detector.on_finish()
-        questions: list[Question] = detector.question_list
+        questions: list[QuestionBase] = detector.question_list
         if is_show:
 
             print("Page Numbers :", args.page_count)
@@ -574,7 +594,7 @@ def show_single_image(args: CmdArgs):
                 and len(engine.state.list_all_missing_font()) == 0
             ):
                 continue
-            engine.execute_stream_extract_question(
+            engine.execute_page_stream(
                 max_show=args.max_tj, mode=(1 if per_questions else 0)
             )
             if (
@@ -589,14 +609,17 @@ def show_single_image(args: CmdArgs):
                 # open_image_in_irfan(f_name)
                 # return
 
-                detector.calc_page_segments_and_height(curr_surf, page, args)
+                #
+                detector.calc_page_segments_and_height(
+                    curr_surf, page, args.type == "questions"
+                )
                 if args.missing_font:
                     missing_font_count += 1
                     missing_font_names.update(
                         engine.state.list_all_missing_font()
                     )
     detector.on_finish()
-    questions: list[Question] = detector.question_list
+    questions: list[QuestionBase] = detector.question_list
     print("Page Numbers :", args.page_count)
     print("Question Numbers :", len(questions))
 
@@ -626,7 +649,7 @@ def show_single_image(args: CmdArgs):
 
 def draw_and_preview(args: CmdArgs, b_range: list, surfs_dict):
     filename = args.engine.question_detector.draw_all_pages_to_single_png(
-        surfs_dict, args, b_range, args.type == "questions"
+        surfs_dict, args.curr_file, b_range, args.type == "questions"
     )
     if filename:
         preview_image(filename, args)

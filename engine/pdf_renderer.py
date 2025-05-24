@@ -1,18 +1,13 @@
-import enum
-import re
 import string
 from .pdf_encoding import PdfEncoding as pnc
-from freetype import GlyphSlot
 
 
-from engine.pdf_utils import open_image_in_irfan, kill_with_taskkill
 from .pdf_operator import PdfOperator
 from .engine_state import EngineState
 import cairo
-import subprocess
 from cairo import Context, Glyph, ImageSurface, Matrix
 import os
-from .pdf_detectors import Sequence, Symbol, BaseDetector
+from .pdf_detectors import SymSequence, Symbol, BaseDetector
 
 SEP = os.path.sep
 
@@ -198,7 +193,7 @@ class BaseRenderer:
         natural_width = extents.x_advance
         if natural_width == 0:
             natural_width = self.default_char_width
-        ratio = extents.y_advance / natural_width or 1
+        # ratio = extents.y_advance / natural_width or 1
         h_scale = 1.0 if natural_width == 0 else width / natural_width
         return h_scale
 
@@ -239,7 +234,7 @@ class BaseRenderer:
         glyph_array, char_seq, update_text_position = self.get_glyph_array(
             cmd, is_single
         )
-        char_seq: Sequence = char_seq
+        char_seq: SymSequence = char_seq
 
         self.output.write("charSeq: " + char_seq.get_text(False) + "\n")
         if self.should_skip_sequence(char_seq):
@@ -258,7 +253,7 @@ class BaseRenderer:
         )
         return self.state.get_current_position_for_debuging(), True
 
-    def run_detectors(self, char_seq: Sequence):
+    def run_detectors(self, char_seq: SymSequence):
         # self.question_detector.handle_sequence(char_seq, self.page_number)
         pass
 
@@ -307,14 +302,14 @@ class BaseRenderer:
         m_c = self.state.get_current_matrix()
         glyph_array = []
         char_array = []
-        is_prev_element_number_or_none = True
+        # is_prev_element_number_or_none = True
 
         for element in text_array:
 
             if isinstance(element, (float, int)):
                 dx = state.convert_em_to_ts(float(element))
                 x -= dx
-                is_prev_element_number_or_none = True
+                # is_prev_element_number_or_none = True
                 continue
             elif isinstance(element, str):
                 i = 0
@@ -362,7 +357,7 @@ class BaseRenderer:
                     char_array.append(Symbol(char, x0, y0, w, h))
                     x += char_width + default_char_spacing
 
-                    is_prev_element_number_or_none = False
+                    # is_prev_element_number_or_none = False
             else:
                 raise ValueError("Invalid text element")
 
@@ -378,7 +373,7 @@ class BaseRenderer:
         if len(glyph_array) == 0:
             return None, None, update_on_finish
 
-        return glyph_array, Sequence(char_array), update_on_finish
+        return glyph_array, SymSequence(char_array), update_on_finish
 
     def get_glyph_id_for_char(self, char):
         font = self.state.font
@@ -432,7 +427,7 @@ class BaseRenderer:
             self.ctx.move_to(0, 0)
             self.ctx.show_glyphs(glyph_array)
         except Exception as e:
-            print(f"ERROR while drawing Glyph array")
+            print("ERROR while drawing Glyph array")
             raise ValueError(e)
         self.ctx.restore()
 
@@ -477,7 +472,7 @@ class BaseRenderer:
                 self.ctx.new_path()
 
         except Exception as e:
-            print(f"ERROR while drawing Glyph array")
+            print("ERROR while drawing Glyph array")
             raise ValueError(e)
         self.ctx.restore()
 
@@ -598,7 +593,7 @@ class BaseRenderer:
         data = self.state.inline_image_data
         width = self.state.inline_image_width
         height = self.state.inline_image_height
-        is_mask = self.state.inline_image_mask
+        # is_mask = self.state.inline_image_mask
 
         surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, width, height)
         surface_data = surface.get_data()
@@ -691,14 +686,15 @@ class BaseRenderer:
                                     surface_data[idx_out + 2] = r  # Red
                                     surface_data[idx_out + 3] = 255  # Alpha
                                 elif color_cs == "/DeviceCMYK":
-                                    c, m, y = r, g, b
-                                    k = (
-                                        data[idx_in + 3]
-                                        if idx_in + 3 < len(data)
-                                        else self.raise_exception(
-                                            "missing k value"
-                                        )
-                                    )
+                                    pass
+                                    # c, m, y = r, g, b
+                                    # k = (
+                                    #     data[idx_in + 3]
+                                    #     if idx_in + 3 < len(data)
+                                    #     else self.raise_exception(
+                                    #         "missing k value"
+                                    #     )
+                                    # )
 
                     else:
                         raise Exception("Exceeded image boundaries !!")
