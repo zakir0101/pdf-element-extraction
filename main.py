@@ -73,6 +73,8 @@ class CmdArgs:
             )
 
             self.pause = args.pause
+            self.clean = not args.no_clean
+            self.debug = args.debug
             self.size = self.TEST_SIZE.get(args.size) or None
             self.subjects = args.subjects or all_subjects
             self.max = args.max
@@ -282,6 +284,8 @@ class CmdArgs:
                 "questions-show",
                 "pre-questions-show",
                 "questions-save",
+                "view-question",
+                "view-page",
                 "subjects",
             ],
         )
@@ -317,6 +321,10 @@ class CmdArgs:
 
         test.add_argument("--max", type=int)
 
+        test.add_argument(
+            "--no-clean", "-nc", action="store_true", default=False
+        )
+        test.add_argument("--debug", "-d", action="store_true", default=False)
         test.add_argument("--pause", action="store_true", default=False)
         test.add_argument("--summatra", action="store_true", default=False)
 
@@ -421,7 +429,7 @@ if __name__ == "__main__":
 
     parser.set_defaults(func=lambda x: print("no args provided"))
     subparsers = parser.add_subparsers(dest="mode")
-    CmdArgs.add_view_subparser(subparsers=subparsers)
+    # CmdArgs.add_view_subparser(subparsers=subparsers)
     CmdArgs.add_clear_subparser(subparsers=subparsers)
     CmdArgs.add_test_subparser(subparsers=subparsers)
     CmdArgs.add_list_subparser(subparsers=subparsers)

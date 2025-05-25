@@ -9,25 +9,122 @@ from pypdf import PdfReader, PageObject
 import pprint
 
 from engine.pdf_operator import PdfOperator
-from engine.pdf_question_renderer import QuestionRenderer
 from models.core_models import SurfaceGapsSegments
+from models.question import Question
 from .pdf_renderer import BaseRenderer
 from .pdf_font import PdfFont
 from .engine_state import EngineState
 from .pdf_stream_parser import PDFStreamParser
 
-# from .pdf_utils import __crop_image_surface
-from .pdf_detectors import QuestionDetector
+from .pdf_utils import crop_image_surface
+from .pdf_detectors import QuestionDetector, enable_detector_dubugging
 from os.path import sep
 from .pdf_encoding import PdfEncoding as pnc
 
 
 class PdfEngine:
+    """
+    class: PdfEngine Class v0.1
+    """
 
-    def __init__(self, scaling=1, debug=False, clean: bool = True):
+    M_DEBUG_PAGE_STREAM = 1 << 0
+    M_DEBUG_XOBJECT_STREAM = 1 << 1
+    M_DEBUG_GLYPH_STREAM = 1 << 2
+    M_DEBUG_ALL_STREAM = (1 < 0) | (1 << 1) | (1 << 2)
+    # __
+    M_DEBUG_DETECTOR = 1 << 3
+    # __
+    M_DEBUG_ORIGINAL_CONTENT = 1 << 4
+    # __
+    M_DEBUG = M_DEBUG_DETECTOR | M_DEBUG_ALL_STREAM | M_DEBUG_ORIGINAL_CONTENT
+
+    # ________________________________________________________________
+
+    O_CROP_EMPTY_LINES = 1 << 0
+    O_CLEAN_DOTS_LINES = 1 << 1
+    O_CLEAN_HEADER_FOOTER = 1 << 2
+
+    # ________________________________________________________________
+    D_DETECT_QUESTION = 1 << 0
+    D_DETECT_LINES = 1 << 1
+    D_DETECT_PARAGRAPH = 1 << 2
+    D_DETECT_IMAGES = 1 << 3
+    D_DETECT_TABLES = 1 << 4
+
+    def __init__(self, scaling=1, debug: int = 0, clean: int = 0):
         self.scaling = scaling
         self.debug = debug
         self.clean = clean
+        self.page_seg_dict: dict[int, SurfaceGapsSegments] = {}
+        self.question_list: list[Question] = {}
+
+    # *******************************************************
+    # ****************   Engine API    **********************
+    # _______________________________________________________
+
+    def set_files(self, pdf_paths: list[str]):
+        self.all_pdf_paths = pdf_paths
+        self.all_pdf_count = len(pdf_paths)
+        if self.all_pdf_count == 0:
+            raise Exception("pdf_paths can't be empty")
+        self.current_pdf_index = 0
+
+    def proccess_next_pdf_file(self):
+        if self.current_pdf_index >= self.all_pdf_count - 1:
+            return False
+        self.current_pdf_index += 1
+        self.initialize_file(self.all_pdf_paths[self.current_pdf_index])
+        self.current_page = 1
+        self.page_seg_dict = {}
+        self.detection_types = 0
+        return True
+
+    def extract_questions_from_pdf(
+        self,
+    ):
+        self.page_seg_dict = {}
+        self.question_list = []
+        self.detection_types = self.D_DETECT_QUESTION
+
+        if self.debug & self.M_DEBUG_DETECTOR:
+            enable_detector_dubugging()
+
+        for page_nr in range(1, len(self.pages)):
+            surface = self.render_pdf_page(page_nr)
+            self.page_seg_dict[page_nr] = SurfaceGapsSegments(surface)
+
+        self.question_detector.on_finish()
+        q_list = self.question_detector.get_question_list(self.pdf_path)
+        if len(q_list) == 0:
+            raise Exception("no question found on pdf !!", self.pdf_path)
+
+        self.question_list = q_list
+        return q_list
+
+    def render_pdf_page(self, page_number):
+        """page_number start from 1"""
+        if page_number in self.page_seg_dict:
+            surface = self.page_seg_dict[page_number].surface
+        else:
+            self.current_page = page_number
+            self.load_page_content(page_number)
+            if self.debug & self.M_DEBUG_ORIGINAL_CONTENT:
+                self.debug_original_stream()
+            self.execute_page_stream()
+            surface = self.renderer.surface
+
+        if not self.detection_types and (self.clean & self.O_CROP_EMPTY_LINES):
+            surface = self.remove_empty_lines_from_current_page()
+        return surface
+
+    def render_a_question(self, q_nr):
+        if not self.question_list:
+            raise Exception("there is no detected Question on this exam")
+        if 0 > q_nr > len(self.question_list):
+            raise Exception(f"question nr {q_nr}, index out of valid range")
+
+        q: Question = self.question_list[q_nr - 1]
+        return q.draw_question_on_image_surface(self.page_seg_dict)
 
     # *******************************************************
     # **************** initialization  **********************
@@ -35,13 +132,14 @@ class PdfEngine:
 
     def initialize_file(self, pdf_path):
         self.current_stream: str | None = None
-        self.pdf_path = pdf_path
-        self.reader: PdfReader = PdfReader(pdf_path)
+        self.pdf_path = pdf_path[1]
+        self.pdf_name = pdf_path[0]
+        self.reader: PdfReader = PdfReader(self.pdf_path)
         first_page: PageObject = self.reader.pages[0]
-        self.default_width: float = (
+        self.scaled_page_width: float = (
             float(first_page.mediabox.width) * self.scaling
         )
-        self.default_height: float = (
+        self.scaled_page_height: float = (
             float(first_page.mediabox.height) * self.scaling
         )
 
@@ -51,14 +149,26 @@ class PdfEngine:
 
         self.state: EngineState | None = None
         self.renderer: BaseRenderer | None = None
-        self.current_page = 1
         self.pages = self.reader.pages
 
     # *******************************************************
     # **************** Parsing Stream  **********************
     # _______________________________________________________
 
-    def perpare_page_stream(self, page_number: int, rendererClass):
+    def load_page_content(self, page_number: int):
+        """
+        prepare the page_number of pdf for rendering and detection
+        load the following from current page object:
+            - Fonts
+            - xObject
+            - external graphics state
+            - color-space
+            - main stream : containing the drawing commands
+        this function also create the following class-object:
+            - EngineState manager
+            - renderer
+            - configer the detector for this current page
+        """
 
         if page_number < 1 or page_number > len(self.reader.pages):
             raise ValueError("Invalid page number")
@@ -72,55 +182,29 @@ class PdfEngine:
         self.xobject = self.get_x_object(res)
         # print(self.xobject)
 
-        self.default_width = page.mediabox.width
-        self.default_height = page.mediabox.height
+        self.scaled_page_width = page.mediabox.width * self.scaling
+        self.scaled_page_height = page.mediabox.height * self.scaling
 
         self.font_map = self.get_fonts(self.res, 0)
         self.color_map = self.get_color_space_map(self.res)
 
-        self.state = EngineState(
-            self.font_map,
-            self.color_map,
-            self.res,
-            self.exgtate,
-            self.xobject,
-            None,
-            self.execute_xobject_stream,
-            "MAIN",
-            None,
-            self.scaling,
-            self.default_height,
-            self.debug,
-        )
-
-        self.renderer = rendererClass(self.state, self.question_detector)
-        self.renderer.skip_footer = self.clean
-
-        self.state.draw_image = self.renderer.draw_inline_image
-
-        self.question_detector.set_height(
-            int(self.default_width) * self.scaling,
-            int(self.default_height) * self.scaling,
-        )
         streams_data: list[bytes] = self.get_page_stream_data(page)
-        # bytes b"54" and b"03:"
-        if b"\xc3\x9f" in streams_data:
-            print("ß found")
+
         for i, b in enumerate(streams_data):
             if b == 54:
                 pass
-                # print("found", chr(streams_data[i - 1 : i + 2]))
-        # print(biggest, chr(biggest))
         if len(streams_data) == 0:
             self.current_stream = pnc.bytes_to_string(
                 self.reader.stream.read()
             )
-            self.debug_original_stream()
-            raise Exception("no data found in this pdf !!!")
+            raise Exception(
+                "no data found in this pdf !!!",
+                self.pdf_path,
+                ":",
+                self.current_page,
+            )
         streams_data = pnc.bytes_to_string(streams_data, unicode_excape=True)
-        self.current_stream = (
-            streams_data  # .encode("latin1").decode( "unicode_escape")
-        )
+        self.current_stream = streams_data
         return self
 
     def get_page_stream_data(self, page):
@@ -304,64 +388,94 @@ class PdfEngine:
     # **************** Excecute Stream **********************
     # _______________________________________________________
 
-    def execute_page_stream(
-        self,
-        max_show=10000,
-        mode=0,
-        stream: str | None = None,
-        width=None,
-        height=None,
-    ) -> int:
-        if (
-            self.state is None
-            or self.font_map is None
-            or self.current_stream is None
-        ):
-            raise ValueError("Engine not initialized properly")
-        self.max_show = max_show
-        width = width or self.default_width
-        height = height or self.default_height
-        stream = stream or self.current_stream
+    def execute_page_stream(self, max_show: int | None = None) -> int:
+        # if (
+        #     self.font_map is None
+        #     or self.current_stream is None
+        # ):
+        #     raise ValueError("Engine not initialized properly")
 
-        renderer: QuestionRenderer = self.renderer
-        renderer.mode = mode
+        self.max_show = max_show
+        self.counter = 0
+
+        # ********************* Initialize renderer and State ********
+
+        self.state = EngineState(
+            self.font_map,
+            self.color_map,
+            self.res,
+            self.exgtate,
+            self.xobject,
+            None,
+            self.execute_xobject_stream,
+            "MAIN",
+            None,
+            self.scaling,
+            self.scaled_page_height,
+            self.debug,
+        )
+        detectors = []
+        (self.detection_types & self.D_DETECT_QUESTION) and detectors.append(
+            self.question_detector
+        )
+        self.renderer = BaseRenderer(self.state, detectors, self.clean)
+
+        self.state.draw_image = self.renderer.draw_inline_image
+
         self.renderer.initialize(
-            int(width) * self.scaling,
-            int(height) * self.scaling,
+            int(self.scaled_page_width),
+            int(self.scaled_page_height),
             self.current_page,
         )
         self.state.ctx = self.renderer.ctx
-        counter = 0
+
+        # ****************** create Parser ************************
 
         self.parser = PDFStreamParser()
-        f = open(f"output{sep}output.md", "w", encoding="utf-8")
+
+        # ************* configer DEBUGGING *********************
+
+        debugging = (
+            not self.detection_types and self.debug & self.M_DEBUG_PAGE_STREAM
+        )
+        f = None
+        if debugging:
+            f = open(f"output{sep}output.md", "w", encoding="utf-8")
         self.renderer.output = f
         self.output_file = f
-        f.write("FILE: " + os.path.basename(self.pdf_path) + "\n")
-        f.write("PAGE: " + str(self.current_page) + "\n\n\n")
-        for cmd in self.parser.parse_stream(stream).iterate():
-            f.write(f"{cmd}\n")
+        if debugging:
+            f.write("FILE: " + os.path.basename(self.pdf_path) + "\n")
+            f.write("PAGE: " + str(self.current_page) + "\n\n\n")
+
+        # ************* start Execution loop *********************
+
+        for cmd in self.parser.parse_stream(self.current_stream).iterate():
+            debugging and f.write(f"{cmd}\n")
             explanation, ok = self.state.execute_command(cmd)
 
-            if self.debug and explanation:
-                f.write(f"{explanation}\n")
-            explanation2, ok2 = renderer.execute_command(cmd)
-            if self.debug and explanation2:
-                f.write(f"{explanation2}\n")
-            if mode >= 0 and cmd.name in ["Tj", "TJ", "'", '"']:
+            debugging and explanation and f.write(f"{explanation}\n")
+            explanation2, ok2 = self.renderer.execute_command(cmd)
 
-                f.write(f"counter={counter}\n\n")
-                counter += 1
-                if counter > max_show:
-                    break
-            if self.debug and not ok and not ok2:
+            if debugging and explanation2:
+                f.write(f"{explanation2}\n")
+
+            if cmd.name in ["Tj", "TJ", "'", '"']:
+                self.counter += 1
+                if debugging:
+                    f.write(f"counter={self.counter}\n\n")
+
+            if max_show and self.counter > max_show:
+                break
+
+            if debugging and not ok and not ok2:
                 print("CMD:", cmd)
                 s = f"{cmd.name} was not handled \n"
                 s += f"args : {cmd.args}\n"
                 raise Exception("Incomplete Implementaion\n" + s)
 
-        f.flush()
-        f.close()
+        if debugging:
+            f.flush()
+            f.close()
 
     def execute_xobject_stream(
         self,
@@ -373,7 +487,11 @@ class PdfEngine:
     ):
 
         x_stream = data_stream
-        if self.debug:
+        debugging = not self.detection_types and (
+            self.debug & self.M_DEBUG_XOBJECT_STREAM
+        )
+
+        if debugging:
             self.debug_x_stream(xres, x_stream)
         x_font_map = self.get_fonts(xres, depth)
         x_state: EngineState | None = None
@@ -391,7 +509,7 @@ class PdfEngine:
             stream_name,
             self.renderer.draw_inline_image,
             self.scaling,
-            self.default_height,
+            self.scaled_page_height,
             self.debug,
             depth,
         )
@@ -402,47 +520,56 @@ class PdfEngine:
             raise ValueError("Engine not initialized properly")
 
         x_state.ctx = self.renderer.ctx
-        counter = 0
 
         x_parser = PDFStreamParser()
+        f = None
+        if debugging:
+            if not self.output_file:
+                self.output_file = open(
+                    f"output{sep}output.md", "w", encoding="utf-8"
+                )
+            f = self.output_file
+            f.write("\n\n\n")
+            f.write(f"X_Stream[{depth}]: " + "\n")
+            f.write("Enter: " + "\n\n\n")
 
-        f = self.output_file
-        f.write("\n\n\n")
-        f.write(f"X_Stream[{depth}]: " + "\n")
-        f.write("Enter: " + "\n\n\n")
-        # print("\n\nEnter X_FORM\n")
         for cmd in x_parser.parse_stream(x_stream).iterate():
-            f.write(f"{cmd}\n")
+            debugging and f.write(f"{cmd}\n")
             explanation, ok = x_state.execute_command(cmd)
             if self.debug and explanation:
                 f.write(f"{explanation}\n")
             explanation2, ok2 = self.renderer.execute_command(cmd)
 
-            if self.debug and explanation2:
-                f.write(f"{explanation}\n")
+            (debugging and explanation2) and f.write(f"{explanation}\n")
             if cmd.name in ["Tj", "TJ", "'", '"']:
-                f.write("\n\n")
-                counter += 1
-                if counter > self.max_show:
-                    break
-            if not ok and not ok2:
+                self.counter += 1
+                debugging and f.write("\n\n")
 
+            if self.max_show and self.counter > self.max_show:
+                break
+
+            if not ok and not ok2:
                 print("X_CMD:", cmd)
                 print("Inside XFORM :")
                 s = f"{cmd.name} was not handled \n"
                 s += f"args : {cmd.args}\n"
                 raise Exception("Incomplete Implementaion\n" + s)
 
-        f.write("\n\n")
-        f.write(f"X_Stream[{depth}]: " + "\n")
-        f.write("Exit: " + "\n\n\n")
+        if debugging:
+            f.write("\n\n")
+            f.write(f"X_Stream[{depth}]: " + "\n")
+            f.write("Exit: " + "\n\n\n")
         # print("\nExit X_FORM\n\n")
         self.renderer.state = old_state
 
     def execute_glyph_stream(
         self, stream: str, ctx: cairo.Context, char_name: str, font_matrix
     ):
-        if self.debug:
+
+        debugging = not self.detection_types and (
+            self.debug & self.M_DEBUG_GLYPH_STREAM
+        )
+        if debugging:
             with open(
                 f"output{sep}font_stream.txt", "w", encoding="utf-8"
             ) as f:
@@ -460,7 +587,7 @@ class PdfEngine:
             stream_name=char_name,
             draw_image=self.renderer.draw_inline_image,
             scale=self.scaling,
-            screen_height=self.default_height,
+            scaled_screen_height=self.scaled_page_height,
             debug=self.debug,
             depth=self.state.depth,
         )
@@ -479,28 +606,31 @@ class PdfEngine:
         if stream is None:
             raise ValueError("Font stream is None")
 
-        counter = 0
-
         x_parser = PDFStreamParser()
 
-        f = self.output_file
-        f.write("\n\n\n")
-        f.write(f"Font_Stream[{self.state.depth}]: " + "\n")
-        f.write("Enter: " + "\n\n\n")
+        f = None
+        if debugging:
+            if not self.output_file:
+                self.output_file = open(
+                    f"output{sep}output.md", "w", encoding="utf-8"
+                )
+            f = self.output_file
+            f.write("\n\n\n")
+            f.write(f"Font_Stream[{self.state.depth}]: " + "\n")
+            f.write("Enter: " + "\n\n\n")
         print("\n\nEnter Font_Stream\n")
         for cmd in x_parser.parse_stream(stream).iterate():
-            f.write(f"{cmd}\n")
+            debugging and f.write(f"{cmd}\n")
             explanation, ok = font_state.execute_command(cmd)
-            if self.debug and explanation:
+            if debugging and explanation:
                 f.write(f"{explanation}\n")
             explanation2, ok2 = self.renderer.execute_command(cmd)
-            if self.debug and explanation2:
+            if debugging and explanation2:
                 f.write(f"{explanation}\n")
             if cmd.name in ["Tj", "TJ", "'", '"']:
-                f.write("\n\n")
-                counter += 1
-                # if counter > self.max_show:
-                #     break
+                debugging and f.write("\n\n")
+                self.counter += 1
+
             if not ok and not ok2:
                 print("Font_CMD:", cmd)
                 print("Inside Font_State :")
@@ -508,9 +638,10 @@ class PdfEngine:
                 s += f"args : {cmd.args}\n"
                 raise Exception("Incomplete Implementaion\n" + s)
 
-        f.write("\n\n")
-        f.write(f"Font_Stream[{self.state.depth}]: " + "\n")
-        f.write("Exit: " + "\n\n\n")
+        if debugging:
+            f.write("\n\n")
+            f.write(f"Font_Stream[{self.state.depth}]: " + "\n")
+            f.write("Exit: " + "\n\n\n")
         self.renderer.state = old_state
         self.renderer.ctx = old_ctx
 
@@ -519,75 +650,55 @@ class PdfEngine:
     # ************** and Segments ....     *********************
     # __________________________________________________________
 
-    def draw_page_on_image_surface(
+    def remove_empty_lines_from_current_page(
         self,
-        page_segments_dict: dict[int, SurfaceGapsSegments],
-        page_number: int,
-        # surf_dict: dict[int, cairo.ImageSurface],
-        # curr_file,
-        # t_range: list[int],
-        # per_question: bool,
     ):
-        if page_number > len(self.pages):
-            raise Exception("page number out of index ,nr=", page_number)
+        """this should only be called after self.execute_page_stream()
+        it will raise Exception if the PageSurface is empty !!!"""
+
+        # if page_number > len(self.pages):
+        #     raise Exception("page number out of index ,nr=", page_number)
+        page_number = self.current_page
+        page_surf = self.renderer.surface
+        if page_number in self.page_seg_dict:
+            page_seg_obj = self.page_seg_dict[page_number]
+        else:
+            page_seg_obj = SurfaceGapsSegments(page_surf)
+        net_height = page_seg_obj.net_height
+        if net_height <= 0:
+            raise Exception("Total Height = 0")
+        seg = page_seg_obj.non_empty_segments
+
         out_ctx = None
         out_surf = None
-        self.dest_y = 0
-        # self.default_line_height = self .line
-
-        total_height = sum([s.net_height for s in page_segments_dict.values()])
-        if total_height <= 0:
-            raise Exception("Total Height = 0")
-
-        # WARN:OLd
-
+        # self.default_d0 = None
         out_surf = cairo.ImageSurface(
-            cairo.FORMAT_ARGB32, self.default_width, int(total_height)
+            cairo.FORMAT_ARGB32, self.scaled_page_width, int(net_height)
         )
         out_ctx = cairo.Context(out_surf)
         out_ctx.set_source_rgb(1, 1, 1)  # White
         out_ctx.paint()
         out_ctx.set_source_rgb(0, 0, 0)  # Black
 
-        page_seg = page_segments_dict[page_number]
-        # page_surf = page_seg.surface
-
-        self.dest_y = 0
-        self.default_d0 = None
-
-        if not page_seg or len(page_seg) == 0:
+        if not seg or len(seg) == 0:
             raise Exception(f"WARN: page {page_number}, no Segments found")
-
-        self.dest_y = page_seg.__clip_segments_from_surface_into_contex(
-            out_ctx, self.dest_y, page_seg
+        start_y = 0
+        last_y = page_seg_obj.clip_segments_from_surface_into_contex(
+            out_ctx, start_y
         )
 
-        if self.dest_y == 0:
+        if last_y == 0:
             raise Exception(
                 f"WARN: page {page_number}, no Segments could be drawn"
             )
 
-        # if clean:
-        #     padding = 2 * (self.line_height)
-        #     return __crop_image_surface(out_surf, 0, self.dest_y, padding)
-        return out_surf
-
-        # while True:
-        #
-        #     height = total_height - (i / 10) * total_height
-        #     try:
-        #         out_surf = cairo.ImageSurface(
-        #             cairo.FORMAT_ARGB32, self.width, int(height)
-        #         )
-        #         break
-        #     except Exception as e:
-        #         print(f"reducing suface height form {height} to ")
-        #         i += 1
+        padding = 2 * (self.line_height)
+        return crop_image_surface(out_surf, start_y, last_y, padding)
 
 
 if __name__ == "__main__":
     pdf_path = "9702_m23_qp_12.pdf"
     pdf_engine = PdfEngine(pdf_path)
-    data = pdf_engine.perpare_page_stream(3)
+    data = pdf_engine.load_page_content(3)
     # pdf_engine.execute_stream(stream)
     pass

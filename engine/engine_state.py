@@ -1,14 +1,8 @@
-from collections import Counter
 import io
 from os import sep
-import pprint
-from textwrap import fill
 from typing import Any
-import zlib
-import PIL
 import cairo
 import string
-from typing import Callable
 
 from PIL import Image
 
@@ -19,7 +13,7 @@ from pypdf.filters import (
     ASCII85Decode,
     ASCIIHexDecode,
     LZWDecode,
-    DCTDecode,
+    # DCTDecode,
     decompress,
     FlateDecode,
     CCITTFaxDecode,
@@ -72,7 +66,7 @@ class EngineState:
         stream_name: str,
         draw_image: callable,
         scale: int,
-        screen_height: int = 0,
+        scaled_screen_height: int = 0,
         debug: bool = False,
         depth: int = 0,
     ):
@@ -93,7 +87,7 @@ class EngineState:
         self.stream_name = stream_name
         self.draw_image = draw_image
         self.scale = scale
-        self.screen_height = screen_height * scale
+        self.screen_height = scaled_screen_height
         self.debug = debug
         self.depth = depth
         self.ctx: cairo.Context = None
@@ -206,8 +200,8 @@ class EngineState:
             "/BPC": self.set_inline_image_bits_per_component,
             "/CS": lambda x: self.set_color_space(x, False, True),
             "/F": self.set_inline_image_filter,
+            # "/F": self.set_inline_image_dcode_filter,
             "/IM": self.set_inline_image_mask,
-            "/F": self.set_inline_image_dcode_filter,
             "/DP": self.set_inline_image_decode_params,
             "/D": lambda x: ("", True),
             "ID": self.decode_inline_image,
@@ -449,7 +443,7 @@ class EngineState:
         merged_resources = self._merge_resources(form_resources)
 
         # Process form content stream
-        filters = xobj.get("/Filter", [])
+        # filters = xobj.get("/Filter", [])
         data = xobj.get_data()
         stream = (
             pnc.bytes_to_string(data).encode("latin1").decode("unicode_escape")
@@ -532,15 +526,15 @@ class EngineState:
         if self.in_text_block:
             tm = self.tm_matrix
             cc1 = cairo.Matrix(1, 0, 0, -1, 0, 0)
-            fz = self.font_size
-            tm_pre_matrix = Matrix(
-                fz * self.horizontal_scaling * 1,
-                0,
-                0,
-                fz * -1,
-                0,
-                self.text_rize,
-            )
+            # fz = self.font_size
+            # tm_pre_matrix = Matrix(
+            #     fz * self.horizontal_scaling * 1,
+            #     0,
+            #     0,
+            #     fz * -1,
+            #     0,
+            #     self.text_rize,
+            # )
             return cc1.multiply(tm.multiply(cm.multiply(cc0)))
         else:
             cc1 = cairo.Matrix(1, 0, 0, 1, 0, 0)
@@ -630,11 +624,11 @@ class EngineState:
             for c in s
         )
 
-    def set_inline_image_dcode_filter(self, cmd: PdfOperator):
-        filter = cmd.args[0]
-        self.inline_image_filter = [filter]
-        print("inline image filter =", filter)
-        return "", True
+    # def set_inline_image_dcode_filter(self, cmd: PdfOperator):
+    #     filter = cmd.args[0]
+    #     self.inline_image_filter = [filter]
+    #     print("inline image filter =", filter)
+    #     return "", True
 
     def set_inline_image_decode_params(self, cmd: PdfOperator):
         param = cmd.args[0]

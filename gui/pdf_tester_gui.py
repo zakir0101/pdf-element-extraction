@@ -199,7 +199,6 @@ def start(width, height):
 def show_page(
     cairo_image_surface: cairo.ImageSurface,
     adjust_height_to_fit,
-    ratio: float | None = None,
 ):
     """
     Displays a single PDF page (from a Cairo ImageSurface) and waits for user feedback.
@@ -216,11 +215,9 @@ def show_page(
 
     adjust_height = adjust_height_to_fit
 
-    if not ratio:
+    # if not ratio:
 
-        ratio = (
-            cairo_image_surface.get_width() / cairo_image_surface.get_height()
-        )
+    ratio = cairo_image_surface.get_width() / cairo_image_surface.get_height()
 
     if not _gui_root or not _gui_root.winfo_exists():
         print("Error: GUI not started or has been closed. Call start() first.")
@@ -320,7 +317,7 @@ def _resize_image(event: tk.Event):
     try:
 
         width = event.width
-        heght = event.height
+        # heght = event.height
 
         if img_copy.width > event.width:
             width = width
@@ -342,7 +339,6 @@ def _resize_image(event: tk.Event):
 
 
 if __name__ == "__main__":
-    import time
     from PIL import (
         ImageDraw,
     )

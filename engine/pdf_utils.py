@@ -37,15 +37,15 @@ def _surface_as_uint32(surface: cairo.ImageSurface):
     return np.frombuffer(buf, dtype=np.uint32).reshape(h, stride // 4)
 
 
-def __crop_image_surface(out_surf:cairo.ImageSurface, y_start, y_end, padding):
+def crop_image_surface(out_surf: cairo.ImageSurface, y_start, y_end, padding):
     # print("dest_y", self.dest_y)
 
     o = out_surf
     s = round(y_start if y_start <= padding else y_start - padding)
-    e = round(y_end + padding ) 
+    e = round(y_end + padding)
     #     e = round(y_end + padding if y_end < (out_surf.get_height() - padding) else y_end)
 
-    s_index = s * o.get_stride
+    s_index = s * o.get_stride()
     e_index = e * o.get_stride()
 
     surf_width = out_surf.get_width()

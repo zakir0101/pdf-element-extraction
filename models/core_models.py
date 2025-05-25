@@ -136,21 +136,21 @@ class SymSequence(BoxSegments):
         else:
             return rep
 
-    def __set_box__(self):
-        if len(self.box) == 0:
-            return
-        x0, y0, x1, y1 = self.data[0].get_box()
-        for d in self.data[1:]:
-            nx0, ny0, nx1, ny1 = d.get_box()
-            x0 = min(x0, nx0)
-            y0 = min(y0, ny0)
-            x1 = max(x1, nx1)
-            y1 = max(y1, ny1)
-        self.box = (x0, y0, x1, y1)
-        self.x = x0
-        self.y = y0
-        self.w = x1 - x0
-        self.h = y1 - y0
+    # def __set_box__(self):
+    #     if len(self.box) == 0:
+    #         return
+    #     x0, y0, x1, y1 = self.data[0].get_box()
+    #     for d in self.data[1:]:
+    #         nx0, ny0, nx1, ny1 = d.get_box()
+    #         x0 = min(x0, nx0)
+    #         y0 = min(y0, ny0)
+    #         x1 = max(x1, nx1)
+    #         y1 = max(y1, ny1)
+    #     self.box = (x0, y0, x1, y1)
+    #     self.x = x0
+    #     self.y = y0
+    #     self.w = x1 - x0
+    #     self.h = y1 - y0
 
     def __set_mean__(self, box):
         x0, y0, x1, y1 = box
@@ -209,7 +209,8 @@ class SurfaceGapsSegments(BoxSegments):
     def find_empty_gaps(self, min_y=0):
         surface = self.surface
         mask = self.build_blank_mask(surface)
-        gaps, h_px = [], len(mask)
+        gaps: list[Box] = []
+        h_px = len(mask)
         MIN_COUNT = round(0.1 * self.d0)
         start = None
         not_blanck_count = 0
@@ -238,7 +239,9 @@ class SurfaceGapsSegments(BoxSegments):
             gaps.append(Box(0, start, surface.get_width(), h_px - start))
 
         fgaps = [
-            (y, h) for y, h in gaps if h > self.MIN_GAP_HEIGHT and y > min_y
+            box
+            for box in gaps
+            if box.h > self.MIN_GAP_HEIGHT and box.y > min_y
         ]
         self.empty_segments = fgaps
 
@@ -263,11 +266,12 @@ class SurfaceGapsSegments(BoxSegments):
 
         if net_height < self.surface.get_height() - 2 * self.d0:
             net_height += 2 * self.d0
+
         return segments, net_height
 
     def filter_question_segments(self, min_y, max_y, page_range, curr_page):
         q_segs = []
-        y0, y1 = 0, self.height
+        y0, y1 = 0, self.surface.get_height()
         if page_range[0] == curr_page:
             y0 = min_y - 1.5 * self.d0  # q.h
         if page_range[-1] == curr_page:
@@ -276,13 +280,14 @@ class SurfaceGapsSegments(BoxSegments):
         # print("seq length = ", len(segments))
         for box in self.non_empty_segments:
             sy, _, d0 = box.y, box.h, self.d0
-            if not self.default_d0 and d0:
-                self.default_d0 = d0
+            # if not self.default_d0 and d0:
+            #     self.default_d0 = d0
             if sy < y1 and sy >= y0:
                 q_segs.append(box)
-        # TODO: create a GapSegment obj
-        q_segs_obj: SurfaceGapsSegments = somefunction(q_segs)  # TODO:
-        return q_segs_obj
+        ###: create a GapSegment obj
+        # q_segs_obj: SurfaceGapsSegments = somefunction(q_segs)  # TODO:
+
+        return q_segs
 
     def build_blank_mask(self, surface):
         pix = _surface_as_uint32(surface)
@@ -314,13 +319,14 @@ class SurfaceGapsSegments(BoxSegments):
 
         return is_middle_completly_empyty and is_side_almost_empty
 
-    def __clip_segments_from_surface_into_contex(
+    def clip_segments_from_surface_into_contex(
         self,
         out_ctx: cairo.Context,
         out_y_start: float,
-        line_height: float,
-        segments=None,
+        segments: list[Box] | None = None,
+        line_height: float | None = None,
     ):
+        """return (y_after) the y-location after drawing the segments into the output Context"""
         if not segments:
             """use the whole page segments"""
             segments = self.non_empty_segments
@@ -353,35 +359,8 @@ class SurfaceGapsSegments(BoxSegments):
             """this 0.25 is for spacing between lines, it require the surface to
             be paint white at beginning"""
             out_y_start += h0 + (0.55 * line_height)
+
         return out_y_start
-
-
-class BaseDetector:
-    def __init__(self) -> None:
-        pass
-
-    # def detect(self, char):
-    #     pass
-
-
-class LineDetector(BaseDetector):
-    pass
-
-
-class ParagraphDetector(BaseDetector):
-    pass
-
-
-class TableDetector(BaseDetector):
-    pass
-
-
-class GraphDetector(BaseDetector):
-    pass
-
-
-class InlineImageDetector(BaseDetector):
-    pass
 
 
 # **************************************************************************

@@ -1,20 +1,16 @@
-from collections import UserList
-import enum
-import os
 from os.path import sep
-from typing import Sequence
 import cairo
-
-from models.core_models import Symbol, QuestionBase, SymSequence, BaseDetector
-
-from .pdf_utils import get_next_label, checkIfRomanNumeral, get_segments
+from models.core_models import Symbol, SymSequence
+from models.question import QuestionBase
+from models.question import Question
+from .pdf_utils import get_next_label, checkIfRomanNumeral
 
 
 cosole_print = print
 file = None
 
 
-def set_dubugging():
+def enable_detector_dubugging():
     global file
     file = open(f"output{sep}detector_output.md", "w", encoding="utf-8")
 
@@ -43,19 +39,52 @@ LEVEL_SUBPART = 2
 TITLE_DICT = ["Question", "PART", "SUBPART"]
 
 
-def find_questions_part_in_page(
-    q: QuestionBase, page: int
-) -> list[QuestionBase]:
-    parts: list[QuestionBase] = []
-    if page not in q.pages:
-        return []
+class BaseDetector:
+    def __init__(self) -> None:
+        pass
 
-    if len(q.pages) == 1:
-        parts.append(q)
-    else:
-        for p in q.parts:
-            parts.extend(find_questions_part_in_page(p, page))
-    return parts
+    def attach(self, page_width, page_height):
+        self.height = page_height
+        self.width = page_width
+
+    # def detect(self, char):
+    #     pass
+
+
+class LineDetector(BaseDetector):
+    pass
+
+
+class ParagraphDetector(BaseDetector):
+    pass
+
+
+class TableDetector(BaseDetector):
+    pass
+
+
+class GraphDetector(BaseDetector):
+    pass
+
+
+class InlineImageDetector(BaseDetector):
+    pass
+
+
+# def find_questions_part_in_page(
+#
+#     q: QuestionBase, page: int
+# ) -> list[QuestionBase]:
+#     parts: list[QuestionBase] = []
+#     if page not in q.pages:
+#         return []
+#
+#     if len(q.pages) == 1:
+#         parts.append(q)
+#     else:
+#         for p in q.parts:
+#             parts.extend(find_questions_part_in_page(p, page))
+#     return parts
 
 
 class QuestionDetector(BaseDetector):
@@ -94,10 +123,9 @@ class QuestionDetector(BaseDetector):
         self.type: list[int] = [UNKNOWN, UNKNOWN, UNKNOWN]
         pass
 
-    def set_height(self, new_width, new_height):
-        self.height = new_height
-        self.width = new_width
-        self.MINIMAL_X = 0.05 * new_width
+    def attach(self, page_width, page_height):
+        super().attach(page_width, page_height)
+        self.MINIMAL_X = 0.05 * page_width
         if len(self.question_list) == 0:
             self.reset_left_most()
 
@@ -301,7 +329,7 @@ class QuestionDetector(BaseDetector):
 
     def is_char_valid_as_next(self, char, level, strict=False):
         next = self.get_next_allowed(level)
-        if type(next) == list:
+        if isinstance(next, list):
             return char in next
         next = str(next)
         if strict:
@@ -315,7 +343,7 @@ class QuestionDetector(BaseDetector):
         but here for simplicity we only allow rolling back one step , or completly discard
         everything ( logic in other code place )"""
         alternatives = self.get_alternative_allowed(level)
-        if type(alternatives) == list:
+        if isinstance(alternatives, list):
             return char in alternatives
         alternatives = str(alternatives)
         if strict:
@@ -349,7 +377,7 @@ class QuestionDetector(BaseDetector):
         print("current types = ", self.type)
         print(
             "current types = ",
-            [self.get_next_allowed(l) for l in range(3)],
+            [self.get_next_allowed(lev) for lev in range(3)],
         )
 
     def print_final_results(self, curr_file):
@@ -402,12 +430,13 @@ class QuestionDetector(BaseDetector):
         is_overwrite_and_reset = False
 
         char_all = ""
-        char, x, y, symbole_height, diff, old_diff = "", 0, 0, 0, None, 10000
+        char, x, y, symbole_height, diff = "", 0, 0, 0, None
+        # old_diff = 10000
         can_append, can_overwrite = None, None
         # is_alternative_better = False
 
-        if self.current[level]:
-            old_diff = self.current[level].x - self.left_most_x[level]
+        # if self.current[level]:
+        #     old_diff = self.current[level].x - self.left_most_x[level]
         for _, sym in enumerate(seq):
             sym: Symbol = sym
             char = sym.ch
@@ -478,7 +507,14 @@ class QuestionDetector(BaseDetector):
             print("OV_AND_RESET :\n" + seq.get_text())
             self.reset(0)  # current level == 0
             new_q = QuestionBase(
-                "1", self.curr_page, level, x, y, 2 * symbole_height
+                "1",
+                self.curr_page,
+                level,
+                x,
+                y,
+                self.width,
+                self.height,
+                2 * symbole_height,
             )
             self.set_question(new_q, level)
             return True
@@ -489,7 +525,14 @@ class QuestionDetector(BaseDetector):
 
             print("\n" + seq.get_text())
             new_q = QuestionBase(
-                char_all, self.curr_page, level, x, y, 2 * symbole_height
+                char_all,
+                self.curr_page,
+                level,
+                x,
+                y,
+                self.width,
+                self.height,
+                2 * symbole_height,
             )
             self.set_question(new_q, level)
             return True
@@ -500,7 +543,14 @@ class QuestionDetector(BaseDetector):
 
             print("\n" + seq.get_text())
             new_q = QuestionBase(
-                char_all, self.curr_page, level, x, y, 2 * symbole_height
+                char_all,
+                self.curr_page,
+                level,
+                x,
+                y,
+                self.width,
+                self.height,
+                2 * symbole_height,
             )
             self.replace_question(new_q, level)
             return True
@@ -508,42 +558,16 @@ class QuestionDetector(BaseDetector):
         else:
             return False
 
-    def preset_detectors(self, height, width, q_list: list[QuestionBase]):
-        self.width = width
-        self.height = height
-        self.question_list = q_list
+    def get_question_list(self, pdf_file_name_or_path) -> list[Question]:
+        q_list = []
+        for i, q in enumerate(self.question_list):
+            q_list.append(Question.from_base(q, pdf_file_name_or_path, i + 1))
+        return q_list
 
-    def __draw_page_content(
-        self,
-        segments: list,
-        page_surf: cairo.ImageSurface,
-        out_ctx: cairo.Context,
-    ):
-        d0 = None
-        for i, (src_y, seg_h, d0) in enumerate(segments):
-            if not self.default_d0 and d0:
-                self.default_d0 = d0
-            factor = 2
-            if len(segments) == i + 1:
-                factor = 4
-            # print(src_y, seg_h, d0)
-            """subtract 0.20 , why ?? 0.1 for shifting by 0.1 * h0 pixel , because the detecting 
-            has some delayed response by this ammount , and +0.1 for padding"""
-            y0 = round(src_y - 0.20 * d0)
-            """only the 0.2 correspond to the padding , so in practice we shift up by 0.1 and padd by 0.1 from up and down"""
-            h0 = round(seg_h + 0.20 * d0)  # + factor * d0
-            # print(y0, y1, d0)
-
-            sub = page_surf.create_for_rectangle(0, y0, self.width, h0)
-            """Read the doc string below : this is for padding the top most line from above"""
-            if self.dest_y == 0:
-                self.dest_y = self.dest_y + (1 * d0)
-            out_ctx.set_source_surface(sub, 0, self.dest_y)
-            out_ctx.paint()
-            """this 0.25 is for spacing between lines, it require the surface to
-            be paint white at beginning"""
-            self.dest_y += h0 + (0.55 * d0)
-        return d0
+    # def preset_detectors(self, height, width, q_list: list[QuestionBase]):
+    #     self.width = width
+    #     self.height = height
+    #     self.question_list = q_list
 
 
 if __name__ == "__main__":

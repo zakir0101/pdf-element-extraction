@@ -2,18 +2,12 @@ import json
 import pprint
 import random
 import traceback
-from zlib import DEF_BUF_SIZE
 import tqdm
 import sys
-import cairo
 from collections import defaultdict
-import time
-from engine.pdf_renderer import BaseRenderer
 from engine.pdf_engine import PdfEngine
 from engine.pdf_stream_parser import PDFStreamParser
 from engine.pdf_utils import (
-    open_image_in_irfan,
-    kill_with_taskkill,
     open_pdf_using_sumatra,
     open_files_in_nvim,
 )
@@ -23,7 +17,7 @@ from main import CmdArgs, all_subjects, igcse_path
 import os
 from os.path import sep
 import gui.pdf_tester_gui as gui
-from engine.pdf_detectors import set_dubugging
+from engine.pdf_detectors import enable_detector_dubugging
 from models.core_models import Subject
 import engine.pdf_gui_api as api
 
@@ -31,7 +25,7 @@ import engine.pdf_gui_api as api
 # ******************************************************************
 # ********************* CMD_MAKE **********************************
 # ------------------------------------------------------------------
-def do_tests(args: CmdArgs):
+def do_make(args: CmdArgs):
     pass
 
 
@@ -54,7 +48,10 @@ def do_tests(args: CmdArgs):
         "questions-show": do_test_question,
         "pre-questions-show": do_show_question,
         "questions-save": do_test_question,
+        # -----
         "subjects": do_test_subjects_syllabus,
+        "view-question": show_question,
+        "view-page": show_page,
     }
     if callbacks.get(args.test):
         callbacks[args.test](args)
@@ -65,7 +62,7 @@ def do_test_subjects_syllabus(args: CmdArgs):
     subjects_dict = api.load_subjects_files()
     for sub in args.subjects:
         sub_obj: Subject = subjects_dict[sub]
-        print(f"\n\n******************************************")
+        print("\n\n******************************************")
         print(f"****************  {sub} *****************")
         for paper in sub_obj.papers.values():
             if args.data and str(paper.number) not in args.data:
@@ -73,7 +70,7 @@ def do_test_subjects_syllabus(args: CmdArgs):
                 continue
             print(f"\n************+ Paper Nr {paper.number} ***************")
             print(f"************+ Paper {paper.name} ***************")
-            empty_chaps = []
+            # empty_chaps = []
             for chap in paper.chapters:
                 if args.range and chap.number not in args.range:
                     print(args.range, chap.number)
@@ -94,7 +91,7 @@ def do_test_subjects_syllabus(args: CmdArgs):
                 )
                 print("char_count = ", len(cleaned_desc))
                 if not chap.description or len(cleaned_desc) == 0:
-                    raise Exception(f"Found an emtpy chapter ... ")
+                    raise Exception("Found an emtpy chapter ... ")
 
 
 def do_list(args: CmdArgs):
@@ -114,7 +111,7 @@ def do_test_font(args: CmdArgs, t_type: str = "show"):
         cur_range = args.range or range(1, args.page_count + 1)
         for page in cur_range:
             try:
-                engine.perpare_page_stream(page, QuestionRenderer)
+                engine.load_page_content(page, QuestionRenderer)
                 for font in engine.font_map.values():
                     if t_type == "show":
                         font.debug_font()
@@ -136,7 +133,7 @@ def do_test_parser(args: CmdArgs):
 
     print("************* Testing Parser ****************\n\n")
     engine: PdfEngine = PdfEngine(scaling=4, debug=True, clean=False)
-    errors_dict = {}
+    # errors_dict = {}
     exception_stats = {}  # defaultdict(lambda: (0, "empty", []))
     total_pages = 0
     total_passed = 0
@@ -152,7 +149,7 @@ def do_test_parser(args: CmdArgs):
         for page in range(1, args.page_count + 1):
             total_pages += 1
             try:
-                engine.perpare_page_stream(page, QuestionRenderer)
+                engine.load_page_content(page, QuestionRenderer)
                 engine.debug_original_stream()
                 parser = PDFStreamParser().parse_stream(engine.current_stream)
                 for cmd in parser.iterate():
@@ -198,7 +195,7 @@ def do_test_parser(args: CmdArgs):
 def do_test_renderer(args: CmdArgs):
 
     engine: PdfEngine = PdfEngine(scaling=4, debug=True, clean=False)
-    errors_dict = {}
+    # errors_dict = {}
     exception_stats = {}  # defaultdict(lambda: (0, "empty", []))
     total_pages = 0
     total_passed = 0
@@ -227,12 +224,14 @@ def do_test_renderer(args: CmdArgs):
         for page in pages_range:
             total_pages += 1
             try:
-                engine.perpare_page_stream(page, QuestionRenderer)
+                engine.load_page_content(page, QuestionRenderer)
                 engine.debug_original_stream()
                 engine.execute_page_stream(max_show=args.max_tj, mode=0)
                 if is_show:
                     surf = engine.renderer.surface
-                    raitio = engine.default_width / engine.default_height
+                    raitio = (
+                        engine.scaled_page_width / engine.scaled_page_height
+                    )
                     res = gui.show_page(surf, raitio)
                     print("status", res)
                     if res == gui.STATE_WRONG:
@@ -315,7 +314,7 @@ def get_exception_key(e: Exception):
 
 def do_show_question(args: CmdArgs):
 
-    clean = False  # args.clean
+    # clean = False  # args.clean
     stop = False
     gui.start(-1000, -1)
     for pdf in tqdm.tqdm(args.data):
@@ -323,6 +322,7 @@ def do_show_question(args: CmdArgs):
             break
         api.set_current_exam(pdf[0])
         q_list = api.get_curr_exam_questions()
+
         for q in q_list:
             if args.range and int(q.label) not in args.range:
                 continue
@@ -340,17 +340,14 @@ def do_show_question(args: CmdArgs):
 def do_test_question(
     args: CmdArgs,
 ):
-    set_dubugging()
+    enable_detector_dubugging()
     is_show = args.test == "questions-show"
-    is_match = args.test == "questions-match"
     is_count = args.test == "questions-count"
     is_save = args.test == "questions-save"
     clean = False  # args.clean
     engine: PdfEngine = PdfEngine(
         scaling=4, debug=True, clean=(is_show and clean)
     )
-    question_count_dict = {}
-    exception_stats = {}  # defaultdict(lambda: (0, "empty", []))
     total_pages = 0
     total_passed = 0
     exams_count_by_question_number = defaultdict(int)
@@ -361,8 +358,6 @@ def do_test_question(
     # ----
     if is_show:
         pass
-        # gui.start(-1000, -1)
-    wrong_rendered = []
     created_files = []
     for pdf in tqdm.tqdm(args.data):
         if stop:
@@ -378,7 +373,7 @@ def do_test_question(
             print(f"skipping pre-saved file {pdf[1]}")
             continue
 
-        surfs_dict = {}
+        # surfs_dict = {}
         args.curr_file = pdf[1]
         args.max_tj = 4000
         engine.initialize_file(pdf[1])
@@ -388,33 +383,11 @@ def do_test_question(
         for page in pages_range:
             total_pages += 1
             try:
-                engine.perpare_page_stream(page, QuestionRenderer)
+                engine.load_page_content(page, QuestionRenderer)
                 engine.debug_original_stream()
                 engine.execute_page_stream(max_show=args.max_tj, mode=1)
 
                 total_passed += 1
-                if is_show:
-                    pass
-                    # raise
-                    # surf = engine.renderer.surface
-                    # detector.calc_page_segments_and_height(surf, page, args)
-                    # surfs_dict[page] = surf
-                    # raitio = engine.default_width / engine.default_height
-
-                    # res = gui.show_page(surf, raitio)
-                    # print("status", res)
-                    # if res == gui.STATE_WRONG:
-                    #     location = f"{pdf[1]}:{page}"
-                    #     print("added to list")
-                    #     wrong_rendered.append(location)
-                    # elif res == gui.STATE_CORRECT:
-                    #     total_passed += 1
-                    # else:
-                    #     gui.end()
-                    #     stop = True
-                    #     break
-                else:
-                    pass
             except Exception as e:
                 location = f"{pdf[1]}:{page}"
                 print(f"Error: {location}")
@@ -542,131 +515,46 @@ def list_subjects(args: CmdArgs):
 # ------------------------------------------------------------------
 
 
-def view_element(args: CmdArgs):
-    test_files = [
-        "9702_m23_qp_12.pdf",
-        "9709_m23_qp_32.pdf",
-        "9709_m23_qp_22.pdf",
-        "9709_m23_qp_12.pdf",
-        "9709_w23_qp_31.pdf",
-        "9702_m23_qp_22.pdf",
-    ]
-    engine: PdfEngine = PdfEngine(scaling=4, debug=True, clean=args.clean)
-    args.exampaths = args.exampaths or [
-        f"PDFs{sep}{f}" for f in test_files
-    ]  #  []
-    if args.f_indecies:
-        args.exampaths = [
-            f for i, f in enumerate(args.exampaths) if i in args.f_indecies
-        ]
-    for i, curr_file in enumerate(args.exampaths):
-        engine.initialize_file(curr_file)
-        args.set_engine(engine)
-        args.curr_file = curr_file
-        show_single_image(args)
-
-
-def show_single_image(args: CmdArgs):
-    exam_name = os.path.basename(args.curr_file)
-    print("\n")
-    print("***************  exam  ******************")
-    print(f"*********** ({exam_name}) ************")
-    print(f"{args.curr_file}")
-    engine: PdfEngine = args.engine
-    detector = engine.question_detector
-    surfs_dict = {}
-    per_page = args.type == "pages"
-    per_questions = args.type == "questions"
-    if per_questions:
-        set_dubugging()
-    missing_font_mode = args.missing_font or None
-    rendererClass = QuestionRenderer if per_questions else BaseRenderer
-    if per_page and not args.range:
-        args.range = [i for i in range(1, args.page_count + 1)]
-    missing_font_count = 0
-    missing_font_names = set()
-    for page in range(1, args.page_count + 1):
-        if per_questions or page in args.range:
-            engine.perpare_page_stream(page, rendererClass=rendererClass)
-            engine.debug_original_stream()
-            if (
-                missing_font_mode
-                and len(engine.state.list_all_missing_font()) == 0
-            ):
-                continue
-            engine.execute_page_stream(
-                max_show=args.max_tj, mode=(1 if per_questions else 0)
-            )
-            if (
-                not missing_font_mode
-                or engine.state.missing_font_count > args.missing_font
-            ):
-                curr_surf = engine.renderer.surface
-                surfs_dict[page] = curr_surf
-                # print("about to show image")
-                # f_name = f"output{sep}temp.png"
-                # engine.renderer.save_to_png(f_name)
-                # open_image_in_irfan(f_name)
-                # return
-
-                #
-                detector.calc_page_segments_and_height(
-                    curr_surf, page, args.type == "questions"
-                )
-                if args.missing_font:
-                    missing_font_count += 1
-                    missing_font_names.update(
-                        engine.state.list_all_missing_font()
-                    )
-    detector.on_finish()
-    questions: list[QuestionBase] = detector.question_list
-    print("Page Numbers :", args.page_count)
-    print("Question Numbers :", len(questions))
-
-    if per_questions and len(questions) == 0:
-        print(f"no Question detected in File {exam_name}")
-        return
-
-    if not missing_font_mode:
-        detector.print_final_results(args.curr_file)
-    else:
-        print(
-            f"Found {missing_font_count} Pages with missing Fonts (>{args.missing_font})\n"
-        )
-        print(">> replaced with :")
-        print(missing_font_names)
-        if missing_font_count == 0:
-
-            return
-    # if len(questions) > 0:
-
-    if args.single:
-        draw_and_preview(args, args.range, surfs_dict)
-    else:
-        for i in args.range:
-            draw_and_preview(args, [i], surfs_dict)
-
-
-def draw_and_preview(args: CmdArgs, b_range: list, surfs_dict):
-    filename = args.engine.question_detector.draw_all_pages_to_single_png(
-        surfs_dict, args.curr_file, b_range, args.type == "questions"
+def show_question(args: CmdArgs):
+    debugging = args.debug and PdfEngine.M_DEBUG_DETECTOR
+    clean = args.clean and (
+        PdfEngine.O_CROP_EMPTY_LINES | PdfEngine.O_CLEAN_HEADER_FOOTER
     )
-    if filename:
-        preview_image(filename, args)
-        kill_with_taskkill()
-    else:
-        print("no image genrated !!")
+    engine: PdfEngine = PdfEngine(4, debugging, clean)
+    engine.set_files(args.data)
+    gui.start(-1, -1)
+    for pdf_index in range(engine.all_pdf_count):
+        is_ok = engine.proccess_next_pdf_file()
+        print("\n")
+        print("***************  exam  ******************")
+        print(f"{engine.pdf_path}")
+        if not is_ok:
+            break
+        engine.extract_questions_from_pdf()
+        for nr in args.range:
+            q_surf = engine.render_a_question(nr)
+            gui.show_page(q_surf, True)
 
 
-def preview_image(imgpath, args: CmdArgs):
-    waiting_time = args.wait_time
-    if args.open_pdf:
-        open_pdf_using_sumatra(args.curr_file)
-    open_image_in_irfan(imgpath)
-    if waiting_time and waiting_time > 0:
-        time.sleep(waiting_time)
-    else:
-        _ = input("Press Enter to continue...")
+def show_page(args: CmdArgs):
+    debugging = args.debug and PdfEngine.M_DEBUG
+    clean = 0  # args.clean and(  PdfEngine.O_CLEAN_HEADER_FOOTER )
+    engine: PdfEngine = PdfEngine(4, debugging, clean)
+    engine.set_files(args.data)
+    gui.start(-1, -1)
+    for pdf_index in range(engine.all_pdf_count):
+        is_ok = engine.proccess_next_pdf_file()
+        print("\n")
+        print("***************  exam  ******************")
+        print(f"{engine.pdf_path}")
+        if not is_ok:
+            print("Exiting ..")
+            break
+        for page in args.range:
+            surf = engine.render_pdf_page(page)
+            stat = gui.show_page(surf, True)
+            if stat == gui.STATE_DONE:
+                return
 
 
 # ******************************************************************
@@ -691,7 +579,6 @@ MAIN_CALLBACK = {
     "do_tests": do_tests,
     "list_items": list_items,
     "clear_temp_files": clear_temp_files,
-    "view_element": view_element,
 }
 
 missing_fonts = """

@@ -15,19 +15,26 @@ doty = -30
 
 
 class BaseRenderer:
+
+    O_CLEAN_DOTS_LINES = 1 << 1
+    O_CLEAN_HEADER_FOOTER = 1 << 2
+
     def __init__(
-        self, state: EngineState, main_detector: BaseDetector
+        self,
+        state: EngineState,
+        detector_lists: list[BaseDetector],
+        clean: int,
     ) -> None:
         self.state: EngineState = state
         self.default_char_width = 10
 
         self.surface: ImageSurface | None = None
         self.ctx: Context | None = None
-        self.skip_footer = True
-        self.page_number = -1
-        self.main_detector: BaseDetector = main_detector
+        self.skip_footer_header = clean & self.O_CLEAN_HEADER_FOOTER
+        self.skip_lines_with_only_dots = clean & self.O_CLEAN_DOTS_LINES
         self.max_dots = 20
-        self.mode = 0
+        self.page_number = -1
+        self.detector_list: list[BaseDetector] = detector_lists
         self.output = None
 
         self.functions_map = {
@@ -99,6 +106,8 @@ class BaseRenderer:
         """Initialize the Cairo surface and context."""
         self.width = width
         self.height = height
+        for detector in self.detector_list:
+            detector.attach(width, height)
         self.page_number = page
         self.footer_y = height * 0.95
         self.header_y = height * 0.06
@@ -200,7 +209,7 @@ class BaseRenderer:
     def draw_string(self, cmd: PdfOperator):
         return self.draw_string_array(cmd, is_single=True)
 
-    def count_dots(self, char_seq):
+    def has_only_dots(self, char_seq):
         global doty
         sym: Symbol = char_seq[0]
         if abs(sym.y - doty) < sym.h * 0.6:
@@ -221,11 +230,13 @@ class BaseRenderer:
             return True
         if len(char_seq) == 0:
             return True
-        if (  # self.skip_footer and
-            char_seq[0].y >= self.footer_y or char_seq[0].y <= self.header_y
-        ):
-            return True
-        if self.skip_footer and self.count_dots(char_seq):
+        if self.skip_footer_header:
+            if (
+                char_seq[0].y >= self.footer_y
+                or char_seq[0].y <= self.header_y
+            ):
+                return True
+        if self.skip_lines_with_only_dots and self.has_only_dots(char_seq):
             return True
         return False
 
@@ -235,26 +246,29 @@ class BaseRenderer:
             cmd, is_single
         )
         char_seq: SymSequence = char_seq
-
-        self.output.write("charSeq: " + char_seq.get_text(False) + "\n")
+        if self.output:
+            self.output.write("charSeq: " + char_seq.get_text(False) + "\n")
         if self.should_skip_sequence(char_seq):
-            self.output.write("skipping ...")
+            if self.output:
+                self.output.write("skipping ...")
             update_text_position()
             return self.state.get_current_position_for_debuging(), True
 
-        if self.mode == 1:
-            self.run_detectors(char_seq)
+        # if self.mode == 1:
+        self.run_detectors(char_seq)
 
         if not self.state.font.is_type3:
             self.draw_glyph_array(glyph_array)
         update_text_position()
-        self.output.write(
-            f"cairoPos: {self.ctx.get_matrix().transform_point(0,0)}\n"
-        )
+        if self.output:
+            self.output.write(
+                f"cairoPos: {self.ctx.get_matrix().transform_point(0,0)}\n"
+            )
         return self.state.get_current_position_for_debuging(), True
 
     def run_detectors(self, char_seq: SymSequence):
-        # self.question_detector.handle_sequence(char_seq, self.page_number)
+        for detector in self.detector_list:
+            detector.handle_sequence(char_seq, self.page_number)
         pass
 
     def get_glyph_array(self, cmd: PdfOperator, is_single=False):

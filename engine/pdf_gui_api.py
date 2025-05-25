@@ -1,12 +1,9 @@
-from pprint import pprint
 import cairo
-
 from engine.pdf_detectors import QuestionBase
 from engine.pdf_engine import PdfEngine
 from engine.pdf_renderer import BaseRenderer
 from models.core_models import Subject
 from os.path import sep
-import os
 import json
 from .pdf_utils import igcse_path, all_subjects
 
@@ -78,15 +75,18 @@ def render_curr_exam_question_on_surface(
     engine = PdfEngine(scale, debug, clean)
     engine.initialize_file(ex_path_pdf)
 
+    # TODO: use the new PdfEngine API
     engine.question_detector.preset_detectors(
-        engine.default_height * scale, engine.default_width * scale, q_list
+        engine.scaled_page_height * scale,
+        engine.scaled_page_width * scale,
+        q_list,
     )
     q = q_list[q_nr - 1]
     surfs_dict: dict[int, cairo.ImageSurface] = {}
 
     for page in q.pages:
         print("rendering page ..", page)
-        engine.perpare_page_stream(page, BaseRenderer)
+        engine.load_page_content(page, BaseRenderer)
         if debug:
             engine.debug_original_stream()
         engine.execute_page_stream(mode=-1)
