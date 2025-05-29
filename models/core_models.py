@@ -241,7 +241,7 @@ class SurfaceGapsSegments(BoxSegments):
         fgaps = [
             box
             for box in gaps
-            if box.h > self.MIN_GAP_HEIGHT and box.y > min_y
+            if box.h > self.MIN_GAP_HEIGHT and box.y >= min_y
         ]
         self.empty_segments = fgaps
 
@@ -279,10 +279,10 @@ class SurfaceGapsSegments(BoxSegments):
         # print(y0, "   ", y1, "for debugging")
         # print("seq length = ", len(segments))
         for box in self.non_empty_segments:
-            sy, _, d0 = box.y, box.h, self.d0
+            sy0, sy1, d0 = box.y, box.h + box.y, self.d0
             # if not self.default_d0 and d0:
             #     self.default_d0 = d0
-            if sy < y1 and sy >= y0:
+            if y0 <= sy0 <= y1 or y0 <= sy1 <= y1:
                 q_segs.append(box)
         ###: create a GapSegment obj
         # q_segs_obj: SurfaceGapsSegments = somefunction(q_segs)  # TODO:

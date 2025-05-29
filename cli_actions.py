@@ -45,13 +45,13 @@ def do_tests(args: CmdArgs):
         "parser": do_test_parser,
         "questions-count": do_test_question,
         "questions-match": do_test_question,
-        "questions-show": do_test_question,
         "pre-questions-show": do_show_question,
         "questions-save": do_test_question,
         # -----
         "subjects": do_test_subjects_syllabus,
         "view-question": show_question,
         "view-page": show_page,
+        "extract-questions": show_question,
     }
     if callbacks.get(args.test):
         callbacks[args.test](args)
@@ -517,12 +517,13 @@ def list_subjects(args: CmdArgs):
 
 def show_question(args: CmdArgs):
     debugging = args.debug and PdfEngine.M_DEBUG_DETECTOR
-    clean = args.clean and (
-        PdfEngine.O_CROP_EMPTY_LINES | PdfEngine.O_CLEAN_HEADER_FOOTER
-    )
+    is_extract = args.test == "extract-questions"
+    clean = args.clean
     engine: PdfEngine = PdfEngine(4, debugging, clean)
+    print(args.data, type(args.data))
     engine.set_files(args.data)
-    gui.start(-1, -1)
+    if not is_extract:
+        gui.start(-1, -1)
     for pdf_index in range(engine.all_pdf_count):
         is_ok = engine.proccess_next_pdf_file()
         print("\n")
@@ -531,14 +532,17 @@ def show_question(args: CmdArgs):
         if not is_ok:
             break
         engine.extract_questions_from_pdf()
-        for nr in args.range:
-            q_surf = engine.render_a_question(nr)
-            gui.show_page(q_surf, True)
+        if is_extract:
+            engine.question_detector.print_final_results(engine.pdf_path)
+        else:
+            for nr in args.range:
+                q_surf = engine.render_a_question(nr)
+                gui.show_page(q_surf, True)
 
 
 def show_page(args: CmdArgs):
     debugging = args.debug and PdfEngine.M_DEBUG
-    clean = 0  # args.clean and(  PdfEngine.O_CLEAN_HEADER_FOOTER )
+    clean = args.clean  # args.clean and(  PdfEngine.O_CLEAN_HEADER_FOOTER )
     engine: PdfEngine = PdfEngine(4, debugging, clean)
     engine.set_files(args.data)
     gui.start(-1, -1)

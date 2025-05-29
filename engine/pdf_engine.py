@@ -67,7 +67,7 @@ class PdfEngine:
         self.all_pdf_count = len(pdf_paths)
         if self.all_pdf_count == 0:
             raise Exception("pdf_paths can't be empty")
-        self.current_pdf_index = 0
+        self.current_pdf_index = -1
 
     def proccess_next_pdf_file(self):
         if self.current_pdf_index >= self.all_pdf_count - 1:
@@ -114,6 +114,7 @@ class PdfEngine:
             surface = self.renderer.surface
 
         if not self.detection_types and (self.clean & self.O_CROP_EMPTY_LINES):
+            print("calling wrong function")
             surface = self.remove_empty_lines_from_current_page()
         return surface
 
@@ -673,7 +674,9 @@ class PdfEngine:
         out_surf = None
         # self.default_d0 = None
         out_surf = cairo.ImageSurface(
-            cairo.FORMAT_ARGB32, self.scaled_page_width, int(net_height)
+            cairo.FORMAT_ARGB32,
+            int(self.scaled_page_width),
+            int(self.scaled_page_height),
         )
         out_ctx = cairo.Context(out_surf)
         out_ctx.set_source_rgb(1, 1, 1)  # White
@@ -692,7 +695,7 @@ class PdfEngine:
                 f"WARN: page {page_number}, no Segments could be drawn"
             )
 
-        padding = 2 * (self.line_height)
+        padding = 2 * (page_seg_obj.d0)
         return crop_image_surface(out_surf, start_y, last_y, padding)
 
 

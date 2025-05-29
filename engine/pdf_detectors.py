@@ -406,10 +406,8 @@ class QuestionDetector(BaseDetector):
             if len(self.question_list) == 0:
                 self.reset(0)
             if self.LEVEL_2_X:
-                self.reset_left_most(1)
                 self.left_most_x[0] = self.LEVEL_2_X
-            else:
-                self.reset_left_most(0)
+            self.reset_left_most(1)
 
             self.print_internal_status("After:")
 
@@ -424,6 +422,7 @@ class QuestionDetector(BaseDetector):
 
     def __handle_sequence(self, seq: SymSequence, level: int):
         # first_valid : Symbol | None = None
+
         prev_valid: Symbol | None = None
         is_next_candidate = False
         is_alternative_candidate = False
@@ -431,19 +430,24 @@ class QuestionDetector(BaseDetector):
 
         char_all = ""
         char, x, y, symbole_height, diff = "", 0, 0, 0, None
+
         # old_diff = 10000
+
         can_append, can_overwrite = None, None
         # is_alternative_better = False
 
         # if self.current[level]:
         #     old_diff = self.current[level].x - self.left_most_x[level]
+
         for _, sym in enumerate(seq):
             sym: Symbol = sym
             char = sym.ch
             if self.is_char_skip(sym, level):
                 continue
+
             if prev_valid and not self.is_valid_neighbours(sym, prev_valid):
                 break
+
             prev_valid = sym
 
             if diff is None:
@@ -454,8 +458,10 @@ class QuestionDetector(BaseDetector):
 
                 if self.is_char_x_weak_enough_to_ignore(diff, level):
                     return False
+
                 # is_alternative_better = abs(diff) < abs(old_diff)
                 # if can_append is None:
+
                 can_append = self.is_char_x_close_enough_to_append(diff, level)
                 can_overwrite = self.is_char_x_strong_enough_to_override(
                     diff, level

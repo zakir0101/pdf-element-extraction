@@ -1,3 +1,4 @@
+from sys import exc_info
 import numpy as np
 import cairo
 import subprocess
@@ -40,9 +41,22 @@ def _surface_as_uint32(surface: cairo.ImageSurface):
 def crop_image_surface(out_surf: cairo.ImageSurface, y_start, y_end, padding):
     # print("dest_y", self.dest_y)
 
+    print(
+        "debugging",
+        f"y_start,y_end=",
+        (y_start, y_end),
+        "padding",
+        padding,
+        "s_height",
+        out_surf.get_height(),
+        "width",
+        out_surf.get_width(),
+    )
     o = out_surf
     s = round(y_start if y_start <= padding else y_start - padding)
-    e = round(y_end + padding)
+    e = round(
+        y_end + padding if y_end < (out_surf.get_height() - padding) else y_end
+    )
     #     e = round(y_end + padding if y_end < (out_surf.get_height() - padding) else y_end)
 
     s_index = s * o.get_stride()
@@ -50,9 +64,12 @@ def crop_image_surface(out_surf: cairo.ImageSurface, y_start, y_end, padding):
 
     surf_width = out_surf.get_width()
     surf_height = e - s
-
+    data = o.get_data()[s_index:e_index]
+    print(surf_height, "vs", (e_index - s_index) // o.get_stride())
+    print("full_data_len", len(o.get_data()))
+    print(len(data), "vs", surf_height * surf_width * 4)
     out_surf = cairo.ImageSurface.create_for_data(
-        o.get_data()[s_index:e_index],
+        data,
         cairo.FORMAT_ARGB32,
         surf_width,
         surf_height,

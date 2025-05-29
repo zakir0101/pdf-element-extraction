@@ -74,6 +74,9 @@ class CmdArgs:
 
             self.pause = args.pause
             self.clean = not args.no_clean
+            if self.clean:
+                print("setting clean")
+                self.clean = int(args.clean) or 6
             self.debug = args.debug
             self.size = self.TEST_SIZE.get(args.size) or None
             self.subjects = args.subjects or all_subjects
@@ -281,9 +284,10 @@ class CmdArgs:
                 "renderer-silent",
                 "questions-count",
                 "questions-match",
-                "questions-show",
                 "pre-questions-show",
                 "questions-save",
+                # ___
+                "extract-questions",
                 "view-question",
                 "view-page",
                 "subjects",
@@ -324,6 +328,8 @@ class CmdArgs:
         test.add_argument(
             "--no-clean", "-nc", action="store_true", default=False
         )
+
+        test.add_argument("--clean", "-c", type=int, default=7)
         test.add_argument("--debug", "-d", action="store_true", default=False)
         test.add_argument("--pause", action="store_true", default=False)
         test.add_argument("--summatra", action="store_true", default=False)

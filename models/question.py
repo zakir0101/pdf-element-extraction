@@ -185,7 +185,6 @@ class Question(QuestionBase):
                 )
                 continue
 
-            pprint(page_seg.__dict__)
             self.current_y = page_seg.clip_segments_from_surface_into_contex(
                 out_ctx, self.current_y, q_segments
             )
