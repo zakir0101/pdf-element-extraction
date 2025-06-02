@@ -2,6 +2,7 @@ import json
 import pprint
 import random
 import traceback
+from typing_extensions import deprecated
 import tqdm
 import sys
 from collections import defaultdict
@@ -38,15 +39,15 @@ def do_tests(args: CmdArgs):
 
     callbacks = {
         "list": do_list,
-        "font-show": do_test_font,
-        "font-missing": lambda x: do_test_font(x, "missing"),
-        "renderer-silent": do_test_renderer,
-        "renderer-show": do_test_renderer,
-        "parser": do_test_parser,
-        "questions-count": do_test_question,
-        "questions-match": do_test_question,
-        "pre-questions-show": do_show_question,
-        "questions-save": do_test_question,
+        # "font-show": do_test_font,
+        # "font-missing": lambda x: do_test_font(x, "missing"),
+        # "renderer-silent": do_test_renderer,
+        # "renderer-show": do_test_renderer,
+        # "parser": do_test_parser,
+        # "questions-count": do_test_question,
+        # "questions-match": do_test_question,
+        # "pre-questions-show": do_show_question,
+        # "questions-save": do_test_question,
         # -----
         "subjects": do_test_subjects_syllabus,
         "view-question": show_question,
@@ -98,8 +99,10 @@ def do_list(args: CmdArgs):
     for f in args.data:
         print(f[1], end=" ")
 
-
+@deprecated
 def do_test_font(args: CmdArgs, t_type: str = "show"):
+    """this function need to be updated to test the new PdfEngine API"""
+
     print("TEsting fonts")
     engine: PdfEngine = PdfEngine(scaling=4, debug=True, clean=False)
     missing = set()
@@ -128,8 +131,9 @@ def do_test_font(args: CmdArgs, t_type: str = "show"):
         print(missing)
         pass
 
-
+@deprecated
 def do_test_parser(args: CmdArgs):
+    """this function need to be updated to test the new PdfEngine API"""
 
     print("************* Testing Parser ****************\n\n")
     engine: PdfEngine = PdfEngine(scaling=4, debug=True, clean=False)
@@ -191,11 +195,11 @@ def do_test_parser(args: CmdArgs):
     with open(f"output{sep}fix_list.txt", "w", encoding="utf-8") as f:
         f.write("\n".join(all_locations))
 
-
+@deprecated
 def do_test_renderer(args: CmdArgs):
+    """this function need to be updated to test the new PdfEngine API"""
 
     engine: PdfEngine = PdfEngine(scaling=4, debug=True, clean=False)
-    # errors_dict = {}
     exception_stats = {}  # defaultdict(lambda: (0, "empty", []))
     total_pages = 0
     total_passed = 0
@@ -311,151 +315,15 @@ def get_exception_key(e: Exception):
     # in exams loop
     # in page loop
 
-
+@deprecated
 def do_show_question(args: CmdArgs):
+    pass
 
-    # clean = False  # args.clean
-    stop = False
-    gui.start(-1000, -1)
-    for pdf in tqdm.tqdm(args.data):
-        if stop:
-            break
-        api.set_current_exam(pdf[0])
-        q_list = api.get_curr_exam_questions()
-
-        for q in q_list:
-            if args.range and int(q.label) not in args.range:
-                continue
-
-            q_surf = api.render_curr_exam_question_on_surface(
-                int(q.label), scale=4, clean=False
-            )
-
-            res = gui.show_page(q_surf)
-            if res == gui.STATE_DONE:
-                stop = True
-                break
-
-
+@deprecated
 def do_test_question(
     args: CmdArgs,
 ):
-    enable_detector_dubugging()
-    is_show = args.test == "questions-show"
-    is_count = args.test == "questions-count"
-    is_save = args.test == "questions-save"
-    clean = False  # args.clean
-    engine: PdfEngine = PdfEngine(
-        scaling=4, debug=True, clean=(is_show and clean)
-    )
-    total_pages = 0
-    total_passed = 0
-    exams_count_by_question_number = defaultdict(int)
-    exams_names_by_question_number = defaultdict(list)
-    bad_exams = []
-    MIN_COUNT = round(len(args.data) / 6 * 0.1) or 1
-    stop = False
-    # ----
-    if is_show:
-        pass
-    created_files = []
-    for pdf in tqdm.tqdm(args.data):
-        if stop:
-            break
-
-        exam_name = pdf[0].split(".")[0]
-        subject_name = exam_name[:4]
-        out_dir = f"{igcse_path}{sep}{subject_name}{sep}detected"
-        os.makedirs(out_dir, exist_ok=True)
-        out_file_name = f"{igcse_path}{sep}{subject_name}{sep}detected{sep}{exam_name}.json"
-        if os.path.exists(out_file_name) and not args.force:
-            created_files.append(out_file_name)
-            print(f"skipping pre-saved file {pdf[1]}")
-            continue
-
-        # surfs_dict = {}
-        args.curr_file = pdf[1]
-        args.max_tj = 4000
-        engine.initialize_file(pdf[1])
-        args.set_engine(engine)
-        pages_range = [i for i in range(1, args.page_count + 1)]
-        detector = engine.question_detector
-        for page in pages_range:
-            total_pages += 1
-            try:
-                engine.load_page_content(page, QuestionRenderer)
-                engine.debug_original_stream()
-                engine.execute_page_stream(max_show=args.max_tj, mode=1)
-
-                total_passed += 1
-            except Exception as e:
-                location = f"{pdf[1]}:{page}"
-                print(f"Error: {location}")
-                if args.pause:
-                    raise Exception(e)
-                    stop = True
-                    break
-        detector.on_finish()
-        questions: list[QuestionBase] = detector.question_list
-        if is_show:
-
-            print("Page Numbers :", args.page_count)
-            print("Question Numbers :", len(questions))
-            detector.print_final_results(args.curr_file)
-            if args.open_pdf:
-                open_pdf_using_sumatra(pdf[1])
-                input("enter any key to continue")
-        if is_save:
-            q_dict_list = [q.__to_dict__() for q in questions]
-            with open(out_file_name, "w", encoding="utf-8") as out_f:
-                out_f.write(
-                    json.dumps(q_dict_list, ensure_ascii=False, indent=4)
-                )
-
-            created_files.append(out_file_name)
-
-            pass
-
-        count_q = len(questions)
-        if count_q <= 3:
-            bad_exams.append(pdf[1])
-
-        exams_count_by_question_number[count_q] += 1
-        exams_names_by_question_number[count_q].append(pdf[1])
-
-    if is_count or is_save:
-        print("\n**********************************")
-        print("Total number of Exams = ", len(args.data))
-        print("Total number of pages= ", total_passed)
-        print("STATS:")
-        # pprint.pprint(exams_count_by_question_number)
-        for q_count, ex_count in exams_count_by_question_number.items():
-            print(f"{ex_count:3} Exams => QuestionNr: {q_count}")
-            print(">>", exams_names_by_question_number[q_count], "\n")
-
-        print("\n\n**********************************")
-        print("exam_names with less than 3 questions !!")
-        for ex in bad_exams:
-            print(ex)
-
-        print("\n\n**********************************")
-        print(f"exam_names in groups with less than {MIN_COUNT} members!!")
-        empty_group = {
-            q_count: file_names
-            for q_count, file_names in exams_names_by_question_number.items()
-            if len(file_names) <= MIN_COUNT
-        }
-        for q_count, ex_names in empty_group.items():
-            print(
-                f"# ONLY {len(ex_names):3} Exams has {q_count:3} Questions  !!"
-            )
-            print(ex_names)
-
-        print("\n\n\n")
-
-    if is_save:
-        limit = min(len(created_files) - 1, 10)
-        open_files_in_nvim(created_files[-limit:])
+    pass
 
 
 # ******************************************************************
@@ -546,7 +414,11 @@ def show_page(args: CmdArgs):
     engine: PdfEngine = PdfEngine(4, debugging, clean)
     engine.set_files(args.data)
     gui.start(-1, -1)
+    wrong_list = []
+    is_done = False
     for pdf_index in range(engine.all_pdf_count):
+        if is_done:
+            break
         is_ok = engine.proccess_next_pdf_file()
         print("\n")
         print("***************  exam  ******************")
@@ -554,11 +426,18 @@ def show_page(args: CmdArgs):
         if not is_ok:
             print("Exiting ..")
             break
-        for page in args.range:
+        page_range = args.range or range(1, len(engine.pages) + 1)
+        for page in page_range:
             surf = engine.render_pdf_page(page)
             stat = gui.show_page(surf, True)
-            if stat == gui.STATE_DONE:
-                return
+            if stat == gui.STATE_WRONG:
+                wrong_list.append(engine.pdf_path + ":" + str(page))
+            elif stat == gui.STATE_DONE:
+                is_done = True
+                break
+
+    print("wrong rendered pages")
+    print(" ".join(wrong_list))
 
 
 # ******************************************************************
@@ -584,22 +463,3 @@ MAIN_CALLBACK = {
     "list_items": list_items,
     "clear_temp_files": clear_temp_files,
 }
-
-missing_fonts = """
-{'/Arial-BoldMT', '/Times-Italic', '/Times-Bold', '/Times-Roman'}
-
-Iam trying to make a pdf-renderer app , and have some issue with fonts ( some font does not have embeded font file)
-
-I have analyzed alot of pdf files ( of interest ) , and listed all the missing fonts in them (no embeded font file) , I will provide you with the list , and I want you to find a free alternative for each one of them , which comply with it and garanties :
-1- similar char_width
-2- same glyph_id -> char_code map
-3- generally similary look and position in the bounding box
-
-for each missing fontfamily find the corresponding free font file which satisfy the requirment , if possible tell me where I can download it 
-
-at the end create a pythong dict which map each pdf "missing" file to the alternative font filename
-
-here is the list of missing font:
-
-{'/TimesNewRomanPSMT', '/Helvetica', '/TimesNewRomanPS-ItalicMT', '/Times-BoldItalic', '/Arial-ItalicMT', '/Helvetica-Bold', '/Helvetica-Oblique', '/CourierNewPSMT', '/ArialMT', '/TimesNewRomanPS-BoldItalicMT', '/Verdana', '/TimesNewRomanPS-BoldMT', '/Symbol', '/Verdana-Italic', '/Times-Italic', '/Arial-BoldMT', '/Times-Roman', '/Times-Bold'}
-"""

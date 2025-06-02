@@ -51,9 +51,9 @@ class PdfEngine:
     D_DETECT_IMAGES = 1 << 3
     D_DETECT_TABLES = 1 << 4
 
-    def __init__(self, scaling=1, debug: int = 0, clean: int = 0):
+    def __init__(self, scaling=1, clean: int = 0):
         self.scaling = scaling
-        self.debug = debug
+        # self.debug = debug
         self.clean = clean
         self.page_seg_dict: dict[int, SurfaceGapsSegments] = {}
         self.question_list: list[Question] = {}
@@ -79,9 +79,8 @@ class PdfEngine:
         self.detection_types = 0
         return True
 
-    def extract_questions_from_pdf(
-        self,
-    ):
+    def extract_questions_from_pdf(self, debug=0):
+        self.debug = debug & (self.M_DEBUG_DETECTOR)
         self.page_seg_dict = {}
         self.question_list = []
         self.detection_types = self.D_DETECT_QUESTION
@@ -90,7 +89,7 @@ class PdfEngine:
             enable_detector_dubugging()
 
         for page_nr in range(1, len(self.pages)):
-            surface = self.render_pdf_page(page_nr)
+            surface = self.render_pdf_page(page_nr, debug=None)
             self.page_seg_dict[page_nr] = SurfaceGapsSegments(surface)
 
         self.question_detector.on_finish()
@@ -101,21 +100,28 @@ class PdfEngine:
         self.question_list = q_list
         return q_list
 
-    def render_pdf_page(self, page_number):
+    def render_pdf_page(self, page_number, debug=0):
         """page_number start from 1"""
+        if debug is not None:
+            self.debug = debug & (
+                self.M_DEBUG_ALL_STREAM | self.M_DEBUG_ORIGINAL_CONTENT
+            )
+
+        self.current_page = page_number
+        self.load_page_content(page_number)
+        if self.debug & self.M_DEBUG_ORIGINAL_CONTENT:
+            self.debug_original_stream()
+
         if page_number in self.page_seg_dict:
             surface = self.page_seg_dict[page_number].surface
         else:
-            self.current_page = page_number
-            self.load_page_content(page_number)
-            if self.debug & self.M_DEBUG_ORIGINAL_CONTENT:
-                self.debug_original_stream()
             self.execute_page_stream()
             surface = self.renderer.surface
 
         if not self.detection_types and (self.clean & self.O_CROP_EMPTY_LINES):
             print("calling wrong function")
             surface = self.remove_empty_lines_from_current_page()
+
         return surface
 
     def render_a_question(self, q_nr):
@@ -437,7 +443,9 @@ class PdfEngine:
         # ************* configer DEBUGGING *********************
 
         debugging = (
-            not self.detection_types and self.debug & self.M_DEBUG_PAGE_STREAM
+            # not self.detection_types and
+            self.debug
+            & self.M_DEBUG_PAGE_STREAM
         )
         f = None
         if debugging:
@@ -488,8 +496,10 @@ class PdfEngine:
     ):
 
         x_stream = data_stream
-        debugging = not self.detection_types and (
-            self.debug & self.M_DEBUG_XOBJECT_STREAM
+        debugging = (
+            # not self.detection_types and
+            self.debug
+            & self.M_DEBUG_XOBJECT_STREAM
         )
 
         if debugging:
@@ -567,8 +577,10 @@ class PdfEngine:
         self, stream: str, ctx: cairo.Context, char_name: str, font_matrix
     ):
 
-        debugging = not self.detection_types and (
-            self.debug & self.M_DEBUG_GLYPH_STREAM
+        debugging = (
+            # not self.detection_types and
+            self.debug
+            & self.M_DEBUG_GLYPH_STREAM
         )
         if debugging:
             with open(

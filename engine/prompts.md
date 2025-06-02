@@ -98,3 +98,35 @@ and additionally we can make 1 specifc json file per question , to save not-impo
 
 what do you think ,
 continue on my thought chain lk
+
+
+prompt 6:
+I want you to create or upgrade a gui for my pdf rendering enginge , similar to what I did in gui/pdf_tester_gui.py but with more features , the rendering engine exposed its funcionality throuhg the class Pdf_Engine in file engine/pdf_engine.py, you are not allowed to import any files in your new code except the pdf_engine.py ( you can import other class from other files but only for type safety checks ), unless there is no direct way to do something , try to only use function exposed in Pdf_engine.py
+your task is to write/extend the pdf_tester_gui , so that it can:
+1- navigate back and forthe throuhg pdf
+2- navigate back and forth through the current  pdf pages
+3- navigate back and forth through the current  pdf extracted Question
+4- swich navigation mode ( either page-mode or question-mode)
+5- debug current displayed Question/page
+6- reload the code (python engine module) upon user request , so that the user does not have to manually restart the gui and renavigate to the problematic exam again,
+7- keyboard shortcut for all button/functions, for instancse:
+  - ctrl+alt+ h/l : previous or next exam file
+  - ctlr+alt+ k/j : previous or next page or question ( depending on current mode)
+  - ctrl + q : set question mode and render the first question / or previously last selected question on this exam
+  - ctrl + p : same as above but for pages
+  - ctrl + d : debug currently selected question/page
+    ```python
+    # mode==page : debug current page:
+    engine.render_pdf_page( page_number, debug=engine.M_DEBUG)
+    # mode==question :debug current question :
+    engine.extract_questions_from_pdf( debug=engine.M_DEBUG)
+    ```
+  - ctrl + [shift + ] D : debug extract_question + debug the current page (if in page mode):
+    ```python
+    engine.extract_questions_from_pdf( debug=engine.M_DEBUG) and engine.render_pdf_page( page_number, debug=engine.M_DEBUG):
+    ```
+  - ctrl + r : reload the engine_module 
+
+
+
+

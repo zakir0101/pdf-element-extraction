@@ -41,17 +41,6 @@ def _surface_as_uint32(surface: cairo.ImageSurface):
 def crop_image_surface(out_surf: cairo.ImageSurface, y_start, y_end, padding):
     # print("dest_y", self.dest_y)
 
-    print(
-        "debugging",
-        f"y_start,y_end=",
-        (y_start, y_end),
-        "padding",
-        padding,
-        "s_height",
-        out_surf.get_height(),
-        "width",
-        out_surf.get_width(),
-    )
     o = out_surf
     s = round(y_start if y_start <= padding else y_start - padding)
     e = round(
