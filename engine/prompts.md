@@ -157,3 +157,40 @@ you have all the time and resource of the world to figure out new ways fro impor
 just make it simple, intelligent and 100% accurate ...
 
 take your time thinking about the task before starting the code 
+
+
+
+# prompt 9:
+
+this project goal was mainly to extract question portions(start_page,start_y , end_page,end_y) from and igcse exams , so that they can be later renderer and categorized indevidually .
+with that goad in mind I had first to implement a pdf parser and renderer, to understand and manuplate each glyph as its drawn to the surface , and then try some-how to figure out , which glyph indicate a question begin or a sub-part of question ....
+the logic for rendering the pdf is included in the module engine/... (pdf_renderer , pdf_engine (main-class), engine_state pdf_font ...etc ), this part of the code is working very well, but ....
+
+the part of the code resposible of figuring out questions and parts location is not working very accuratly or as intended ( 0 mistakes ), some times the intro page is been recognized as part of question 1 , and some times the last question is completly ignored ....
+
+the code for this part is located in engine/pdf_detectors (mostly in the class QuestionDetectors ) , this challange of improving the detectors is not an easy challange , and require alot of thinking and consideration ....
+
+I need you to this a lot of thining on my behalf ( currently Iam very busy), and try to improve the QuestionDetector class and rewrite a newer version of it QuestionDetectorV2 from scratch and maybe other helper class or other kind of detectors, in case it will help you on the main task "detecting questions from the exam pdf" ...
+
+you have all the time and resource of the world to figure out new ways fro imporvment, you may structure the new class the way you want ( just expose the same or similar apis, like those in BaseDetector, but other wise changes are welecome even in the base api scope )
+
+just make it simple, intelligent and 100% accurate ...
+
+what you should take account for , learn from my previous experience ( though not 100% accurate , my current proccess at least achieve 95% accuracy , which is not enough for me ):
+1- the method handle_sequence reviece an array like object of symbols , each symbols has a content (single char) , y-/x- indecies and char_width (w)
+2- the pdfs are mostly very structed :
+  - all question number (or subquestion) will mostly start at the same  x-location (it might vary slightly)
+  - the question are ordered if the first question is a then second will be "b", if first is "1" then second will be "2"
+  - part and subparts have a consistant numbering systems if the first question has supbarts "i, ii " roman letters , then the next questions subpart will also have the same numbering systems 
+  - sometimes a single sequence will include the quesion and parts and subpart identifier like:
+    1 (a) i. solve the following task ....
+    but its a rare case 
+  - there is a minial padding from left page side , a question nr cann't be closer than it to left side
+  - there is a max x-location ( currntly a third of page-width) a question number can't be found further to the right than this , while the exact value is not known , I just estimate it to thirs of page-width
+  
+3- my current implementation hanlde all the above and bonus of dynamic resetting if a more credentiable candidate or alternative candidtate was found 
+4- your first step is to understand the current situation fully ,before attemping to make any changes 
+
+[ if you prefere you do not have to write a new class V2 , you can modify the existing one to perform better in detection]
+  
+
