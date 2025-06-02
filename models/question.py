@@ -29,11 +29,20 @@ class QuestionBase(Box):
             self.pages: int = pages
 
         self.level: int = level
+        self.q_type: int | None = None # Added q_type for QuestionDetectorV2
         self.contents: list[Box] = []
         # self.x: float = float(x)
         # self.y: float = float(y)
-        self.y1: float | None = None
+        self.y1: float | None = page_height # Default y1 to full page height
         self.line_height: int = float(line_h)
+
+    @property
+    def start_page(self) -> int | None:
+        return self.pages[0] if self.pages else None
+
+    @property
+    def end_page(self) -> int | None:
+        return self.pages[-1] if self.pages else None
 
     def __str__(self):
         # in_page = f" In Page {self.pages[0]}" if self.level == 0 else ""
@@ -41,9 +50,9 @@ class QuestionBase(Box):
             " " * self.level * 4
             + self.TITLE_DICT[self.level]
             + " "
-            + self.label
+            + str(self.label) # Ensure label is string for concatenation
             # + in_page
-            + f"(x={self.x}, y={self.y}, y1={self.y1 or "None"}, page={self.pages})"
+            + f"(x={self.x}, y={self.y}, y1={self.y1 or "None"}, start_pg={self.start_page}, end_pg={self.end_page}, type={self.q_type})" # Added type, start/end_page
             + "\n"
         )
         for p in self.parts:
@@ -62,15 +71,17 @@ class QuestionBase(Box):
             "y": self.y,
             "y1": self.y1,
             "h": self.line_height,
+            "type": self.q_type, # Added type
             "parts": part_dict,
         }
 
     @classmethod
     def __from_dict__(self, qd: dict, shallow: bool, level=0):
         q = QuestionBase(
-            qd["label"], qd["pages"], level, qd["x"], qd["y"], qd["h"]
+            qd["label"], qd["pages"], level, qd["x"], qd["y"], qd["w"], qd["h"] # Assuming qd["w"] should be page_height and qd["h"] line_h based on constructor
         )
         q.y1 = qd["y1"]
+        q.q_type = qd.get("type") # Added type
         if shallow:
             return q
         q.parts = []
@@ -85,9 +96,9 @@ class QuestionBase(Box):
             " " * self.level * 4
             + self.TITLE_DICT[self.level]
             + " "
-            + self.label
+            + str(self.label) # Ensure label is string for concatenation
             # + in_page
-            + f"(x={self.x}, y={self.y}, y1={self.y1 or 'None'}, page={self.pages})"
+            + f"(x={self.x}, y={self.y}, y1={self.y1 or 'None'}, start_pg={self.start_page}, end_pg={self.end_page}, type={self.q_type})" # Added type, start/end_page
             + ""
         )
 

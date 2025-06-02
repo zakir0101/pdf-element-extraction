@@ -17,7 +17,7 @@ from .engine_state import EngineState
 from .pdf_stream_parser import PDFStreamParser
 
 from .pdf_utils import crop_image_surface
-from .pdf_detectors import QuestionDetector, enable_detector_dubugging
+from .pdf_detectors import QuestionDetector, QuestionDetectorV2, enable_detector_dubugging
 from os.path import sep
 from .pdf_encoding import PdfEncoding as pnc
 
@@ -168,7 +168,7 @@ class PdfEngine:
 
         self.font_map: dict[str, PdfFont] | None = None
 
-        self.question_detector: QuestionDetector = QuestionDetector()
+        self.question_detector: QuestionDetectorV2 = QuestionDetectorV2()
 
         self.state: EngineState | None = None
         self.renderer: BaseRenderer | None = None
