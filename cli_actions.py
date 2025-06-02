@@ -50,12 +50,20 @@ def do_tests(args: CmdArgs):
         # "questions-save": do_test_question,
         # -----
         "subjects": do_test_subjects_syllabus,
+        "gui": do_run_gui_tester,
         "view-question": show_question,
         "view-page": show_page,
         "extract-questions": show_question,
     }
     if callbacks.get(args.test):
         callbacks[args.test](args)
+
+
+def do_run_gui_tester(args: CmdArgs):
+    from gui.advanced_pdf_gui import AdvancedPDFViewer
+
+    app = AdvancedPDFViewer([f for f in args.data])
+    app.mainloop()
 
 
 def do_test_subjects_syllabus(args: CmdArgs):
@@ -99,7 +107,8 @@ def do_list(args: CmdArgs):
     for f in args.data:
         print(f[1], end=" ")
 
-@deprecated
+
+@deprecated("do Not use")
 def do_test_font(args: CmdArgs, t_type: str = "show"):
     """this function need to be updated to test the new PdfEngine API"""
 
@@ -131,7 +140,8 @@ def do_test_font(args: CmdArgs, t_type: str = "show"):
         print(missing)
         pass
 
-@deprecated
+
+@deprecated("do Not use")
 def do_test_parser(args: CmdArgs):
     """this function need to be updated to test the new PdfEngine API"""
 
@@ -195,7 +205,8 @@ def do_test_parser(args: CmdArgs):
     with open(f"output{sep}fix_list.txt", "w", encoding="utf-8") as f:
         f.write("\n".join(all_locations))
 
-@deprecated
+
+@deprecated("do Not use")
 def do_test_renderer(args: CmdArgs):
     """this function need to be updated to test the new PdfEngine API"""
 
@@ -315,11 +326,13 @@ def get_exception_key(e: Exception):
     # in exams loop
     # in page loop
 
-@deprecated
+
+@deprecated("do Not use")
 def do_show_question(args: CmdArgs):
     pass
 
-@deprecated
+
+@deprecated("do Not use")
 def do_test_question(
     args: CmdArgs,
 ):

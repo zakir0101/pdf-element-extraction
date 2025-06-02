@@ -57,6 +57,7 @@ class PdfEngine:
         self.clean = clean
         self.page_seg_dict: dict[int, SurfaceGapsSegments] = {}
         self.question_list: list[Question] = {}
+        # self.current_pdf_document = None
 
     # *******************************************************
     # ****************   Engine API    **********************
@@ -68,6 +69,8 @@ class PdfEngine:
         if self.all_pdf_count == 0:
             raise Exception("pdf_paths can't be empty")
         self.current_pdf_index = -1
+
+        self.proccess_next_pdf_file()
 
     def proccess_next_pdf_file(self):
         if self.current_pdf_index >= self.all_pdf_count - 1:
@@ -140,6 +143,7 @@ class PdfEngine:
     def initialize_file(self, pdf_path):
         self.current_stream: str | None = None
         self.pdf_path = pdf_path[1]
+        self.current_pdf_document = self.pdf_path
         self.pdf_name = pdf_path[0]
         self.reader: PdfReader = PdfReader(self.pdf_path)
         first_page: PageObject = self.reader.pages[0]
@@ -310,6 +314,13 @@ class PdfEngine:
     # *******************************************************
     # **************** Helper Mehtods  **********************
     # _______________________________________________________
+    def get_num_pages(
+        self,
+    ):
+        return len(self.pages)
+
+    def get_current_file_path(self):
+        return self.current_pdf_document
 
     def get_color_space_map(self, res):
         colorSpace = {}

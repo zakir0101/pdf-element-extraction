@@ -100,7 +100,8 @@ what do you think ,
 continue on my thought chain lk
 
 
-prompt 6:
+# prompt 6:
+
 I want you to create or upgrade a gui for my pdf rendering enginge , similar to what I did in gui/pdf_tester_gui.py but with more features , the rendering engine exposed its funcionality throuhg the class Pdf_Engine in file engine/pdf_engine.py, you are not allowed to import any files in your new code except the pdf_engine.py ( you can import other class from other files but only for type safety checks ), unless there is no direct way to do something , try to only use function exposed in Pdf_engine.py
 your task is to write/extend the pdf_tester_gui , so that it can:
 1- navigate back and forthe throuhg pdf
@@ -127,6 +128,13 @@ your task is to write/extend the pdf_tester_gui , so that it can:
     ```
   - ctrl + r : reload the engine_module 
 
+8- put all your  gui code in a (multiple) new files under gui/* directory 
 
+if not already done , add the following functionality
+9- zooming in and out ( scaling the rendered image ) view numpad + and numpad - 
+  - also the following predefined scale should be added :
+  - alt+1 : scale to fit width
+  - alt + 2 : scale to to fit height
+  - alt+ 3 (default one ) : firstly scale to fit width , then if height is larger than canvas height then scale the prev scaled value again to fit height
 
-
+  - the canvas should have a scrollbar-h and -v when the image is zoomed beyond the available width and hegiht

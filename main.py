@@ -291,6 +291,7 @@ class CmdArgs:
                 "view-question",
                 "view-page",
                 "subjects",
+                "gui",
             ],
         )
 
