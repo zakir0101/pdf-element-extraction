@@ -1,10 +1,12 @@
 import io
 from os import sep
+from pprint import pprint
 from typing import Any
 import cairo
 import string
 
 from PIL import Image
+from pypdf.generic import DictionaryObject
 
 from engine.pdf_utils import kill_with_taskkill, open_image_in_irfan
 from .pdf_operator import PdfOperator
@@ -36,7 +38,7 @@ class EngineState:
     }
 
     PRINTABLE = string.ascii_letters + string.digits + string.punctuation + " "
-    MAX_X_DEPTH = 10
+    MAX_X_DEPTH = 100
 
     DEVICE_CS = ["/DeviceGray", "/DeviceRGB", "/DeviceCMYK"]
     CIE_CS = ["/CalGray", "/CalRGB", "/Lab", "/ICCBased"]
@@ -364,8 +366,8 @@ class EngineState:
             self._draw_image_xobject(xobj)
         elif subtype == "/Form":
             if xobj_name == self.stream_name:
-                print("skipping recursive xobject stream !")
-                return "", True
+                print("not skipping (== handling ) recursive xobject stream !")
+                # return "", True
             self._draw_form_xobject(xobj, xobj_name)
         else:
             print(f"Unsupported XObject type: {subtype}")
@@ -376,6 +378,10 @@ class EngineState:
         # Convert PDF dictionaries to normal dicts
         parent_res = {k: v for k, v in self.res.items()}
         form_res = {k: v for k, v in form_resources.items()}
+        # print("parent_res")
+        # pprint(parent_res)
+        # print("form_res")
+        # pprint(form_res)
 
         merged = {}
 
@@ -392,7 +398,6 @@ class EngineState:
         ]
 
         for category in categories:
-            # Merge with Form resources overriding parent
             parent_items = parent_res.get(category, {}).copy()
             form_items = form_res.get(category, {}).copy()
 
@@ -401,16 +406,25 @@ class EngineState:
             #     merged[category] = form_items
             #     continue
 
-            if isinstance(parent_items, dict):
-                merged[category] = {**parent_items, **form_items}
+            if isinstance(parent_items, (dict, DictionaryObject)):
+
+                parent_items = {k: v for k, v in parent_items.items()}
+                form_items = {k: v for k, v in form_items.items()}
+
+                merged[category] = {
+                    **parent_items,
+                    **form_items,
+                }
             elif form_items:
                 merged[category] = form_items
-            else:
+            elif parent_items:
                 merged[category] = parent_items
 
         if "/ProcSet" not in form_res:
             merged["/ProcSet"] = parent_res.get("/ProcSet", ["/PDF"])
 
+        # print("*************** merged_res")
+        # pprint(merged)
         return merged
 
     def _copy_matrix(self, m: Matrix):

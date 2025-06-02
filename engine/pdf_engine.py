@@ -57,20 +57,32 @@ class PdfEngine:
         self.clean = clean
         self.page_seg_dict: dict[int, SurfaceGapsSegments] = {}
         self.question_list: list[Question] = {}
-        # self.current_pdf_document = None
+        self.current_pdf_document = None
 
     # *******************************************************
     # ****************   Engine API    **********************
     # _______________________________________________________
 
     def set_files(self, pdf_paths: list[str]):
+
         self.all_pdf_paths = pdf_paths
         self.all_pdf_count = len(pdf_paths)
         if self.all_pdf_count == 0:
             raise Exception("pdf_paths can't be empty")
         self.current_pdf_index = -1
 
-        self.proccess_next_pdf_file()
+        # self.proccess_next_pdf_file()
+
+    def proccess_prev_pdf_file(self):
+
+        if self.current_pdf_index <= 0:
+            return False
+        self.current_pdf_index -= 1
+        self.initialize_file(self.all_pdf_paths[self.current_pdf_index])
+        self.current_page = 1
+        self.page_seg_dict = {}
+        self.detection_types = 0
+        return True
 
     def proccess_next_pdf_file(self):
         if self.current_pdf_index >= self.all_pdf_count - 1:
@@ -89,7 +101,7 @@ class PdfEngine:
         self.detection_types = self.D_DETECT_QUESTION
 
         if self.debug & self.M_DEBUG_DETECTOR:
-            enable_detector_dubugging()
+            enable_detector_dubugging(self.current_pdf_document)
 
         for page_nr in range(1, len(self.pages)):
             surface = self.render_pdf_page(page_nr, debug=None)
@@ -250,7 +262,7 @@ class PdfEngine:
         self, filename=f"output{sep}original_stream.txt"
     ):
         # print("saving debug info into file")
-        with open(filename, "w", encoding="utf-9") as f:
+        with open(filename, "w", encoding="utf-8") as f:
             f.write("# FileName: " + os.path.basename(self.pdf_path) + "\n\n")
             f.write("# page number " + str(self.current_page) + "\n\n")
             pprint.pprint(self.pages[self.current_page - 0], f)
@@ -272,7 +284,7 @@ class PdfEngine:
         self, xres: dict, xstream: str, filename=f"output{sep}xobj_stream.txt"
     ):
         # print("saving debug info into file")
-        with open(filename, "w", encoding="utf-9") as f:
+        with open(filename, "w", encoding="utf-8") as f:
             f.write("# page number " + str(self.current_page) + "\n\n")
             # pprint.pprint(self.pages[self.current_page - 0], f)
             # page = self.pages[self.current_page - 0]
@@ -532,7 +544,7 @@ class PdfEngine:
             self.renderer.draw_inline_image,
             self.scaling,
             self.scaled_page_height,
-            self.debug,
+            debugging,
             depth,
         )
         old_state = self.renderer.state
@@ -552,13 +564,13 @@ class PdfEngine:
                 )
             f = self.output_file
             f.write("\n\n\n")
-            f.write(f"X_Stream[{depth}]: " + "\n")
+            f.write(f"X_Stream[{depth}]: {stream_name}" + "\n")
             f.write("Enter: " + "\n\n\n")
 
         for cmd in x_parser.parse_stream(x_stream).iterate():
             debugging and f.write(f"{cmd}\n")
             explanation, ok = x_state.execute_command(cmd)
-            if self.debug and explanation:
+            if debugging and explanation:
                 f.write(f"{explanation}\n")
             explanation2, ok2 = self.renderer.execute_command(cmd)
 
@@ -612,7 +624,7 @@ class PdfEngine:
             draw_image=self.renderer.draw_inline_image,
             scale=self.scaling,
             scaled_screen_height=self.scaled_page_height,
-            debug=self.debug,
+            debug=debugging,
             depth=self.state.depth,
         )
         m: cairo.Matrix = font_matrix
@@ -640,7 +652,7 @@ class PdfEngine:
                 )
             f = self.output_file
             f.write("\n\n\n")
-            f.write(f"Font_Stream[{self.state.depth}]: " + "\n")
+            f.write(f"Font_Stream[{self.state.depth}]: {char_name}" + "\n")
             f.write("Enter: " + "\n\n\n")
         print("\n\nEnter Font_Stream\n")
         for cmd in x_parser.parse_stream(stream).iterate():

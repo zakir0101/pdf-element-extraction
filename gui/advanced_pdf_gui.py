@@ -5,13 +5,31 @@ from tkinter import ttk
 import os
 from tkinter import filedialog  # Though not used for file picking yet
 from functools import partial  # For cleaner command binding if needed
+import traceback
 import importlib
+from engine.pdf_utils import open_pdf_using_sumatra
 
 # Import for reloading and instantiation
+
 from engine import pdf_engine as pdf_engine_module
+from engine import (
+    pdf_renderer as pdf_renderer_module,
+)  # Assuming these are modules
+from engine import pdf_font as pdf_font_module
+from engine import pdf_detectors as pdf_detectors_module
+from engine import engine_state as pdf_state_module
+
 from engine.pdf_engine import PdfEngine
 from PIL import Image, ImageTk
 import cairo  # For type hinting and direct use if necessary
+
+ALL_MODULES = [
+    pdf_engine_module,
+    pdf_renderer_module,
+    pdf_font_module,
+    pdf_detectors_module,
+    pdf_state_module,
+]
 
 """
 Advanced PDF Viewer GUI application.
@@ -76,6 +94,7 @@ class AdvancedPDFViewer(tk.Tk):
         )
 
         # Layout the frames
+
         self.controls_frame.pack(side=tk.LEFT, fill=tk.Y, padx=5, pady=5)
         self.status_bar_frame.pack(side=tk.BOTTOM, fill=tk.X, padx=5, pady=5)
         self.display_frame.pack(
@@ -194,6 +213,20 @@ class AdvancedPDFViewer(tk.Tk):
         )
         self.reload_button.pack(fill=tk.X, padx=5, pady=2)
 
+        empty_frame = ttk.Frame(
+            self.controls_frame, relief=tk.GROOVE, borderwidth=2
+        )
+        empty_frame.pack(fill=tk.X, padx=5, pady=5, expand=True)
+
+        self.summatra_button = ttk.Button(
+            self.controls_frame,
+            text="Open Summatra (Ctrl+S)",
+            command=lambda x: open_pdf_using_sumatra(
+                self.engine.current_pdf_document
+            ),
+        )
+        self.summatra_button.pack(fill=tk.X, padx=5, pady=(2, 20))
+
         # --- Status Bar Frame ---
         self.status_bar_text = tk.StringVar()
         self.status_bar_label = ttk.Label(
@@ -223,6 +256,10 @@ class AdvancedPDFViewer(tk.Tk):
             lambda event: self.debug_current_item(combined_debug=True),
         )
         self.bind("<Control-r>", self.reload_engine_code)
+        self.bind(
+            "<Control-Shift-S>",
+            lambda x: open_pdf_using_sumatra(self.engine.current_pdf_document),
+        )
 
         # --- Initial Load ---
         self.update_status_bar(
@@ -246,7 +283,10 @@ class AdvancedPDFViewer(tk.Tk):
             and hasattr(self.engine, "pdf_path")
             and self.engine.pdf_path
         ):  # Check pdf_path exists
-            file_info = f"File: {os.path.basename(self.engine.pdf_path)}"
+            index = f"{self.engine.current_pdf_index + 1}/{self.engine.all_pdf_count}"
+            file_info = (
+                f"File: {os.path.basename(self.engine.pdf_path)} {index}"
+            )
 
         mode_info = f"Mode: {self.navigation_mode.capitalize()}"
         item_info = ""
@@ -408,6 +448,7 @@ class AdvancedPDFViewer(tk.Tk):
 
         except Exception as e:
             error_msg = f"Error rendering {self.navigation_mode}: {e}"
+            print(traceback.format_exc())
             print(error_msg)
             self.update_status_bar(error_msg)
             self.display_canvas.itemconfig(self.canvas_image_item, image=None)
@@ -537,6 +578,7 @@ class AdvancedPDFViewer(tk.Tk):
                     else:
                         general_debug_message = "No page selected to debug."
                 elif self.navigation_mode == "question":
+                    print("navigation_mode == question")
                     self.update_status_bar(
                         "Debugging Questions (extraction)..."
                     )
@@ -668,6 +710,7 @@ class AdvancedPDFViewer(tk.Tk):
 
         except Exception as e:
             error_msg = f"Error during debug: {e}"
+            print(traceback.format_exc())
             print(error_msg)
             self.update_status_bar(error_msg)
             self.display_canvas.itemconfig(self.canvas_image_item, image=None)
@@ -706,7 +749,8 @@ class AdvancedPDFViewer(tk.Tk):
 
         try:
             self.update_status_bar("Reloading engine module...")
-            importlib.reload(pdf_engine_module)
+            for module in ALL_MODULES:
+                importlib.reload(module)
             print("PDF Engine module reloaded.")
 
             self.update_status_bar("Re-initializing PDF Engine...")
@@ -819,11 +863,11 @@ class AdvancedPDFViewer(tk.Tk):
             self.questions_list = []
             self.render_current_page_or_question()
         else:
-            self.total_pages = 0
-            self.current_page_number = 0
-            self.total_questions = 0
-            self.current_question_number = 0
-            self.render_current_page_or_question()  # Will show "No PDF" or similar & update status
+            # self.total_pages = 0
+            # self.current_page_number = 0
+            # self.total_questions = 0
+            # self.current_question_number = 0
+            # self.render_current_page_or_question()  # Will show "No PDF" or similar & update status
             self.update_status_bar(
                 "End of PDF list."
             )  # Explicitly set general message
@@ -840,26 +884,15 @@ class AdvancedPDFViewer(tk.Tk):
             self.update_all_button_states()
             return
 
-        if self.engine.current_pdf_index > 0:
-            self.engine.current_pdf_index -= 1
-            success = self.engine.initialize_file(
-                self.engine.all_pdf_paths[self.engine.current_pdf_index]
-            )
+        if self.engine.proccess_prev_pdf_file():
             self.navigation_mode = "page"
-            if success:
-                self.total_pages = (
-                    self.engine.get_num_pages()
-                    if self.engine.current_pdf_document
-                    else 0
-                )
-                self.current_page_number = 1 if self.total_pages > 0 else 0
-                # Status will be updated by render_current_page_or_question
-            else:
-                self.total_pages = 0
-                self.current_page_number = 0
-                self.engine.current_pdf_document = None
-                # Status will be updated by render_current_page_or_question to show no PDF
-            self.total_questions = 0
+            self.total_pages = (
+                self.engine.get_num_pages()
+                if self.engine.current_pdf_document
+                else 0
+            )
+            self.current_page_number = 1 if self.total_pages > 0 else 0
+            self.total_questions = 0  # Reset questions for new PDF
             self.current_question_number = 0
             self.questions_list = []
             self.render_current_page_or_question()

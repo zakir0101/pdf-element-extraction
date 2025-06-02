@@ -130,6 +130,7 @@ your task is to write/extend the pdf_tester_gui , so that it can:
 
 8- put all your  gui code in a (multiple) new files under gui/* directory 
 
+# prompt 7
 if not already done , add the following functionality
 9- zooming in and out ( scaling the rendered image ) view numpad + and numpad - 
   - also the following predefined scale should be added :
@@ -138,3 +139,21 @@ if not already done , add the following functionality
   - alt+ 3 (default one ) : firstly scale to fit width , then if height is larger than canvas height then scale the prev scaled value again to fit height
 
   - the canvas should have a scrollbar-h and -v when the image is zoomed beyond the available width and hegiht
+
+
+# prompt 8:
+this project goal was mainly to extract question portions(start_page,start_y , end_page,end_y) from and igcse exams , so that they can be later renderer and categorized indevidually .
+with that goad in mind I had first to implement a pdf parser and renderer, to understand and manuplate each glyph as its drawn to the surface , and then try some-how to figure out , which glyph indicate a question begin or a sub-part of question ....
+the logic for rendering the pdf is included in the module engine/... (pdf_renderer , pdf_engine (main-class), engine_state pdf_font ...etc ), this part of the code is working very well, but ....
+
+the part of the code resposible of figuring out questions and parts location is not working very accuratly or as intended ( 0 mistakes ), some times the intro page is been recognized as part of question 1 , and some times the last question is completly ignored ....
+
+the code for this part is located in engine/pdf_detectors (mostly in the class QuestionDetectors ) , this challange of improving the detectors is not an easy challange , and require alot of thinking and consideration ....
+
+I need you to this a lot of thining on my behalf ( currently Iam very busy), and try to improve the QuestionDetector class and rewrite a newer version of it QuestionDetectorV2 from scratch and maybe other helper class or other kind of detectors, in case it will help you on the main task "detecting questions from the exam pdf" ...
+
+you have all the time and resource of the world to figure out new ways fro imporvment, you may structure the new class the way you want ( just expose the same or similar apis, like those in BaseDetector, but other wise changes are welecome even in the base api scope )
+
+just make it simple, intelligent and 100% accurate ...
+
+take your time thinking about the task before starting the code 

@@ -10,9 +10,10 @@ cosole_print = print
 file = None
 
 
-def enable_detector_dubugging():
+def enable_detector_dubugging(pdf_path: str):
     global file
     file = open(f"output{sep}detector_output.md", "w", encoding="utf-8")
+    print("## Pdf:", pdf_path, "\n")
 
 
 def print(*args):
@@ -46,6 +47,9 @@ class BaseDetector:
     def attach(self, page_width, page_height):
         self.height = page_height
         self.width = page_width
+
+    def handle_sequence(self, seq: SymSequence, page: int):
+        pass
 
     # def detect(self, char):
     #     pass
@@ -88,7 +92,9 @@ class InlineImageDetector(BaseDetector):
 
 
 class QuestionDetector(BaseDetector):
-    def __init__(self) -> None:
+    def __init__(
+        self,
+    ) -> None:
         super().__init__()
         self.curr_page = -1
         self.height = 0
