@@ -29,11 +29,11 @@ class QuestionBase(Box):
             self.pages: int = pages
 
         self.level: int = level
-        self.q_type: int | None = None # Added q_type for QuestionDetectorV2
+        self.q_type: int | None = None  # Added q_type for QuestionDetectorV2
         self.contents: list[Box] = []
         # self.x: float = float(x)
         # self.y: float = float(y)
-        self.y1: float | None = page_height # Default y1 to full page height
+        self.y1: float | None = page_height  # Default y1 to full page height
         self.line_height: int = float(line_h)
 
     @property
@@ -50,9 +50,9 @@ class QuestionBase(Box):
             " " * self.level * 4
             + self.TITLE_DICT[self.level]
             + " "
-            + str(self.label) # Ensure label is string for concatenation
+            + str(self.label)  # Ensure label is string for concatenation
             # + in_page
-            + f"(x={self.x}, y={self.y}, y1={self.y1 or "None"}, start_pg={self.start_page}, end_pg={self.end_page}, type={self.q_type})" # Added type, start/end_page
+            + f"(x={self.x}, y={self.y}, y1={self.y1 or "None"}, start_pg={self.start_page}, end_pg={self.end_page}, type={self.q_type})"  # Added type, start/end_page
             + "\n"
         )
         for p in self.parts:
@@ -71,17 +71,25 @@ class QuestionBase(Box):
             "y": self.y,
             "y1": self.y1,
             "h": self.line_height,
-            "type": self.q_type, # Added type
+            "type": self.q_type,  # Added type
             "parts": part_dict,
         }
 
     @classmethod
     def __from_dict__(self, qd: dict, shallow: bool, level=0):
         q = QuestionBase(
-            qd["label"], qd["pages"], level, qd["x"], qd["y"], qd["w"], qd["h"] # Assuming qd["w"] should be page_height and qd["h"] line_h based on constructor
+            qd["label"],
+            qd["pages"],
+            level,
+            qd["x"],
+            qd["y"],
+            qd["w"],
+            qd[
+                "h"
+            ],  # Assuming qd["w"] should be page_height and qd["h"] line_h based on constructor
         )
         q.y1 = qd["y1"]
-        q.q_type = qd.get("type") # Added type
+        q.q_type = qd.get("type")  # Added type
         if shallow:
             return q
         q.parts = []
@@ -96,9 +104,9 @@ class QuestionBase(Box):
             " " * self.level * 4
             + self.TITLE_DICT[self.level]
             + " "
-            + str(self.label) # Ensure label is string for concatenation
+            + str(self.label)  # Ensure label is string for concatenation
             # + in_page
-            + f"(x={self.x}, y={self.y}, y1={self.y1 or 'None'}, start_pg={self.start_page}, end_pg={self.end_page}, type={self.q_type})" # Added type, start/end_page
+            + f"(x={self.x}, y={self.y}, y1={self.y1 or 'None'}, start_pg={self.start_page}, end_pg={self.end_page}, type={self.q_type})"  # Added type, start/end_page
             + ""
         )
 
@@ -126,6 +134,9 @@ class Question(QuestionBase):
         self.y1 = y1
         self.id = id
         if isinstance(label, str) and not label.isdigit():
+
+            print(label)
+            print(self.__to_dict__())
             raise Exception(
                 "only top level BaseQuestion can form a question object"
             )
