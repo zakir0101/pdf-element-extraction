@@ -1,6 +1,11 @@
 import os
 from pprint import pprint
-import cairo
+try:
+    import cairo
+except ModuleNotFoundError:
+    print("WARNING: Cairo module not found in question.py. Some functionalities may be limited.")
+    cairo = None # Define cairo as None so type hints and later references don't fail immediately
+
 from .core_models import Box, SurfaceGapsSegments
 from engine.pdf_utils import crop_image_surface
 
@@ -43,7 +48,7 @@ class QuestionBase(Box):
             + " "
             + self.label
             # + in_page
-            + f"(x={self.x}, y={self.y}, y1={self.y1 or "None"}, page={self.pages})"
+            + f"(x={self.x}, y={self.y}, y1={self.y1 or 'None'}, page={self.pages})"
             + "\n"
         )
         for p in self.parts:

@@ -17,7 +17,7 @@ from .engine_state import EngineState
 from .pdf_stream_parser import PDFStreamParser
 
 from .pdf_utils import crop_image_surface
-from .pdf_detectors import QuestionDetector, enable_detector_dubugging
+from .pdf_detectors import QuestionDetector, QuestionDetectorV2, enable_detector_dubugging
 from os.path import sep
 from .pdf_encoding import PdfEncoding as pnc
 
@@ -168,7 +168,7 @@ class PdfEngine:
 
         self.font_map: dict[str, PdfFont] | None = None
 
-        self.question_detector: QuestionDetector = QuestionDetector()
+        self.question_detector: QuestionDetectorV2 = QuestionDetectorV2()
 
         self.state: EngineState | None = None
         self.renderer: BaseRenderer | None = None
@@ -735,8 +735,38 @@ class PdfEngine:
 
 
 if __name__ == "__main__":
-    pdf_path = "9702_m23_qp_12.pdf"
-    pdf_engine = PdfEngine(pdf_path)
-    data = pdf_engine.load_page_content(3)
-    # pdf_engine.execute_stream(stream)
-    pass
+    # Instantiate PdfEngine
+    pdf_engine = PdfEngine()
+
+    # Set the PDF file for processing
+    # Adjusted path to PDFs/ directory
+    pdf_file_path = "PDFs/9702_m23_qp_12.pdf"
+    pdf_file_name = "9702_m23_qp_12"
+    pdf_engine.set_files([(pdf_file_name, pdf_file_path)])
+
+    # Advance to the first file
+    if not pdf_engine.proccess_next_pdf_file():
+        print(f"Failed to load PDF: {pdf_file_path}")
+    else:
+        print(f"Successfully loaded PDF: {pdf_engine.get_current_file_path()}")
+        # Call the question extraction method with M_DEBUG_DETECTOR
+        # This ensures enable_detector_dubugging is called for QuestionDetectorV2
+        questions = pdf_engine.extract_questions_from_pdf(debug=PdfEngine.M_DEBUG_DETECTOR)
+
+        # Print basic info of returned QuestionBase objects
+        print(f"\n--- Detected Questions ({len(questions)}) ---")
+        if questions:
+            for i, q_base in enumerate(questions):
+                print(f"Q{i+1}: {q_base}") # Relies on QuestionBase.__str__
+                # You can print more details if needed, e.g.:
+                # print(f"  Label: {q_base.label}, Page: {q_base.pages}, Level: {q_base.level}")
+                # print(f"  Coords: (x={q_base.x}, y={q_base.y}) to (x1={q_base.x1}, y1={q_base.y1})")
+                # print(f"  Parts: {len(q_base.parts)}")
+                # for j, part in enumerate(q_base.parts):
+                #     print(f"    Part {j+1}: {part}")
+                #     for k, subpart in enumerate(part.parts):
+                #         print(f"      SubPart {k+1}: {subpart}")
+        else:
+            print("No questions detected.")
+        
+        print(f"\nDetailed debug output from QuestionDetectorV2 should be in: output{sep}detector_output.md")

@@ -1,5 +1,11 @@
 from os.path import sep
-import cairo
+import re # For regular expressions
+try:
+    import cairo
+except ModuleNotFoundError:
+    print("WARNING: Cairo module not found. Some functionalities may be limited.") # Or pass, if no fallback
+    cairo = None # So references to cairo don't cause NameError
+
 from models.core_models import Symbol, SymSequence
 from models.question import QuestionBase
 from models.question import Question
@@ -73,6 +79,326 @@ class GraphDetector(BaseDetector):
 
 class InlineImageDetector(BaseDetector):
     pass
+
+
+class QuestionDetectorV2(BaseDetector):
+    def __init__(self):
+        super().__init__()
+        # self.detected_questions: list[Question] = [] # Replaced by questions_list for QuestionBase
+        self.current_line_symbols: list[Symbol] = []
+        self.last_symbol_on_line: Symbol | None = None
+        self.processed_lines: list[SymSequence] = [] # For temporary storage/debugging
+        self.current_page_number: int = -1
+        self.VERTICAL_ALIGNMENT_TOLERANCE: float = 2.0
+        self.HORIZONTAL_PROXIMITY_TOLERANCE: float = 10.0
+        
+        self.questions_list: list[QuestionBase] = []
+        self.current_question_level_0: QuestionBase | None = None
+        self.current_question_level_1: QuestionBase | None = None
+        self.current_question_level_2: QuestionBase | None = None
+        self.page_width: float = 0.0
+        self.page_height: float = 0.0
+        # print("QuestionDetectorV2 initialized for question detection")
+
+    def _extract_numbering_pattern(self, line_text: str) -> tuple[str | None, str | None, str | None]:
+        line_text = line_text.strip()
+        
+        # Regex patterns:
+        # - Optional prefix (Question, Q, Part) - non-capturing for prefix, but we'll extract it if present
+        # - Main number/letter (numeric, alpha, roman)
+        # - Optional suffix char ('.', ')')
+
+        # Pattern for "Question 1", "Q1", "1.", "1)", etc.
+        # ((?:Question|Q)\s*)? - Optional prefix "Question " or "Q" (non-capturing group for prefix words, capturing for the whole prefix part)
+        # (\d+) - Numeric part (capturing)
+        # (\.|\))? - Optional suffix "." or ")" (capturing)
+        pat_numeric = re.compile(r"^(?:(Question|Q)\s*)?(\d+)\s*([.)])?", re.IGNORECASE)
+
+        # (\d+) - Numeric part (capturing)
+        # (\.|\))? - Optional suffix "." or ")" (capturing)
+        pat_numeric = re.compile(r"^(?:(Question|Q)\s*)?(\d+)\s*([.)])?", re.IGNORECASE)
+
+        # Pattern for alpha:
+        # Group 1: Prefix (Part)
+        # Group 2: Letter if in parentheses, e.g., (a) - includes the parens
+        # Group 3: Letter if not in parentheses, e.g., a
+        # Group 4: Suffix char like . or ) that might follow the letter or the parenthesized expression
+        pat_alpha = re.compile(r"^(?:(Part)\s*)?(?:(\([a-zA-Z]\))|([a-zA-Z]))\s*([.)])?", re.IGNORECASE)
+
+        # Pattern for roman:
+        # Group 1: Prefix (Part)
+        # Group 2: Roman numeral if in parentheses - includes the parens
+        # Group 3: Roman numeral if not in parentheses
+        # Group 4: Suffix char
+        pat_roman = re.compile(r"^(?:(Part)\s*)?(?:(\([ivxlcdmIVXLCDM]+\))|([ivxlcdmIVXLCDM]+))\s*([.)])?", re.IGNORECASE)
+        
+        # Try Numeric
+        match_numeric = pat_numeric.match(line_text)
+        if match_numeric:
+            prefix = match_numeric.group(1)
+            number = match_numeric.group(2)
+            suffix = match_numeric.group(3)
+            if prefix: prefix = prefix.strip()
+            return prefix, number, suffix
+
+        # Try Roman
+        match_roman = pat_roman.match(line_text)
+        if match_roman:
+            prefix = match_roman.group(1)
+            number_in_parens = match_roman.group(2) # e.g., "(i)"
+            number_no_parens = match_roman.group(3) # e.g., "i"
+            external_suffix = match_roman.group(4)   # e.g., "." in "(i)." or "i."
+            
+            number_val = None
+            internal_suffix = None
+
+            if number_in_parens: # e.g. "(i)" or "(iv)"
+                number_val = number_in_parens[1:-1] # Extract "i" from "(i)"
+                internal_suffix = number_in_parens[-1] # Capture ')' as potential suffix
+            else: # e.g. "i" or "iv"
+                number_val = number_no_parens
+            
+            if number_val and checkIfRomanNumeral(number_val):
+                if prefix: prefix = prefix.strip()
+                # Prioritize external_suffix. If not present and item was parenthesized, use its closing paren.
+                final_suffix = external_suffix if external_suffix else (internal_suffix if number_in_parens else None)
+                return prefix, number_val, final_suffix
+            elif match_roman.group(0): # Structural match (like "ixl.") but content invalid
+                return None, None, None # Prevent fall-through
+
+        # Try Alpha
+        match_alpha = pat_alpha.match(line_text)
+        if match_alpha:
+            prefix = match_alpha.group(1)
+            letter_in_parens = match_alpha.group(2) # e.g., "(a)"
+            letter_no_parens = match_alpha.group(3) # e.g., "a"
+            external_suffix = match_alpha.group(4)   # e.g., "." in "(a)." or "a."
+
+            number_val = None
+            internal_suffix = None
+
+            if letter_in_parens: # e.g. "(a)"
+                number_val = letter_in_parens[1:-1] # Extract "a"
+                internal_suffix = letter_in_parens[-1] # Capture ')'
+            else: # e.g. "a"
+                number_val = letter_no_parens
+
+            if number_val:
+                if letter_no_parens: # Apply refined heuristic for non-parenthesized letters
+                    if not external_suffix: # No '.', ')' directly after the letter in the regex match
+                        # Check what comes after the letter in the line
+                        idx_after_letter_content = match_alpha.end(3) # End position of the letter itself in the stripped line_text
+                        
+                        remaining_text = line_text[idx_after_letter_content:].lstrip() # Strip leading spaces from the remainder
+                        
+                        if remaining_text and remaining_text[0].isalpha():
+                            # If the text immediately following the letter (after stripping leading spaces from remainder)
+                            # starts with another letter, then it's likely part of a word or a new word starting too close.
+                            return None, None, None
+                
+                # If the heuristic didn't reject it, proceed.
+                if prefix: prefix = prefix.strip()
+                final_suffix = external_suffix if external_suffix else (internal_suffix if letter_in_parens else None)
+                return prefix, number_val, final_suffix
+        
+                prefix_str = None
+                if prefix_match:
+                    prefix_str = prefix_match.strip()
+                
+                return prefix_str, number_match, suffix_match
+        
+        return None, None, None
+
+    def _process_buffered_line(self):
+        if self.current_line_symbols:
+            assembled_line_sequence = SymSequence(self.current_line_symbols)
+            line_text = assembled_line_sequence.get_text(verbose=False).strip()
+            
+            # print(f"Processing assembled line (Page {self.current_page_number}): {line_text}") # Original print
+            
+            prefix, number_str, suffix = self._extract_numbering_pattern(line_text) # Renamed 'number' to 'number_str' for clarity
+
+            number_type: str | None = None
+            if number_str:
+                if number_str.isdigit():
+                    number_type = 'numeric'
+                elif checkIfRomanNumeral(number_str):
+                    if number_str.islower():
+                        number_type = 'roman_lower'
+                    else:
+                        number_type = 'roman_upper' # Could be mixed, but primarily upper
+                elif number_str.isalpha():
+                    if number_str.islower():
+                        number_type = 'alpha_lower'
+                    else:
+                        number_type = 'alpha_upper'
+            
+            # Print detected numbering info (can be combined with line processing print)
+            if number_str is not None:
+                print(f"Detected numbering: Type='{number_type}', Prefix='{prefix}', Number='{number_str}', Suffix='{suffix}' on line (Page {self.current_page_number}): '{line_text}'")
+            else:
+                print(f"Processing assembled line (Page {self.current_page_number}): {line_text} (No numbering detected)")
+
+            
+            q_line_x = assembled_line_sequence.x
+            q_line_y = assembled_line_sequence.y
+            q_line_h = assembled_line_sequence.h
+
+            # Level 0 Question Detection (Numeric)
+            if number_type == 'numeric':
+                # Finalize previous L0, L1, L2 if they exist
+                if self.current_question_level_0 is not None:
+                    if self.current_question_level_2 is not None: # An L2 part was open
+                        self.current_question_level_2.y1 = q_line_y
+                        # L2 should already be in L1.parts
+                        print(f"Finalized Level 2: {self.current_question_level_2.label} (under L1: {self.current_question_level_1.label if self.current_question_level_1 else 'None'}) at y={q_line_y} due to new L0 start.")
+                        self.current_question_level_2 = None
+                    if self.current_question_level_1 is not None: # An L1 part was open
+                        self.current_question_level_1.y1 = q_line_y
+                        # L1 should already be in L0.parts
+                        print(f"Finalized Level 1: {self.current_question_level_1.label} (under L0: {self.current_question_level_0.label}) at y={q_line_y} due to new L0 start.")
+                        self.current_question_level_1 = None
+                    
+                    self.current_question_level_0.y1 = q_line_y
+                    self.questions_list.append(self.current_question_level_0)
+                    print(f"Finalized Question: {self.current_question_level_0.label}, Ended at y={q_line_y} on page {self.current_question_level_0.pages[0] if self.current_question_level_0.pages else 'N/A'}")
+
+                # Create new QuestionBase for Level 0
+                label = number_str
+                level = 0
+                new_q_l0 = QuestionBase(label, self.current_page_number, level, q_line_x, q_line_y, self.page_width, self.page_height, q_line_h)
+                self.current_question_level_0 = new_q_l0
+                self.current_question_level_1 = None 
+                self.current_question_level_2 = None
+                print(f"Started Level 0 Question: {label} at y={q_line_y} on page {self.current_page_number}")
+
+            # Level 1 Part Detection (Alphabetic)
+            elif number_type in ['alpha_lower', 'alpha_upper']:
+                if self.current_question_level_0 is None:
+                    print(f"WARNING: Attempted to start Level 1 part without active Level 0 question. Line: '{line_text}'")
+                else:
+                    if self.current_question_level_2 is not None: # An L2 part was open under the previous L1
+                        self.current_question_level_2.y1 = q_line_y
+                        # L2 should already be in L1.parts if L1 exists
+                        if self.current_question_level_1:
+                             print(f"Finalized Orphaned Level 2: {self.current_question_level_2.label} (under L1: {self.current_question_level_1.label}) at y={q_line_y} due to new L1 start.")
+                        else: # Should not happen if L2 was active
+                             print(f"Finalized Orphaned Level 2: {self.current_question_level_2.label} (L1 is None) at y={q_line_y} due to new L1 start.")
+                        self.current_question_level_2 = None
+                    
+                    if self.current_question_level_1 is not None: # An L1 part was already open
+                        self.current_question_level_1.y1 = q_line_y
+                        # L1 should already be in L0.parts
+                        print(f"Finalized Level 1: {self.current_question_level_1.label} (under L0: {self.current_question_level_0.label}) at y={q_line_y} due to new L1 start.")
+
+                    label = number_str
+                    level = 1
+                    new_q_l1 = QuestionBase(label, self.current_page_number, level, q_line_x, q_line_y, self.page_width, self.page_height, q_line_h)
+                    self.current_question_level_1 = new_q_l1
+                    self.current_question_level_0.parts.append(new_q_l1)
+                    self.current_question_level_2 = None # Reset L2
+                    print(f"Started Level 1 Part: {label} under Question {self.current_question_level_0.label} at y={q_line_y} on page {self.current_page_number}")
+
+            # Level 2 Sub-Part Detection (Roman)
+            elif number_type in ['roman_lower', 'roman_upper']:
+                if self.current_question_level_1 is None:
+                    print(f"WARNING: Attempted to start Level 2 sub-part without active Level 1 part. Line: '{line_text}'")
+                else:
+                    if self.current_question_level_2 is not None: # An L2 part was already open
+                        self.current_question_level_2.y1 = q_line_y
+                        # L2 should already be in L1.parts
+                        print(f"Finalized Level 2: {self.current_question_level_2.label} (under L1: {self.current_question_level_1.label}) at y={q_line_y} due to new L2 start.")
+
+                    label = number_str
+                    level = 2
+                    new_q_l2 = QuestionBase(label, self.current_page_number, level, q_line_x, q_line_y, self.page_width, self.page_height, q_line_h)
+                    self.current_question_level_2 = new_q_l2
+                    self.current_question_level_1.parts.append(new_q_l2)
+                    print(f"Started Level 2 Sub-Part: {label} under Part {self.current_question_level_1.label} at y={q_line_y} on page {self.current_page_number}")
+            
+            self.processed_lines.append(assembled_line_sequence)
+            self.current_line_symbols = []
+            self.last_symbol_on_line = None
+
+    def attach(self, page_width, page_height):
+        super().attach(page_width, page_height)
+        self.page_width = float(page_width)
+        self.page_height = float(page_height)
+        # print(f"QuestionDetectorV2 attached to page with width: {self.page_width} and height: {self.page_height}")
+
+    def handle_sequence(self, seq: SymSequence, page: int):
+        if page != self.current_page_number:
+            self._process_buffered_line()  # Process any remaining symbols from the previous page
+            self.current_page_number = page
+            self.current_line_symbols = []
+            self.last_symbol_on_line = None
+            # print(f"QuestionDetectorV2 starting page {page}")
+
+        for symbol in seq.data: # Assuming seq.data contains the list of Symbol objects
+            if not self.current_line_symbols:
+                self.current_line_symbols.append(symbol)
+                self.last_symbol_on_line = symbol
+            else:
+                last_sym = self.last_symbol_on_line
+                assert last_sym is not None # Should always be true if current_line_symbols is not empty
+
+                # Vertical Alignment Check: symbol.y is top of the symbol
+                vertically_aligned = abs(symbol.y - last_sym.y) <= self.VERTICAL_ALIGNMENT_TOLERANCE
+
+                # Horizontal Proximity Check: symbol.x > last_sym.x and gap is within tolerance
+                # Gap is symbol.x - (last_sym.x + last_sym.w)
+                horizontally_proximate = (symbol.x > last_sym.x and
+                                          (symbol.x - (last_sym.x + last_sym.w)) <= self.HORIZONTAL_PROXIMITY_TOLERANCE)
+
+                if vertically_aligned and horizontally_proximate:
+                    self.current_line_symbols.append(symbol)
+                    self.last_symbol_on_line = symbol
+                else:
+                    # Symbol starts a new line
+                    self._process_buffered_line()
+                    self.current_line_symbols = [symbol]
+                    self.last_symbol_on_line = symbol
+        # print(f"QuestionDetectorV2 handled sequence on page {page}: {seq.get_text()}") # Original print removed
+
+    def on_finish(self):
+        self._process_buffered_line()  # Process any remaining symbols
+        
+        # Cascading finalization for any open questions/parts at the very end
+        if self.current_question_level_0 is not None:
+            final_y_coord = self.page_height # End at the bottom of the last page
+
+            if self.current_question_level_2 is not None: # L2 was open
+                self.current_question_level_2.y1 = final_y_coord
+                # L2 should be in L1.parts
+                print(f"Finalized Last Level 2: {self.current_question_level_2.label} (under L1: {self.current_question_level_1.label if self.current_question_level_1 else 'None'}) at end of page {self.current_page_number}")
+            
+            if self.current_question_level_1 is not None: # L1 was open
+                self.current_question_level_1.y1 = final_y_coord
+                # L1 should be in L0.parts
+                print(f"Finalized Last Level 1: {self.current_question_level_1.label} (under L0: {self.current_question_level_0.label}) at end of page {self.current_page_number}")
+
+            self.current_question_level_0.y1 = final_y_coord
+            self.questions_list.append(self.current_question_level_0)
+            print(f"Finalized Last Question: {self.current_question_level_0.label} at end of page {self.current_page_number if self.current_page_number != -1 else 'undefined'}")
+            
+        self.current_question_level_0 = None
+        self.current_question_level_1 = None
+        self.current_question_level_2 = None
+        
+        # print("QuestionDetectorV2 finishing up...")
+        # For debugging:
+        # print("All detected Level 0 Questions (QuestionBase objects):")
+        # for q_base in self.questions_list:
+        #     print(f"  Label: {q_base.label}, Page: {q_base.pages}, X: {q_base.x}, Y: {q_base.y}, Y1: {q_base.y1}, Height: {q_base.h}")
+
+
+    def get_question_list(self, pdf_file_name_or_path) -> list[QuestionBase]: # Returning QuestionBase for now
+        # This method will eventually use the processed lines to identify questions.
+        # For now, it returns an empty list as per the original placeholder.
+        # The task asks to return self.questions_list which contains QuestionBase objects.
+        # Conversion to Question objects can be done here or by the caller if needed.
+        # print(f"QuestionDetectorV2 returning {len(self.questions_list)} QuestionBase objects for {pdf_file_name_or_path}")
+        return self.questions_list
 
 
 # def find_questions_part_in_page(

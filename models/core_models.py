@@ -1,4 +1,10 @@
-import cairo
+try:
+    import cairo
+except ModuleNotFoundError:
+    print("WARNING: Cairo module not found in core_models. Some functionalities may be limited.")
+    cairo = None # Define cairo as None so type hints and later references don't fail immediately
+
+from typing import Any # Import Any for type hinting
 import numpy as np  # speeds things up; pure-Python fallback shown later
 from engine.pdf_utils import all_subjects, _surface_as_uint32
 from collections import defaultdict
@@ -176,7 +182,7 @@ class SymSequence(BoxSegments):
 class SurfaceGapsSegments(BoxSegments):
 
     def __init__(
-        self, surface: cairo.ImageSurface, gap_factor: float = 0.5
+        self, surface: "cairo.ImageSurface" if cairo else Any, gap_factor: float = 0.5
     ) -> None:
         """factor: a float number which will multiply (0.01 * page_height ) and be used
         as min empty gap (gap = number of sequencially empty/white rows of pixel) that should be skipped ...
@@ -321,7 +327,7 @@ class SurfaceGapsSegments(BoxSegments):
 
     def clip_segments_from_surface_into_contex(
         self,
-        out_ctx: cairo.Context,
+        out_ctx: "cairo.Context" if cairo else Any,
         out_y_start: float,
         segments: list[Box] | None = None,
         line_height: float | None = None,
@@ -331,8 +337,8 @@ class SurfaceGapsSegments(BoxSegments):
             """use the whole page segments"""
             segments = self.non_empty_segments
 
-        segments: SurfaceGapsSegments = segments
-        input_surf: cairo.ImageSurface = self.surface
+        segments: "SurfaceGapsSegments" = segments # This is a self-reference essentially, or a forward one. String is safest.
+        input_surf: "cairo.ImageSurface" if cairo else Any = self.surface
 
         # TODO: FIX ME FOR FULL PAGE RENDERING , the line_height is independent of page_height , following line should be change
         # for instande by adding a char_height (d0) to Box class
