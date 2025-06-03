@@ -17,7 +17,10 @@ from .engine_state import EngineState
 from .pdf_stream_parser import PDFStreamParser
 
 from .pdf_utils import crop_image_surface
-from .pdf_detectors import QuestionDetector, enable_detector_dubugging
+from detectors.question_detectors import (
+    QuestionDetector,
+    enable_detector_dubugging,
+)
 from os.path import sep
 from .pdf_encoding import PdfEncoding as pnc
 

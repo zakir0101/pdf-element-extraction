@@ -1,24 +1,16 @@
-import json
 import pprint
 import random
 import traceback
 from typing_extensions import deprecated
 import tqdm
 import sys
-from collections import defaultdict
 from engine.pdf_engine import PdfEngine
+from engine.pdf_renderer import BaseRenderer
 from engine.pdf_stream_parser import PDFStreamParser
-from engine.pdf_utils import (
-    open_pdf_using_sumatra,
-    open_files_in_nvim,
-)
-from engine.pdf_detectors import QuestionBase
-from engine.pdf_question_renderer import QuestionRenderer
 from main import CmdArgs, all_subjects, igcse_path
 import os
 from os.path import sep
 import gui.pdf_tester_gui as gui
-from engine.pdf_detectors import enable_detector_dubugging
 from models.core_models import Subject
 import engine.pdf_gui_api as api
 
@@ -123,7 +115,7 @@ def do_test_font(args: CmdArgs, t_type: str = "show"):
         cur_range = args.range or range(1, args.page_count + 1)
         for page in cur_range:
             try:
-                engine.load_page_content(page, QuestionRenderer)
+                engine.load_page_content(page, BaseRenderer)
                 for font in engine.font_map.values():
                     if t_type == "show":
                         font.debug_font()
@@ -163,7 +155,7 @@ def do_test_parser(args: CmdArgs):
         for page in range(1, args.page_count + 1):
             total_pages += 1
             try:
-                engine.load_page_content(page, QuestionRenderer)
+                engine.load_page_content(page, BaseRenderer)
                 engine.debug_original_stream()
                 parser = PDFStreamParser().parse_stream(engine.current_stream)
                 for cmd in parser.iterate():
@@ -239,7 +231,7 @@ def do_test_renderer(args: CmdArgs):
         for page in pages_range:
             total_pages += 1
             try:
-                engine.load_page_content(page, QuestionRenderer)
+                engine.load_page_content(page, BaseRenderer)
                 engine.debug_original_stream()
                 engine.execute_page_stream(max_show=args.max_tj, mode=0)
                 if is_show:

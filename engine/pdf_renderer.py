@@ -7,7 +7,8 @@ from .engine_state import EngineState
 import cairo
 from cairo import Context, Glyph, ImageSurface, Matrix
 import os
-from .pdf_detectors import SymSequence, Symbol, BaseDetector
+from detectors.core_detectors import BaseDetector
+from models.core_models import SymSequence, Symbol
 
 SEP = os.path.sep
 
@@ -107,7 +108,7 @@ class BaseRenderer:
         self.width = width
         self.height = height
         for detector in self.detector_list:
-            detector.attach(width, height)
+            detector.attach(width, height, page)
         self.page_number = page
         self.footer_y = height * 0.95
         self.header_y = height * 0.06

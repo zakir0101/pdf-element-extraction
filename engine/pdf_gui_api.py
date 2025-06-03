@@ -1,7 +1,8 @@
 import cairo
-from engine.pdf_detectors import QuestionBase
-from engine.pdf_engine import PdfEngine
-from engine.pdf_renderer import BaseRenderer
+from models.question import QuestionBase
+
+# from engine.pdf_engine import PdfEngine
+# from engine.pdf_renderer import BaseRenderer
 from models.core_models import Subject
 from os.path import sep
 import json

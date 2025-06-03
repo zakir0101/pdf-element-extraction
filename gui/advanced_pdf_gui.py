@@ -3,20 +3,25 @@
 import tkinter as tk
 from tkinter import ttk
 import os
-from tkinter import filedialog  # Though not used for file picking yet
-from functools import partial  # For cleaner command binding if needed
+
+# from tkinter import filedialog  # Though not used for file picking yet
+# from functools import partial  # For cleaner command binding if needed
 import traceback
 import importlib
 from engine.pdf_utils import open_pdf_using_sumatra
 
-# Import for reloading and instantiation
 
+# Import for reloading and instantiation
 from engine import pdf_engine as pdf_engine_module
 from engine import (
     pdf_renderer as pdf_renderer_module,
 )  # Assuming these are modules
 from engine import pdf_font as pdf_font_module
-from engine import pdf_detectors as pdf_detectors_module
+from detectors.question_detectors import QuestionDetector as q_detectors_module
+
+from detectors.question_detectors import (
+    QuestionDetectorBase as qbase_detectors_module,
+)
 from engine import engine_state as pdf_state_module
 
 from engine.pdf_engine import PdfEngine
@@ -24,12 +29,14 @@ from PIL import Image, ImageTk
 import cairo  # For type hinting and direct use if necessary
 
 ALL_MODULES = [
-    pdf_engine_module,
-    pdf_renderer_module,
     pdf_font_module,
-    pdf_detectors_module,
     pdf_state_module,
+    qbase_detectors_module,
+    pdf_renderer_module,
+    q_detectors_module,
+    pdf_engine_module,
 ]
+
 
 """
 Advanced PDF Viewer GUI application.
@@ -838,6 +845,7 @@ class AdvancedPDFViewer(tk.Tk):
 
         except Exception as e:
             error_message = f"Error reloading engine: {e}"
+            print(traceback.format_exc())
             print(error_message)  # Keep console print for dev
             self.update_status_bar(f"Critical error reloading engine: {e}")
             # Potentially, the engine is in a bad state. Could try to revert to a new clean instance.
@@ -963,6 +971,7 @@ class AdvancedPDFViewer(tk.Tk):
                     )
             except Exception as e:
                 error_msg = f"Error extracting questions: {e}"
+                print(traceback.format_exc())
                 print(error_msg)
                 self.update_status_bar(error_msg)
                 self.questions_list = []
