@@ -1,5 +1,6 @@
 import os
 from pprint import pprint
+from typing import override
 import cairo
 from .core_models import Box, SurfaceGapsSegments
 from engine.pdf_utils import crop_image_surface
@@ -103,6 +104,7 @@ class Question(QuestionBase):
         label: int | str,
         pages: int | list[int],
         level: int,
+        parts: list[QuestionBase],
         x: float,
         y: float,
         w: float,
@@ -112,6 +114,7 @@ class Question(QuestionBase):
     ) -> None:
         heigh = self.calculate_height(y, y1, pages, page_height)
         super().__init__(label, pages, level, x, y, w, y1 - y, line_height)
+        self.parts = parts
         self.y1 = y1
         self.id = id
         if isinstance(label, str) and not label.isdigit():
@@ -144,6 +147,7 @@ class Question(QuestionBase):
             q.label,
             q.pages,
             q.level,
+            q.parts,
             q.x,
             q.y,
             q.w,
@@ -155,6 +159,8 @@ class Question(QuestionBase):
     def draw_question_on_image_surface(
         self,
         page_segments_dict: dict[int, SurfaceGapsSegments],
+        header_y,
+        footer_y,
     ):
         """render the question on cairo image surface"""
         out_ctx = None
@@ -167,30 +173,52 @@ class Question(QuestionBase):
         self.current_y = 0
         for i, page in enumerate(self.pages):
             # TODO:
+            print([k for k in page_segments_dict.keys()])
             page_seg = page_segments_dict[page]
+
             page_surf = page_seg.surface
             if i == 0:
                 # assume all have the same width
                 out_ctx, out_surf = self.create_output_surface(
                     page_surf.get_width(), total_height
                 )
+                out_ctx.save()
+                out_ctx.move_to(self.line_height * 4, self.line_height * 2)
+                out_ctx.show_text(f"<Question {self.number}>")
+                out_ctx.restore()
 
             q_segments: list[Box] = page_seg.filter_question_segments(
                 self.y, self.y1, self.pages, page
             )
+
+            seg_remove = []
+            for j in range(len(q_segments)):
+                # print("len = ", len(q_segments), "j=", j)
+                b = q_segments[j]
+                (b.y < header_y) and seg_remove.append(b)
+                ((b.y + b.h) > footer_y) and seg_remove.append(b)
+            for seg in seg_remove:
+                q_segments.remove(seg)
 
             if not q_segments or len(q_segments) == 0:
                 print(
                     f"WARN: skipping page {page}, no Segments found for question {self.__str__()}"
                 )
                 continue
-
+            # f_seg = q_segments[0]
+            # l_seg = q_segments[-1]
+            # q_height = l_seg.y + l_seg.h - f_seg.y
+            # q_segments = [Box(f_seg.x, f_seg.y, f_seg.w, q_height)]
             self.current_y = page_seg.clip_segments_from_surface_into_contex(
                 out_ctx, self.current_y, q_segments
             )
 
         if self.current_y == 0:
-            raise Exception("no heigth for question", self.__str__())
+            print(self.__str__())
+            print("all Segs")
+            for seg in page_seg:
+                print(seg)
+            raise Exception("no heigth for question")
 
         padding = 2 * (self.line_height)
         return crop_image_surface(out_surf, 0, self.current_y, padding)

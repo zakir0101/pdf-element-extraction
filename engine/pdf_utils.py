@@ -27,7 +27,7 @@ all_subjects = [
 # ************************************************************************
 
 
-def _surface_as_uint32(surface: cairo.ImageSurface):
+def _surface_as_uint32(surface: cairo.ImageSurface, y0, y1):
     """
     Return a (h, stride//4) view where each element is one ARGB32 pixel
     exactly as Cairo stores it (premultiplied, native endian).
@@ -35,7 +35,10 @@ def _surface_as_uint32(surface: cairo.ImageSurface):
     surface.flush()  # make sure the C side is done
     h, stride = surface.get_height(), surface.get_stride()
     buf = surface.get_data()  # Python buffer -> zero-copy
-    return np.frombuffer(buf, dtype=np.uint32).reshape(h, stride // 4)
+    array = np.frombuffer(buf, dtype=np.uint32).reshape(h, stride // 4)
+    if y1 is None:
+        y1 = len(array) - 1
+    return array[y0:y1]
 
 
 def crop_image_surface(out_surf: cairo.ImageSurface, y_start, y_end, padding):

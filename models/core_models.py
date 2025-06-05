@@ -55,9 +55,13 @@ class Symbol(Box):
 
     def is_connected_with(self, s2):
         s2: Symbol = s2
-        diff1 = abs(s2.x + s2.w - self.x)
-        diff2 = abs(s2.x - self.x + self.w)
-        inner_diff = min(diff1, diff2)
+        left_sym = self if self.x < s2.x else s2
+        right_sym = s2 if self == left_sym else self
+        # diff1 = abs(s2.x + s2.w - self.x)
+        # diff2 = abs(s2.x - self.x + self.w)
+        inner_diff = right_sym.x - (
+            left_sym.x + left_sym.w
+        )  # min(diff1, diff2)
         return inner_diff < self.threshold_x or inner_diff < s2.threshold_x
 
 
@@ -120,6 +124,31 @@ class SymSequence(BoxSegments):
             if sym.ch in char:
                 if len(sub) > 0:
                     yield SymSequence(sub)
+                sub = []
+            else:
+                sub.append(sym)
+
+        if len(sub) > 0:
+            yield SymSequence(sub)
+
+    def iterate_split_space(
+        self,
+    ):
+        seps: str = " \t"
+        sub = []
+        for i, sym in enumerate(self.data):
+            n_sym = None
+            if i + 1 < len(self.data):
+                n_sym = self.data[i + 1]
+            if (
+                sym.ch in seps
+            ):  # or (n_sym and not sym.is_connected_with(n_sym)):
+                if len(sub) > 0:
+                    yield SymSequence(sub)
+                sub = []
+            elif n_sym and not sym.is_connected_with(n_sym):
+                sub.append(sym)
+                yield SymSequence(sub)
                 sub = []
             else:
                 sub.append(sym)
@@ -271,26 +300,51 @@ class SurfaceGapsSegments(BoxSegments):
 
     def filter_question_segments(self, min_y, max_y, page_range, curr_page):
         q_segs = []
-        y0, y1 = 0, self.surface.get_height()
+        q_y_min, q_y_max = 0, self.surface.get_height()
         if page_range[0] == curr_page:
-            y0 = min_y - 1.5 * self.d0  # q.h
+            q_y_min = min_y  # - 40 * self.d0  # q.h
         if page_range[-1] == curr_page:
-            y1 = max_y - 1.5 * self.d0  # q.h
+            q_y_max = max_y  # - 1.5 * self.d0  # q.h
+            print("COMPARE", max_y, q_y_max)
         # print(y0, "   ", y1, "for debugging")
         # print("seq length = ", len(segments))
+        line_height = 5 * self.d0
         for box in self.non_empty_segments:
-            sy0, sy1, d0 = box.y, box.h + box.y, self.d0
+            box_min, box_max, d0 = box.y, box.h + box.y, self.d0
             # if not self.default_d0 and d0:
             #     self.default_d0 = d0
-            if y0 <= sy0 <= y1 or y0 <= sy1 <= y1:
-                q_segs.append(box)
+            part_inside = min(box_max, q_y_max) - max(box_min, q_y_min)
+            # assert part_inside > 0
+            part_before = -1000000
+            if box_min < q_y_min:
+                part_before = min(box_max, q_y_max) - box_min
+
+            part_after = -1000000
+            if box_max > q_y_max:
+                part_after = box_max - max(box_min, q_y_min)
+
+            if part_after > part_inside:
+                continue
+            if part_before > 0 and -1 * part_inside > 0.2 * line_height:
+                continue
+
+            q_segs.append(box)
+
+            # if (
+            #     q_y_min <= box_min < (q_y_max)
+            #     and box_max <= q_y_max  # + 2.4 * self.MIN_GAP_HEIGHT
+            # ) or (
+            #     (q_y_min + self.MIN_GAP_HEIGHT) <= box_max <= q_y_max
+            #     and box_min >= q_y_min - 5.4 * self.MIN_GAP_HEIGHT
+            # ):
+            #     q_segs.append(box)
         ###: create a GapSegment obj
         # q_segs_obj: SurfaceGapsSegments = somefunction(q_segs)  # TODO:
 
         return q_segs
 
-    def build_blank_mask(self, surface):
-        pix = _surface_as_uint32(surface)
+    def build_blank_mask(self, surface, y0=0, y1=None):
+        pix = _surface_as_uint32(surface, y0, y1)
         w = surface.get_width()
         return np.fromiter(
             (self.row_is_blank(r, w) for r in pix),
@@ -308,16 +362,24 @@ class SurfaceGapsSegments(BoxSegments):
         f1 = 0.15
         s_left = round(f1 * usable_cols)
         s_right = round((1 - f1) * usable_cols)
-        middle = part[s_left:s_right]
-        sides = np.concatenate((part[:s_left], part[s_right:]), axis=0)
+        middle = part[:s_right]
+        sides = part[s_right:]
+        # np.concatenate((part[:s_left], part[s_right:]), axis=0)
         is_side_almost_empty = (
             np.count_nonzero((sides == white) | (sides == twhite)) / len(sides)
-        ) > 0.99
+        ) > 0.94
         is_middle_completly_empyty = np.all(
             (middle == white) | (middle == twhite)
         )
 
         return is_middle_completly_empyty and is_side_almost_empty
+
+    # def is_data_white_only(self,surf:cairo.ImageSurface,y0,y1):
+    #     surf.flush()
+    #     y0 = round(y0)
+    #     y1 = round(y1)
+    #     surf.get_data()[]
+    #     self.row_is_blank()
 
     def clip_segments_from_surface_into_contex(
         self,
@@ -336,29 +398,88 @@ class SurfaceGapsSegments(BoxSegments):
 
         # TODO: FIX ME FOR FULL PAGE RENDERING , the line_height is independent of page_height , following line should be change
         # for instande by adding a char_height (d0) to Box class
-        if not line_height:
-            line_height = self.d0
+        # if not line_height:
+        line_height = self.d0 * 5
+
+        image_counter = 0
         for i, box in enumerate(segments):
             # box : Box = box
             src_y, seg_h = box.y, box.h
+            src_x, src_w = box.x, box.w
+            next_box: Box = segments[i + 1] if i + 1 < len(segments) else None
             """subtract 0.20 , why ?? 0.1 for shifting by 0.1 * h0 pixel , because the detecting 
             has some delayed response by this ammount , and +0.1 for padding"""
-            y0 = round(src_y - 0.20 * line_height)
+            y0 = round(src_y - 0.12 * line_height)
             """only the 0.2 correspond to the padding , so in practice we shift up by 0.1 and padd by 0.1 from up and down"""
-            h0 = round(seg_h + 0.20 * line_height)  # + factor * d0
+            h0 = round(seg_h + 0.12 * line_height)  # + factor * d0
             # print(y0, y1, d0)
+
+            """Read the doc string below : this is for padding the top most line from above"""
+
+            is_first = False
+            if out_y_start == 0:
+                is_first = False
+                cover_surf = cairo.ImageSurface(
+                    cairo.FORMAT_ARGB32,
+                    round(line_height * 1.6),
+                    round(line_height * 1.4),
+                )
+                print(
+                    "cover : ", cover_surf.get_width(), cover_surf.get_height()
+                )
+                temp_ctx = cairo.Context(cover_surf)
+                temp_ctx.set_source_rgb(1, 1, 1)
+                temp_ctx.paint()
+                out_y_start = 1.0 * line_height
+
+            """handle case: seg is Image/diagram"""
+
+            if h0 > line_height * 2.4:
+                image_counter += 1
+                out_ctx.save()
+                out_ctx.set_source_rgb(0, 0, 0)
+                out_ctx.move_to(
+                    line_height * 1.7, out_y_start + line_height * 0.4
+                )
+                out_ctx.show_text(f"<Image {image_counter}>")
+                # out_ctx.move_to(0, 0)  # - line_height
+                out_ctx.restore()
+                out_y_start += 0.8 * line_height
 
             sub = input_surf.create_for_rectangle(
                 0, y0, input_surf.get_width(), h0
             )
-            """Read the doc string below : this is for padding the top most line from above"""
-            if out_y_start == 0:
-                out_y_start = out_y_start + (1 * line_height)
             out_ctx.set_source_surface(sub, 0, out_y_start)
             out_ctx.paint()
+            if is_first:
+                out_ctx.set_source_surface(
+                    cover_surf,
+                    src_x,
+                    out_y_start - 0.2 * line_height,
+                )
+                out_ctx.paint()
+                out_surf: cairo.ImageSurface = out_ctx.get_target()
+
+                y_temp_0 = round(out_y_start)
+                y_temp_1 = round(out_y_start + h0)
+                # self.is_data_white_only(out_surf,)
+                array = self.build_blank_mask(out_surf, y_temp_0, y_temp_1)
+                if np.count_nonzero(array) >= len(array) - 1:
+
+                    print("found empty line")
+                    continue
+
             """this 0.25 is for spacing between lines, it require the surface to
             be paint white at beginning"""
-            out_y_start += h0 + (0.55 * line_height)
+            """if the space between 2 line is really small , then keep using its actual value  without trimming , other wise trim and add this approximated value """
+            padding_after = 1.0 * line_height  # approximated value
+            if next_box is not None:
+                diff = next_box.y - (y0 + h0)
+                # assert diff > 0
+                # print("diff vs line_height ", diff, line_height)
+                if diff <= 2.12 * line_height:
+                    padding_after = diff - 0.12 * line_height
+            out_y_start += h0 + padding_after
 
         return out_y_start
 

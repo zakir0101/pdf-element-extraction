@@ -17,11 +17,12 @@ from engine import (
     pdf_renderer as pdf_renderer_module,
 )  # Assuming these are modules
 from engine import pdf_font as pdf_font_module
-from detectors.question_detectors import QuestionDetector as q_detectors_module
+from detectors import question_detectors as q_detectors_module
+from models import question as q_model_module
+from models import core_models as core_model_module
 
-from detectors.question_detectors import (
-    QuestionDetectorBase as qbase_detectors_module,
-)
+# from detectors.question_detectors import QuestionDetector as q_detectors_module
+# from detectors.question_detectors import ( QuestionDetectorBase as qbase_detectors_module,)
 from engine import engine_state as pdf_state_module
 
 from engine.pdf_engine import PdfEngine
@@ -29,9 +30,11 @@ from PIL import Image, ImageTk
 import cairo  # For type hinting and direct use if necessary
 
 ALL_MODULES = [
+    core_model_module,
     pdf_font_module,
+    q_model_module,
     pdf_state_module,
-    qbase_detectors_module,
+    # qbase_detectors_module,
     pdf_renderer_module,
     q_detectors_module,
     pdf_engine_module,
@@ -334,6 +337,7 @@ class AdvancedPDFViewer(tk.Tk):
         from the PdfEngine, converts it to a displayable format, and updates
         the main canvas. Also updates the status bar.
         """
+
         # Method attributes like current_file_name are derived by update_status_bar or within logic.
         status_message_detail = ""
         action_description = ""  # For print logging
@@ -367,6 +371,9 @@ class AdvancedPDFViewer(tk.Tk):
         # self.update_status_bar(f"Rendering {self.navigation_mode}...") # This will be more specific below
 
         try:
+
+            # ren = self.engine.renderer
+            # ren.set_clean_mode(ren.O_CLEAN_HEADER_FOOTER)
             if self.navigation_mode == "page":
                 if self.current_page_number > 0 and self.total_pages > 0:
                     self.update_status_bar(
@@ -405,6 +412,7 @@ class AdvancedPDFViewer(tk.Tk):
                         current_q = self.questions_list[
                             self.current_question_number - 1
                         ]
+                        q_text = ""
                         if current_q.pages:
                             page_to_render = current_q.pages[0]
                             self.update_status_bar(
@@ -413,11 +421,18 @@ class AdvancedPDFViewer(tk.Tk):
                             surface = self.engine.render_pdf_page(
                                 page_to_render, debug=0
                             )
+                    else:
+                        q = self.questions_list[
+                            self.current_question_number - 1
+                        ]
+                        q_text = q.__str__()
                     general_render_message = (
-                        "Question displayed."
+                        f"Question displayed.\n{q_text}"
                         if surface
                         else "Failed to render question."
+                        + self.engine.question_detector
                     )
+
                     if surface is None:
                         general_render_message += (
                             " (Not available/Fallback failed)"
@@ -929,7 +944,6 @@ class AdvancedPDFViewer(tk.Tk):
         elif self.current_page_number == 0 and self.total_pages > 0:
             self.current_page_number = 1
 
-        # render_current_page_or_question will call update_status_bar with item details
         self.render_current_page_or_question()
         self.update_status_bar(
             "Switched to Page Mode."
@@ -953,7 +967,11 @@ class AdvancedPDFViewer(tk.Tk):
 
         if self.engine.current_pdf_document:
             try:
+
                 self.update_status_bar("Extracting questions...")
+
+                # ren = self.engine.renderer
+                # ren.set_clean_mode(ren.O_CLEAN_HEADER_FOOTER)
                 self.questions_list = self.engine.extract_questions_from_pdf()
                 self.total_questions = (
                     len(self.questions_list) if self.questions_list else 0

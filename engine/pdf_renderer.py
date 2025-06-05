@@ -33,7 +33,7 @@ class BaseRenderer:
         self.ctx: Context | None = None
         self.skip_footer_header = clean & self.O_CLEAN_HEADER_FOOTER
         self.skip_lines_with_only_dots = clean & self.O_CLEAN_DOTS_LINES
-        self.max_dots = 20
+        self.max_dots = 50
         self.page_number = -1
         self.detector_list: list[BaseDetector] = detector_lists
         self.output = None
@@ -103,6 +103,10 @@ class BaseRenderer:
             3: lambda x: (),
         }
 
+    def set_clean_mode(self, clean):
+        self.skip_footer_header = clean & self.O_CLEAN_HEADER_FOOTER
+        self.skip_lines_with_only_dots = clean & self.O_CLEAN_DOTS_LINES
+
     def initialize(self, width: int, height: int, page: int) -> None:
         """Initialize the Cairo surface and context."""
         self.width = width
@@ -110,8 +114,8 @@ class BaseRenderer:
         for detector in self.detector_list:
             detector.attach(width, height, page)
         self.page_number = page
-        self.footer_y = height * 0.95
-        self.header_y = height * 0.06
+        self.footer_y = height * 0.93
+        self.header_y = height * 0.065
         self.surface = cairo.ImageSurface(
             cairo.FORMAT_ARGB32, self.width, self.height
         )
@@ -253,7 +257,12 @@ class BaseRenderer:
             if self.output:
                 self.output.write("skipping ...")
             update_text_position()
-            return self.state.get_current_position_for_debuging(), True
+            return (
+                self.state.get_current_position_for_debuging(
+                    self.width, self.height
+                ),
+                True,
+            )
 
         # if self.mode == 1:
         self.run_detectors(char_seq)
@@ -261,11 +270,16 @@ class BaseRenderer:
         if not self.state.font.is_type3:
             self.draw_glyph_array(glyph_array)
         update_text_position()
-        if self.output:
-            self.output.write(
-                f"cairoPos: {self.ctx.get_matrix().transform_point(0,0)}\n"
-            )
-        return self.state.get_current_position_for_debuging(), True
+        # if self.output:
+        #     self.output.write(
+        #         f"cairoPos: {self.ctx.get_matrix().transform_point(0,0)}\n"
+        #     )
+        return (
+            self.state.get_current_position_for_debuging(
+                self.width, self.height
+            ),
+            True,
+        )
 
     def run_detectors(self, char_seq: SymSequence):
         for detector in self.detector_list:

@@ -1,3 +1,4 @@
+import enum
 from os.path import sep
 from models.core_models import Symbol, SymSequence
 from models.question import QuestionBase
@@ -31,8 +32,16 @@ ALPHAPET = 2
 ROMAN = 3
 EITHER_OR = 4
 
-FIRST_MAP = {UNKNOWN: "0", NUMERIC: "1", ALPHAPET: "a", ROMAN: "i"}
+FIRST_MAP = {
+    UNKNOWN: "0",
+    NUMERIC: "1",
+    ALPHAPET: "a",
+    ROMAN: "i",
+    EITHER_OR: "EITHER",
+}
+
 FACTORS = [1, 2, 5]
+
 LEVEL_QUESTION = 0
 LEVEL_PART = 1
 LEVEL_SUBPART = 2
@@ -41,8 +50,8 @@ TITLE_DICT = ["Question", "PART", "SUBPART"]
 
 
 class QuestionDetectorBase(BaseDetector):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self, id: int) -> None:
+        super().__init__(id)
         self.allowed_skip_chars = [
             " ",
             "\u0008",
@@ -64,9 +73,24 @@ class QuestionDetectorBase(BaseDetector):
 
         # Constants
         self.MINIMAL_X = 0
+        self.MAXIMAL_X = [0] * 3
         self.tolerance = 20
         self.is_first_detection_in_page = True
 
+        pass
+
+    def on_restart(self):
+
+        self.question_list: list[QuestionBase] = []
+        self.left_most_x: list[int] = [0] * 3
+        self.current: list[QuestionBase] = [None, None, None]
+        self.type: list[int] = [UNKNOWN, UNKNOWN, UNKNOWN]
+
+        # Constants
+        self.MINIMAL_X = 0
+        self.MAXIMAL_X = [0] * 3
+        self.tolerance = 20
+        self.is_first_detection_in_page = True
         pass
 
     # ***********************************************
@@ -89,13 +113,13 @@ class QuestionDetectorBase(BaseDetector):
 
     def get_allowed_startup_chars(self, level: int):
         used = None
-        if level == 0:  # WARN:
+        if level == LEVEL_QUESTION:  # WARN:
             """this work only for cambrdige IGCSE ..."""
             return "1"
         else:
             used = FIRST_MAP[self.type[level - 1]]
         res = [i for i in self.allowed_chars_startup if i != used]
-        if level == 2:
+        if level == LEVEL_PART:
             res.append("EITHER")
         return res
 
@@ -126,12 +150,15 @@ class QuestionDetectorBase(BaseDetector):
 
     def is_char_valid_as_next(self, char, level, strict=False):
         next = self.get_next_allowed(level)
-        if isinstance(next, list):
-            return char in next
-        next = str(next)
-        if strict:
-            return next == char
-        return next.startswith(char)
+        if not isinstance(next, list):
+            next = [next]
+        for n in next:
+            n = str(n)
+            if strict and n == char:
+                return True
+            elif not strict and n.startswith(char):
+                return True
+        return False
 
     def is_char_valid_as_alternative(self, char, level, strict=False):
         # TODO: fix this
@@ -158,11 +185,12 @@ class QuestionDetectorBase(BaseDetector):
 
     def is_char_skip(self, sym: Symbol, level):
         char = sym.ch
-        if sym.x < self.MINIMAL_X:
-            return True
-        if level > 0:
-            if char in self.current[level - 1].label:
-                return True
+        # if sym.x < self.MINIMAL_X:
+        #     return True
+        """I commented following very dangerous code"""
+        # if level > 0:
+        #     if char in self.current[level - 1].label:
+        #         return True
         return not char or char in self.allowed_skip_chars
 
     def is_valid_neighbours(self, sym: Symbol, n_sym: Symbol):
@@ -172,11 +200,14 @@ class QuestionDetectorBase(BaseDetector):
     # Resseting internal state
     # _______________________________________________
 
-    def reset_left_most(self, level=None):
-        if level:
-            self.left_most_x[level:] = [self.width / 3] * (3 - level)
-        else:
-            self.left_most_x = [self.width / 3] * 3
+    def reset_left_most(self, level=0):
+
+        self.left_most_x[level:] = self.MAXIMAL_X[level:]
+        return
+        # if level:
+        #     [self.width / 4] *  (3 - level)
+        # else:
+        #     self.left_most_x = [self.width / 4] * 3
 
     def reset_types(self, level):
         self.type[level:] = [UNKNOWN] * (3 - level)
@@ -191,12 +222,12 @@ class QuestionDetectorBase(BaseDetector):
         self.reset_left_most(level)
         self.reset_types(level)
 
-        if level == 0:
+        if level == LEVEL_QUESTION:
             self.question_list = []
-        elif level == 1 and self.current[0]:
-            self.current[0].parts = []
-        elif level == 2 and self.current[1]:
-            self.current[1].parts = []
+        elif level == LEVEL_PART and self.current[LEVEL_QUESTION]:
+            self.current[LEVEL_QUESTION].parts = []
+        elif level == LEVEL_SUBPART and self.current[LEVEL_PART]:
+            self.current[LEVEL_PART].parts = []
 
         self.current[level:] = [None] * (3 - level)
         self.reset_current(level)
@@ -208,10 +239,10 @@ class QuestionDetectorBase(BaseDetector):
     def set_page_number_for_first_detection(self, level):
         if self.is_first_detection_in_page:
             self.is_first_detection_in_page = False
-            if level > 1:
-                self.current[1].pages.append(self.curr_page)
-            if level > 0:
-                self.current[0].pages.append(self.curr_page)
+            if level == LEVEL_SUBPART:
+                self.current[LEVEL_PART].pages.append(self.curr_page)
+            if level in [LEVEL_SUBPART, LEVEL_PART]:
+                self.current[LEVEL_QUESTION].pages.append(self.curr_page)
 
     def get_question_list(self, pdf_file_name_or_path) -> list[Question]:
         q_list = []
@@ -222,10 +253,8 @@ class QuestionDetectorBase(BaseDetector):
 
 class QuestionDetector(QuestionDetectorBase):
 
-    def __init__(
-        self,
-    ) -> None:
-        super().__init__()
+    def __init__(self, id: int) -> None:
+        super().__init__(id)
 
         pass
 
@@ -234,8 +263,12 @@ class QuestionDetector(QuestionDetectorBase):
     # ___________________________________________________________
 
     def attach(self, page_width, page_height, page: int):
+        if page > 1 and self.bufferd_line:
+            self.handle_sequence([], -1)
         super().attach(page_width, page_height, page)
-        self.MINIMAL_X = 0.05 * page_width
+        self.MINIMAL_X = 0.081 * page_width
+        self.MAXIMAL_X = [i * page_width for i in [0.1, 0.19, 0.27]]
+
         if len(self.question_list) == 0:
             self.reset_left_most()
 
@@ -247,15 +280,20 @@ class QuestionDetector(QuestionDetectorBase):
         self.width
         self.is_first_detection_in_page = True
         if len(self.question_list) == 0:
-            self.reset(0)
+            self.reset(LEVEL_QUESTION)
         self.reset_left_most(1)
         self.print_internal_status("After:")
+        self.prev_first_char = None
+        self.line_height = 0.01 * page_height * 5
+        self.bufferd_line: list[Symbol] = []
 
     def on_finish(
         self,
     ):
         """call this function after all pages has beeing prcessed"""
-        last = self.current[0]
+        if self.bufferd_line:
+            self.handle_sequence([], -1)
+        last = self.current[LEVEL_QUESTION]
         if not last:
             return
         last.y1 = self.height
@@ -265,15 +303,41 @@ class QuestionDetector(QuestionDetectorBase):
             last.parts[-1].parts = []
 
     def handle_sequence(self, seq: SymSequence, page: int):
+        first_char: Symbol = seq[0] if seq else None
+        if not self.prev_first_char:
+            self.prev_first_char = first_char
+            self.bufferd_line = seq.data
+            print("First: appending to Buffered line")
+            return
 
-        for level in range(3):
-            for sub_seq in seq.iterate_split(" \t"):
-                found = self.__handle_sequence(sub_seq, level)
-                if found:
+        if (
+            first_char
+            and abs(first_char.y - self.prev_first_char.y)
+            < 0.25 * self.line_height
+        ):
+            self.bufferd_line.extend(seq.data)
+            print("appending to Buffered line")
+        else:
+            bufferd_seg = SymSequence(self.bufferd_line)
+            print("exec buffered Line", bufferd_seg.get_text(verbose=False))
+            starting_j = 0
+            for level in range(3):
+                for j, sub_seq in enumerate(bufferd_seg.iterate_split_space()):
+                    if j > level:
+                        break
+                    elif j < starting_j:
+                        continue
+                    print("subline ", sub_seq.get_text(verbose=False))
+                    found = self.__handle_sequence(sub_seq, level)
+                    if found:
+                        starting_j += 1
+                        break
+                if self.current[level] is None:
                     break
 
-            if self.current[level] is None:
-                break
+            if seq:
+                self.prev_first_char = first_char
+                self.bufferd_line = seq.data
 
     # ***********************************************************
     # ************* the 3 Core Methods    ***********************
@@ -297,6 +361,8 @@ class QuestionDetector(QuestionDetectorBase):
             char = sym.ch
             if self.is_char_skip(sym, level):
                 continue
+            if sym.x < self.MINIMAL_X:
+                break
 
             if prev_valid and not self.is_valid_neighbours(sym, prev_valid):
                 break
@@ -334,7 +400,7 @@ class QuestionDetector(QuestionDetectorBase):
 
             elif can_overwrite:
                 print(
-                    f"\nL{level}: Ignored 'OVERRIDE' Seq:(charall={char_all},char={char}) "
+                    f"\nP{self.curr_page}-L{level}: Ignored 'OVERRIDE' char:(charall={char_all},char={char}) "
                     + seq.get_text()
                 )
                 pass
@@ -343,7 +409,10 @@ class QuestionDetector(QuestionDetectorBase):
                 #     self.reset(level)
                 #     self.left_most_x[level] = x
             elif can_append:
-                print(f"\nL{level}: Ignored 'APPEND' Seq: " + seq.get_text())
+                print(
+                    f"\nP{self.curr_page}-L{level}: Ignored 'APPEND' Seq: "
+                    + seq.get_text()
+                )
             elif valid_as_next or valid_as_alt:
                 pass
 
@@ -351,8 +420,11 @@ class QuestionDetector(QuestionDetectorBase):
             return False
 
         if is_overwrite_and_reset:
-            print("OV_AND_RESET :\n" + seq.get_text())
-            self.reset(0)  # current level == 0
+            print(
+                f"\nP{self.curr_page}-L{level}: Found OVERRIDE_AND_RESET =>\n"
+                + seq.get_text(verbose=False)
+            )
+            self.reset(LEVEL_QUESTION)  # current level == 0
             new_q = QuestionBase(
                 "1",
                 self.curr_page,
@@ -363,14 +435,17 @@ class QuestionDetector(QuestionDetectorBase):
                 self.height,
                 2 * symbole_height,
             )
-            self.set_question(new_q, level)
+            self.add_question(new_q, level)
             return True
 
         elif is_next_candidate and self.is_char_valid_as_next(
             char_all, level, strict=True
         ):
 
-            print("\n" + seq.get_text())
+            print(
+                f"\nP{self.curr_page}-L{level}: Found Next Candidate =>\n"
+                + seq.get_text(verbose=False)
+            )
             new_q = QuestionBase(
                 char_all,
                 self.curr_page,
@@ -381,14 +456,17 @@ class QuestionDetector(QuestionDetectorBase):
                 self.height,
                 2 * symbole_height,
             )
-            self.set_question(new_q, level)
+            self.add_question(new_q, level)
             return True
 
         elif is_alternative_candidate and self.is_char_valid_as_alternative(
             char_all, level, strict=True
         ):
 
-            print("\n" + seq.get_text())
+            print(
+                f"\nP{self.curr_page}-L{level}: Found Alternative Candidate =>\n"
+                + seq.get_text()
+            )
             new_q = QuestionBase(
                 char_all,
                 self.curr_page,
@@ -423,10 +501,12 @@ class QuestionDetector(QuestionDetectorBase):
             )
             return
         elif not old_curr:
-            self.set_question(q, level)
+            self.add_question(q, level)
             return
 
-        print("trying to replace old question")
+        print(
+            f"\nP{self.curr_page}-L{level}: trying to replace old question (label = {q.label})"
+        )
 
         self.set_page_number_for_first_detection(level)
         if level < 2:
@@ -434,55 +514,58 @@ class QuestionDetector(QuestionDetectorBase):
         # if level < 2:
         #     self.current[level + 1 :] = [None] * (3 - level + 1)
         #     self.type[level + 1 :] = [UNKNOWN] * (3 - level)
-        print(q)
+        print("new_question => \n", q)
+        print("old_question => \n", old_curr)
         print([str(f) for f in self.question_list])
 
-        if level == 0:
+        if level == LEVEL_QUESTION:
             self.question_list[-1] = q
-
-        elif level == 1 and self.current[0]:
-            self.current[0].parts[-1] = q
-        elif level == 2 and self.current[1]:
-            self.current[1].parts[-1] = q
+        elif level == LEVEL_PART and self.current[LEVEL_QUESTION]:
+            self.current[LEVEL_QUESTION].parts[-1] = q
+        elif level == LEVEL_SUBPART and self.current[LEVEL_PART]:
+            self.current[LEVEL_PART].parts[-1] = q
         else:
             raise Exception
 
-        print(q)
-        print([f.get_title() for f in self.question_list])
+        # print(q)
+        # print([f.get_title() for f in self.question_list])
 
         n_type = self.get_question_type(q)
         self.type[level] = n_type
         self.left_most_x[level] = q.x
         self.current[level] = q
 
-    def set_question(self, q: QuestionBase, level: int):
-        print(f"trying to set question ..(level={level})")
+    def add_question(self, q: QuestionBase, level: int):
+        print(
+            f"\nP{self.curr_page}-L{level}: trying to add question ..(label = {q.label})"
+        )
         self.set_page_number_for_first_detection(level)
         old_cur = self.current[level]
         if old_cur:
             if len(old_cur.parts) < 2:
                 self.reset(level + 1)
-            if level == 0:
+            if level == LEVEL_QUESTION:
                 old_cur.y1 = (
                     q.y if self.curr_page in old_cur.pages else self.height
                 )
-        if level < 2:
+        if level < LEVEL_SUBPART:
             self.reset_current(level + 1)
             self.reset_types(level + 1)
 
-        if level == 0:
+        if level == LEVEL_QUESTION:
             self.question_list.append(q)
-            self.current[0] = q
-        elif level == 1 and self.current[0]:
-            self.current[0].parts.append(q)
-            self.current[1] = q
-        elif level == 2 and self.current[1]:
-            self.current[1].parts.append(q)
-            self.current[2] = q
+            self.current[LEVEL_QUESTION] = q
+        elif level == LEVEL_PART and self.current[LEVEL_QUESTION]:
+            print("adding [sub]partts to main questino !")
+            self.current[LEVEL_QUESTION].parts.append(q)
+            self.current[LEVEL_PART] = q
+        elif level == LEVEL_SUBPART and self.current[1]:
+            self.current[LEVEL_PART].parts.append(q)
+            self.current[LEVEL_SUBPART] = q
         else:
             raise Exception
 
-        print(q)
+        print("new_question =>\n", q)
         print([f.get_title() for f in self.question_list])
 
         n_type = self.get_question_type(q)

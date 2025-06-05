@@ -8,6 +8,7 @@ from pypdf.generic import (
 from pypdf import PdfReader, PageObject
 import pprint
 
+from detectors import question_detectors
 from engine.pdf_operator import PdfOperator
 from models.core_models import SurfaceGapsSegments
 from models.question import Question
@@ -33,7 +34,7 @@ class PdfEngine:
     M_DEBUG_PAGE_STREAM = 1 << 0
     M_DEBUG_XOBJECT_STREAM = 1 << 1
     M_DEBUG_GLYPH_STREAM = 1 << 2
-    M_DEBUG_ALL_STREAM = (1 < 0) | (1 << 1) | (1 << 2)
+    M_DEBUG_ALL_STREAM = (1 << 0) | (1 << 1) | (1 << 2)
     # __
     M_DEBUG_DETECTOR = 1 << 3
     # __
@@ -97,18 +98,24 @@ class PdfEngine:
         self.detection_types = 0
         return True
 
-    def extract_questions_from_pdf(self, debug=0):
-        self.debug = debug & (self.M_DEBUG_DETECTOR)
+    def extract_questions_from_pdf(self, debug=0, clean=2):
+        (clean is not None) and self.set_clean(clean)
+        (debug is not None) and self.set_debug(debug & self.M_DEBUG_DETECTOR)
         self.page_seg_dict = {}
         self.question_list = []
         self.detection_types = self.D_DETECT_QUESTION
+        self.question_detector.on_restart()
 
         if self.debug & self.M_DEBUG_DETECTOR:
             enable_detector_dubugging(self.current_pdf_document)
 
-        for page_nr in range(1, len(self.pages)):
-            surface = self.render_pdf_page(page_nr, debug=None)
-            self.page_seg_dict[page_nr] = SurfaceGapsSegments(surface)
+        for page_nr in range(1, len(self.pages) + 1):
+            # if page_nr in self.page_seg_dict:
+            #     continue
+            surface = self.render_pdf_page(page_nr, debug=None, clean=None)
+            self.page_seg_dict[page_nr] = SurfaceGapsSegments(
+                surface, gap_factor=0.1
+            )
 
         self.question_detector.on_finish()
         q_list = self.question_detector.get_question_list(self.pdf_path)
@@ -118,23 +125,23 @@ class PdfEngine:
         self.question_list = q_list
         return q_list
 
-    def render_pdf_page(self, page_number, debug=0):
+    def render_pdf_page(self, page_number, debug=0, clean=0):
         """page_number start from 1"""
-        if debug is not None:
-            self.debug = debug & (
-                self.M_DEBUG_ALL_STREAM | self.M_DEBUG_ORIGINAL_CONTENT
-            )
+        (clean is not None) and self.set_clean(clean)
+        (debug is not None) and self.set_debug(
+            debug & (self.M_DEBUG_ALL_STREAM | self.M_DEBUG_ORIGINAL_CONTENT)
+        )
 
         self.current_page = page_number
         self.load_page_content(page_number)
         if self.debug & self.M_DEBUG_ORIGINAL_CONTENT:
             self.debug_original_stream()
 
-        if page_number in self.page_seg_dict:
-            surface = self.page_seg_dict[page_number].surface
-        else:
-            self.execute_page_stream()
-            surface = self.renderer.surface
+        # if page_number in self.page_seg_dict:
+        #     surface = self.page_seg_dict[page_number].surface
+        # else:
+        self.execute_page_stream()
+        surface = self.renderer.surface
 
         if not self.detection_types and (self.clean & self.O_CROP_EMPTY_LINES):
             print("calling wrong function")
@@ -149,7 +156,10 @@ class PdfEngine:
             raise Exception(f"question nr {q_nr}, index out of valid range")
 
         q: Question = self.question_list[q_nr - 1]
-        return q.draw_question_on_image_surface(self.page_seg_dict)
+        ren = self.renderer
+        return q.draw_question_on_image_surface(
+            self.page_seg_dict, ren.header_y, ren.footer_y
+        )
 
     # *******************************************************
     # **************** initialization  **********************
@@ -171,7 +181,10 @@ class PdfEngine:
 
         self.font_map: dict[str, PdfFont] | None = None
 
-        self.question_detector: QuestionDetector = QuestionDetector()
+        self.question_detector: QuestionDetector = QuestionDetector(
+            self.D_DETECT_QUESTION
+        )
+        self.ALL_DETECTORS = [self.question_detector]
 
         self.state: EngineState | None = None
         self.renderer: BaseRenderer | None = None
@@ -268,7 +281,7 @@ class PdfEngine:
         with open(filename, "w", encoding="utf-8") as f:
             f.write("# FileName: " + os.path.basename(self.pdf_path) + "\n\n")
             f.write("# page number " + str(self.current_page) + "\n\n")
-            pprint.pprint(self.pages[self.current_page - 0], f)
+            pprint.pprint(self.pages[self.current_page - 1], f)
 
             res = self.res
 
@@ -329,6 +342,13 @@ class PdfEngine:
     # *******************************************************
     # **************** Helper Mehtods  **********************
     # _______________________________________________________
+
+    def set_clean(self, clean):
+        self.clean = clean
+
+    def set_debug(self, debug):
+        self.debug = debug
+
     def get_num_pages(
         self,
     ):
@@ -447,11 +467,12 @@ class PdfEngine:
             self.scaled_page_height,
             self.debug,
         )
-        detectors = []
-        (self.detection_types & self.D_DETECT_QUESTION) and detectors.append(
-            self.question_detector
-        )
-        self.renderer = BaseRenderer(self.state, detectors, self.clean)
+        used_detectors = []
+        for detect in self.ALL_DETECTORS:
+            (detect.id & self.D_DETECT_QUESTION) and used_detectors.append(
+                self.question_detector
+            )
+        self.renderer = BaseRenderer(self.state, used_detectors, self.clean)
 
         self.state.draw_image = self.renderer.draw_inline_image
 
@@ -487,6 +508,9 @@ class PdfEngine:
         for cmd in self.parser.parse_stream(self.current_stream).iterate():
             debugging and f.write(f"{cmd}\n")
             explanation, ok = self.state.execute_command(cmd)
+
+            # if debugging and explanation:
+            #     f.write(f"{explanation}\n")
 
             debugging and explanation and f.write(f"{explanation}\n")
             explanation2, ok2 = self.renderer.execute_command(cmd)
@@ -699,10 +723,10 @@ class PdfEngine:
         #     raise Exception("page number out of index ,nr=", page_number)
         page_number = self.current_page
         page_surf = self.renderer.surface
-        if page_number in self.page_seg_dict:
-            page_seg_obj = self.page_seg_dict[page_number]
-        else:
-            page_seg_obj = SurfaceGapsSegments(page_surf)
+        # if page_number in self.page_seg_dict:
+        #     page_seg_obj = self.page_seg_dict[page_number]
+        # else:
+        page_seg_obj = SurfaceGapsSegments(page_surf)
         net_height = page_seg_obj.net_height
         if net_height <= 0:
             raise Exception("Total Height = 0")

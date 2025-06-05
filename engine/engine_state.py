@@ -924,11 +924,16 @@ class EngineState:
             return self.get_current_position_for_debuging(), True
         return "", True
 
-    def get_current_position_for_debuging(self):
+    def get_current_position_for_debuging(
+        self, screen_width=None, screen_height=None
+    ):
         m = (
             self.get_current_matrix()
         )  # self.tm_matrix.multiply(self.cm_matrix)
-        return m.transform_point(0, 0)
+        x, y = m.transform_point(0, 0)
+        x = f"{x/screen_width*100:.3f}%" if screen_width else x
+        y = f"{y/screen_height*100:.3f}%" if screen_height else y
+        return (x, y)
 
     def move_with_leading(self, _: PdfOperator):
         self.tm_matrix.translate(0, -self.leading)

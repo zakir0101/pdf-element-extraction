@@ -2,10 +2,11 @@ from models.core_models import SymSequence
 
 
 class BaseDetector:
-    def __init__(self) -> None:
+    def __init__(self, id: int) -> None:
         self.curr_page = -1
         self.height = 0
         self.width = 0
+        self.id = id
         pass
 
     def attach(self, page_width, page_height, page: int):
@@ -19,6 +20,9 @@ class BaseDetector:
     def on_finish(
         self,
     ):
+        pass
+
+    def on_restart(self):
         pass
 
 
