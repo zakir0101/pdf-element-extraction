@@ -158,7 +158,8 @@ class PdfEngine:
         q: Question = self.question_list[q_nr - 1]
         ren = self.renderer
         return q.draw_question_on_image_surface(
-            self.page_seg_dict, ren.header_y, ren.footer_y
+            self.page_seg_dict, ren.header_y, ren.footer_y,self.scaling
+
         )
 
     # *******************************************************
@@ -749,7 +750,7 @@ class PdfEngine:
             raise Exception(f"WARN: page {page_number}, no Segments found")
         start_y = 0
         last_y = page_seg_obj.clip_segments_from_surface_into_contex(
-            out_ctx, start_y
+            out_ctx, start_y,self.scaling
         )
 
         if last_y == 0:

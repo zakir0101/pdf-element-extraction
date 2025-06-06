@@ -1,11 +1,14 @@
 #! ./venv/bin/python
 
+import math
 import tkinter as tk
 from tkinter import ttk
 import os
 from os.path import sep
-
-# from doclayout_yolo import YOLOv10
+import numpy as np
+from numpy.typing import NDArray
+from doclayout_yolo import YOLOv10
+from doclayout_yolo.engine.results import Results
 
 # from tkinter import filedialog  # Though not used for file picking yet
 # from functools import partial  # For cleaner command binding if needed
@@ -80,7 +83,7 @@ class AdvancedPDFViewer(tk.Tk):
 
         # Initialize PDF Engine
         self.engine = PdfEngine(
-            scaling=4
+            scaling=1
         )  # Initial instantiation using PdfEngine directly
         self.navigation_mode = "page"  # "page" or "question"
         self.current_page_number = 0
@@ -95,7 +98,9 @@ class AdvancedPDFViewer(tk.Tk):
             "PDFs/9702_m23_qp_22.pdf",
         ]
         sample_pdf_paths = pdf_pathes
+        # my Vars
         self.rel_scale = 1
+        self.layout_detection = False
         # Ensure the PDFs directory exists for sample paths if running from repo root
         # For now, assuming these paths are valid relative to where the script is run
         # Or that the PdfEngine handles path resolution.
@@ -284,6 +289,7 @@ class AdvancedPDFViewer(tk.Tk):
         )
 
         self.bind("<Control-s>", self.save_surface_to_png)
+        self.bind("<Control-t>", self.toggle_layout_detection)
         # --- Initial Load ---
         self.update_status_bar(
             "Welcome! Load a PDF to begin."
@@ -292,11 +298,21 @@ class AdvancedPDFViewer(tk.Tk):
         if self.engine.all_pdf_paths:
             self.next_pdf_file()  # Load the first PDF
 
+    def toggle_layout_detection(self, event=None):
+        self.layout_detection = not self.layout_detection
+        self.render_current_page_or_question()
+        msg = f"Turned {'On' if self.layout_detection else 'Off'} Layout Detection"
+        self.update_status_bar(msg)
+        print(msg)
+
     def save_surface_to_png(self, event=None):
         if self.current_surface:
-            self.current_surface.write_to_png(
-                sep.join([".", "output", "gui_saved_image.png"])
-            )
+            img_path = sep.join([".", "output", "gui_saved_image.png"])
+            self.current_surface.write_to_png(img_path)
+            self.update_status_bar("image saved Successfully")
+            print("image saved Successfully")
+            return img_path
+        return False
 
     def update_status_bar(self, general_message: str = ""):
         """
@@ -612,19 +628,40 @@ class AdvancedPDFViewer(tk.Tk):
                 temp_draw = ImageDraw.Draw(pil_image)
                 temp_draw.text((10, 10), error_msg, fill="white")
 
-            # if self.layout_detection:
-            #     model = YOLOv10(sep.join([".","local-models","yolo", "doclayout_yolo_docstructbench_imgsz1024.pt"]))
-            #     det_res = model.predict(
-            #         "path/to/image",  # Image to predict
-            #         imgsz=1024,  # Prediction image size
-            #         conf=0.2,  # Confidence threshold
-            #         device="cuda:0",  # Device to use (e.g., 'cuda:0' or 'cpu')
-            #     )
-            #
-            #     # Annotate and save the result
-            #     annotated_frame = det_res[0].plot(
-            #         pil=True, line_width=5, font_size=20
-            #     )
+            if self.layout_detection:
+                model = YOLOv10(
+                    sep.join(
+                        [
+                            ".",
+                            "local-models",
+                            "yolo",
+                            "doclayout_yolo_docstructbench_imgsz1024.pt",
+                        ]
+                    )
+                )
+                img = pil_image
+                # .resize( (pil_image.width // 1, pil_image.height // 1))
+                det_res = model.predict(
+                    img,
+                    imgsz=1024,  # math.ceil(img.height // 32) * 32,
+                    # 1024 * self.engine.scaling,  # Prediction image size
+                    conf=0.2,
+                    device="cpu",  # Device to use (e.g., 'cuda:0' or 'cpu')
+                )
+
+                # res : Results  = det_res[0]
+
+                # Annotate and save the result
+                print("scaling is", self.engine.scaling)
+
+                annotated_frame: NDArray = det_res[0].plot(
+                    pil=True,
+                    line_width=1 * self.engine.scaling,
+                    font_size=20 * self.engine.scaling,
+                )
+                print("array_size = ", annotated_frame.size)
+
+                pil_image = Image.fromarray(annotated_frame)
 
             self.img_copy = pil_image.copy()
             self.rel_scale = pil_image.width / pil_image.height
@@ -952,6 +989,8 @@ class AdvancedPDFViewer(tk.Tk):
         Loads and displays the next PDF file in the list.
         Resets view to page mode and first page. Updates status and button states.
         """
+
+        self.layout_detection = False
         if self.engine.proccess_next_pdf_file():
             self.navigation_mode = "page"  # Default to page mode on new PDF
             self.total_pages = (
@@ -980,11 +1019,13 @@ class AdvancedPDFViewer(tk.Tk):
         Loads and displays the previous PDF file in the list.
         Resets view to page mode and first page. Updates status and button states.
         """
+
         if not self.engine.all_pdf_paths:
             self.render_current_page_or_question()  # Shows "No PDF"
             self.update_status_bar("No PDF files loaded.")
             self.update_all_button_states()
             return
+        self.layout_detection = False
 
         if self.engine.proccess_prev_pdf_file():
             self.navigation_mode = "page"
@@ -1016,6 +1057,8 @@ class AdvancedPDFViewer(tk.Tk):
         if self.navigation_mode == "page":
             self.update_status_bar("Already in Page Mode.")
             return
+
+        self.layout_detection = False
         print("Switching to Page Mode")
         self.navigation_mode = "page"
         if not self.engine.current_pdf_document or self.total_pages == 0:
@@ -1092,6 +1135,7 @@ class AdvancedPDFViewer(tk.Tk):
             self.update_status_bar("No PDF loaded to navigate items.")
             return
 
+        self.layout_detection = False
         changed = False
         if self.navigation_mode == "page":
             if self.current_page_number < self.total_pages:
@@ -1118,6 +1162,7 @@ class AdvancedPDFViewer(tk.Tk):
         if not self.engine.current_pdf_document:
             self.update_status_bar("No PDF loaded to navigate items.")
             return
+        self.layout_detection = False
 
         changed = False
         if self.navigation_mode == "page":

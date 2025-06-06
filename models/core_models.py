@@ -496,8 +496,9 @@ class SurfaceGapsSegments(BoxSegments):
         self,
         out_ctx: cairo.Context,
         out_y_start: float,
+        scale: int,
         segments: list[Box] | None = None,
-        line_height: float | None = None,
+        # line_height: float | None = None,
     ):
         """return (y_after) the y-location after drawing the segments into the output Context"""
         if not segments:
@@ -548,6 +549,7 @@ class SurfaceGapsSegments(BoxSegments):
             if h0 > line_height * 2.0:
                 image_counter += 1
                 out_ctx.save()
+                out_ctx.set_font_size(10 * scale)
                 out_ctx.set_source_rgb(0, 0, 0)
                 out_ctx.move_to(
                     line_height * 1.7, out_y_start + line_height * 0.4
@@ -583,7 +585,7 @@ class SurfaceGapsSegments(BoxSegments):
             """this 0.25 is for spacing between lines, it require the surface to
             be paint white at beginning"""
             """if the space between 2 line is really small , then keep using its actual value  without trimming , other wise trim and add this approximated value """
-            padding_after = 1.0 * line_height  # approximated value
+            padding_after = 2.0 * line_height  # approximated value
             if next_box is not None:
                 diff = next_box.y - (y0 + h0)
                 # assert diff > 0

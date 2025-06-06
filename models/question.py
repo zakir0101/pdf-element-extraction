@@ -164,6 +164,7 @@ class Question(QuestionBase):
         page_segments_dict: dict[int, SurfaceGapsSegments],
         header_y,
         footer_y,
+        scale: int,
     ):
         """render the question on cairo image surface"""
         out_ctx = None
@@ -186,6 +187,8 @@ class Question(QuestionBase):
                     page_surf.get_width(), total_height
                 )
                 out_ctx.save()
+                out_ctx.set_font_size(11 * scale)
+                # out_ctx.get_font_matrix().scale(scale, scale)
                 out_ctx.move_to(self.line_height * 4, self.line_height * 2)
                 out_ctx.show_text(f"<Question {self.number}>")
                 out_ctx.restore()
@@ -213,7 +216,7 @@ class Question(QuestionBase):
             # q_height = l_seg.y + l_seg.h - f_seg.y
             # q_segments = [Box(f_seg.x, f_seg.y, f_seg.w, q_height)]
             self.current_y = page_seg.clip_segments_from_surface_into_contex(
-                out_ctx, self.current_y, q_segments
+                out_ctx, self.current_y, scale, q_segments
             )
 
         if self.current_y == 0:
@@ -223,7 +226,7 @@ class Question(QuestionBase):
                 print(seg)
             raise Exception("no heigth for question")
 
-        padding = 2 * (self.line_height)
+        padding = 3 * (self.line_height)
         return crop_image_surface(out_surf, 0, self.current_y, padding)
 
     def create_output_surface(self, width: int, total_height: int):
