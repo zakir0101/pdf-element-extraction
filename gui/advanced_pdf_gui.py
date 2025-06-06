@@ -648,6 +648,7 @@ class AdvancedPDFViewer(tk.Tk):
 
     def detect_layout_yolo(self, pil_image):
 
+        # useless commit
         model = YOLOv10(
             sep.join(
                 [
