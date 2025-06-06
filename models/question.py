@@ -105,6 +105,7 @@ class Question(QuestionBase):
         pages: int | list[int],
         level: int,
         parts: list[QuestionBase],
+        contents: list[Box],
         x: float,
         y: float,
         w: float,
@@ -115,6 +116,7 @@ class Question(QuestionBase):
         heigh = self.calculate_height(y, y1, pages, page_height)
         super().__init__(label, pages, level, x, y, w, y1 - y, line_height)
         self.parts = parts
+        self.contents = contents
         self.y1 = y1
         self.id = id
         if isinstance(label, str) and not label.isdigit():
@@ -148,6 +150,7 @@ class Question(QuestionBase):
             q.pages,
             q.level,
             q.parts,
+            q.contents,
             q.x,
             q.y,
             q.w,

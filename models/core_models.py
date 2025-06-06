@@ -22,7 +22,11 @@ class Box:
     def __str__(
         self,
     ):
-        return f"Box(x={self.x}, y={self.y}, w={self.w}, h={self.h})"
+        c_name = self.__class__.__name__
+        label = ""
+        if hasattr(self, "label"):
+            label = f"label= {self.label}, "
+        return f"{self.__class__.__name__}({label}x={self.x}, y={self.y}, w={self.w}, h={self.h})"
 
     def get_box(self):
         return self.box
@@ -31,6 +35,20 @@ class Box:
         self,
     ):
         self.box = (self.x, self.y, self.x + self.w, self.y + self.h)
+
+
+class Part(Box):
+    def __init__(self, label, x, y, x1, y1) -> None:
+        super().__init__(x, y, x1 - x, y1 - y)
+        self.label = label
+        self.box = [x, y, x1, y1]
+
+
+class SubPart(Box):
+    def __init__(self, label, x, y, x1, y1) -> None:
+        super().__init__(x, y, x1 - x, y1 - y)
+        self.label = label
+        self.box = [x, y, x1, y1]
 
 
 class Symbol(Box):
@@ -64,6 +82,9 @@ class Symbol(Box):
         )  # min(diff1, diff2)
         return inner_diff < self.threshold_x or inner_diff < s2.threshold_x
 
+    # def is_horizontal_aligned_with(self, s2):
+    #     s2: Symbol = s2
+
 
 class BoxSegments(Box):
 
@@ -85,7 +106,7 @@ class BoxSegments(Box):
         return self.data.__len__()
 
     def __str__(self) -> str:
-        rep = f"{type(self).__name__}(lenght={len(self.data)}) =>\n"
+        rep = f"{self.__class__.__name__}(lenght={len(self.data)}) =>\n"
         for it in self.data:
             rep += "   " + str(it) + "\n"
         return rep
@@ -110,13 +131,28 @@ class SymSequence(BoxSegments):
     def __init__(self, symboles: list[Symbol]) -> None:
         if not symboles:
             raise Exception("empty Sequence")
-        super().__init__(symboles)
+        super().__init__(
+            sorted(
+                symboles,
+                key=self.sort_func,
+            )
+        )
         self.mean = (0, 0)
         self.data: list[Symbol] = self.data
         self.__set_mean__(self.box)
         self.threshold_y = 0.3 * (self.box[-1] - self.box[1])
         self.threshold_x = 0.3 * (self.box[-2] - self.box[0])
         pass
+
+    def sort_func(self, elem: Box):
+        return elem.x
+
+    def extend(self, new_syms: list[Symbol]):
+        n_data = self.data
+        n_data.extend(new_syms)
+        # n_data_sorted = sorted(n_data, key=self.sort_func)
+        self = SymSequence(n_data)
+        return self
 
     def iterate_split(self, char: str = " "):
         sub = []
@@ -156,10 +192,16 @@ class SymSequence(BoxSegments):
         if len(sub) > 0:
             yield SymSequence(sub)
 
-    def get_text(self, verbose=True) -> str:
+    def get_text(self, verbose=True, data=None) -> str:
         rep = ""
-        for sym in self.data:
+        if not data:
+            data = self.data
+        prev = None
+        for sym in data:
+            if prev and not sym.is_connected_with(prev):
+                rep += " "
             rep += sym.ch
+            prev = sym
         if verbose:
             return f"Sequence(lenght={len(self.data)}, content={rep}, box={self.box})"
         else:
@@ -187,12 +229,26 @@ class SymSequence(BoxSegments):
         self.mean.append((x0 + x1) / 2)
         self.mean.append((y0 + y1) / 2)
 
-    def row_align_with(self, seq_other):
-        seq_other: SymSequence = seq_other
-        return (
-            abs(self.mean[1] - seq_other.mean[1]) < self.threshold_y
-            or abs(self.box[-1] - seq_other.box[-1]) < self.threshold_y
+    def row_align_with(self, seg_other, line_height):
+        seg_other: SymSequence = seg_other
+        upper, lower = (
+            (seg_other, self)
+            if seg_other.box[-1] < self.box[-1]
+            else (self, seg_other)
         )
+
+        if (
+            abs(lower.box[-1] - upper.box[-1]) < line_height * 0.1
+            or abs(lower.box[1] - upper.box[1]) < line_height * 0.1
+        ):
+            return True
+        # return False
+        return lower.box[1] - upper.box[-1] < 0.1 * line_height
+        # return (
+        #     abs(self.mean[1] - seg_other.mean[1]) < self.threshold_y
+        #     or abs(self.box[-1] - seg_other.box[-1]) < self.threshold_y
+        #     or abs(self.box[1] - seg_other.box[1]) < self.threshold_y
+        # )
 
     def column_align_with(self, seq_other):
         seq_other: SymSequence = seq_other
@@ -200,6 +256,61 @@ class SymSequence(BoxSegments):
             abs(self.mean[0] - seq_other.mean[0]) < self.threshold_x
             or abs(self.box[0] - seq_other.box[0]) < self.threshold_x
         )
+
+
+class Paragraph:
+    def __init__(self, lines: list[SymSequence]):
+        if not lines:
+            raise Exception("empty Paragraph")
+        # super().__init__(symboles)
+        self.lines: list[SymSequence] = lines
+
+    def __getitem__(self, index) -> Symbol:
+        return self.lines[index]
+
+    def __len__(self):
+        return len(self.lines)
+
+    def size(self):
+        return self.lines.__len__()
+
+    def make_paragraph_with(self, s2, line_height):
+        if not s2:
+            return False
+        threshold = 0.20 * line_height
+
+        # def sort_func(elem: Box):
+        #     return elem.box[0]  # + (elem.box[-1] - self.box[1]) / 3
+
+        for i, seg in enumerate(self.lines):
+            new_seg: SymSequence = s2
+            diff = new_seg.box[-1] - seg.box[-1]
+            # if diff < -threshold and i == 0:
+            #     self.add_line(new_seg, last=False)
+            #     return True
+            if diff >= threshold:  # and i == len(self.lines) - 1:
+                # new_seg.data = sorted(new_seg.data, key=new_seg.sort_func)
+                self.add_line(new_seg)
+                return True
+            elif abs(diff) <= threshold * 4:
+                self.lines[i] = seg.extend(new_seg)
+                return True
+        return False
+        # return diff <= line_height
+
+    def add_line(self, new_syms: list[Symbol], last=True):
+        # self.data.extend(new_syms)
+        lines = self.lines
+        lines.append(new_syms) if last else lines.insert(0, new_syms)
+        self = Paragraph(lines)
+        # self.lines = lines
+
+    def __str__(self):
+        rep = "Paragraph =>\n"
+        for i in range(len(self.lines)):
+            rep += f"\t\t{i+1}: {self.lines[i].get_text(verbose=False)}\n"
+        rep += "\n"
+        return rep
 
 
 class SurfaceGapsSegments(BoxSegments):
@@ -434,7 +545,7 @@ class SurfaceGapsSegments(BoxSegments):
 
             """handle case: seg is Image/diagram"""
 
-            if h0 > line_height * 2.4:
+            if h0 > line_height * 2.0:
                 image_counter += 1
                 out_ctx.save()
                 out_ctx.set_source_rgb(0, 0, 0)

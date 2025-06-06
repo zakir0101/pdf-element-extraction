@@ -3,6 +3,9 @@
 import tkinter as tk
 from tkinter import ttk
 import os
+from os.path import sep
+
+# from doclayout_yolo import YOLOv10
 
 # from tkinter import filedialog  # Though not used for file picking yet
 # from functools import partial  # For cleaner command binding if needed
@@ -76,13 +79,14 @@ class AdvancedPDFViewer(tk.Tk):
         self.geometry("1024x768")
 
         # Initialize PDF Engine
-        self.engine = (
-            PdfEngine()
+        self.engine = PdfEngine(
+            scaling=4
         )  # Initial instantiation using PdfEngine directly
         self.navigation_mode = "page"  # "page" or "question"
         self.current_page_number = 0
         self.total_pages = 0
         self.current_question_number = 0
+        self.current_surface: cairo.ImageSurface | None = None
         self.total_questions = 0
         self.questions_list = []  # To store extracted questions
         # TODO: Make PDF loading more dynamic, e.g., via a file dialog or config
@@ -91,6 +95,7 @@ class AdvancedPDFViewer(tk.Tk):
             "PDFs/9702_m23_qp_22.pdf",
         ]
         sample_pdf_paths = pdf_pathes
+        self.rel_scale = 1
         # Ensure the PDFs directory exists for sample paths if running from repo root
         # For now, assuming these paths are valid relative to where the script is run
         # Or that the PdfEngine handles path resolution.
@@ -228,6 +233,13 @@ class AdvancedPDFViewer(tk.Tk):
         )
         empty_frame.pack(fill=tk.X, padx=5, pady=5, expand=True)
 
+        self.png_button = ttk.Button(
+            self.controls_frame,
+            text="Save PNG (Ctrl+s)",
+            command=self.save_surface_to_png,
+        )
+        self.png_button.pack(fill=tk.X, padx=5, pady=2)
+
         self.summatra_button = ttk.Button(
             self.controls_frame,
             text="Open Summatra (Ctrl+S)",
@@ -271,6 +283,7 @@ class AdvancedPDFViewer(tk.Tk):
             lambda x: open_pdf_using_sumatra(self.engine.current_pdf_document),
         )
 
+        self.bind("<Control-s>", self.save_surface_to_png)
         # --- Initial Load ---
         self.update_status_bar(
             "Welcome! Load a PDF to begin."
@@ -278,6 +291,12 @@ class AdvancedPDFViewer(tk.Tk):
         self.update_all_button_states()  # Initial button state
         if self.engine.all_pdf_paths:
             self.next_pdf_file()  # Load the first PDF
+
+    def save_surface_to_png(self, event=None):
+        if self.current_surface:
+            self.current_surface.write_to_png(
+                sep.join([".", "output", "gui_saved_image.png"])
+            )
 
     def update_status_bar(self, general_message: str = ""):
         """
@@ -374,6 +393,7 @@ class AdvancedPDFViewer(tk.Tk):
 
             # ren = self.engine.renderer
             # ren.set_clean_mode(ren.O_CLEAN_HEADER_FOOTER)
+            q_content = ""
             if self.navigation_mode == "page":
                 if self.current_page_number > 0 and self.total_pages > 0:
                     self.update_status_bar(
@@ -400,6 +420,7 @@ class AdvancedPDFViewer(tk.Tk):
                     self.update_status_bar(
                         f"Rendering Question {self.current_question_number}/{self.total_questions}..."
                     )
+
                     surface = self.engine.render_a_question(
                         self.current_question_number
                     )
@@ -426,6 +447,7 @@ class AdvancedPDFViewer(tk.Tk):
                             self.current_question_number - 1
                         ]
                         q_text = q.__str__()
+                        q_content = "\n".join([str(c) for c in q.contents])
                     general_render_message = (
                         f"Question displayed.\n{q_text}"
                         if surface
@@ -442,9 +464,12 @@ class AdvancedPDFViewer(tk.Tk):
                         "No question selected or no questions available."
                     )
 
-            print(general_render_message)  # Print what was attempted/result
+            print(
+                general_render_message + "\nContent:\n" + q_content
+            )  # Print what was attempted/result
 
             if surface:
+                self.current_surface = surface
                 self._photo_image_ref = (
                     self.convert_cairo_surface_to_photoimage(surface)
                 )
@@ -457,6 +482,17 @@ class AdvancedPDFViewer(tk.Tk):
                         self.canvas_image_item
                     )
                 )
+
+                self.display_canvas.bind("<Configure>", self._resize_image)
+
+                class event_c:
+                    width = self.display_canvas.winfo_width()
+                    height = self.display_canvas.winfo_height()
+
+                # event_c = self.img_copy
+                # print(event_c.width, event_c.height)
+                self._resize_image(event_c)
+
             else:
                 self.display_canvas.itemconfig(
                     self.canvas_image_item, image=None
@@ -478,6 +514,33 @@ class AdvancedPDFViewer(tk.Tk):
             self.display_canvas.config(scrollregion=(0, 0, 0, 0))
 
         self.update_all_button_states()
+
+    def _resize_image(self, event: tk.Event):
+        _canvas = self.display_canvas
+        try:
+            width = self.img_copy.width or 100
+            height = self.img_copy.height or 100 * self.rel_scale
+
+            if width > event.width:
+                width = event.width
+                height = int(width / self.rel_scale)
+
+            if height > event.height:
+                height = event.height
+                width = int(height * self.rel_scale)
+            # if not width or not height:
+            #     return
+            print(f"new dim ({width},{height} )")
+            image = self.img_copy.resize((width, height))
+            self._photo_image_ref = ImageTk.PhotoImage(image)
+            _canvas.itemconfig(
+                self.canvas_image_item, image=self._photo_image_ref
+            )
+            _canvas.config(scrollregion=(0, 0, width, height))
+
+        except Exception as e:
+            print(traceback.format_exc())
+            raise Exception(e)
 
     def convert_cairo_surface_to_photoimage(
         self, surface: cairo.ImageSurface
@@ -549,6 +612,22 @@ class AdvancedPDFViewer(tk.Tk):
                 temp_draw = ImageDraw.Draw(pil_image)
                 temp_draw.text((10, 10), error_msg, fill="white")
 
+            # if self.layout_detection:
+            #     model = YOLOv10(sep.join([".","local-models","yolo", "doclayout_yolo_docstructbench_imgsz1024.pt"]))
+            #     det_res = model.predict(
+            #         "path/to/image",  # Image to predict
+            #         imgsz=1024,  # Prediction image size
+            #         conf=0.2,  # Confidence threshold
+            #         device="cuda:0",  # Device to use (e.g., 'cuda:0' or 'cpu')
+            #     )
+            #
+            #     # Annotate and save the result
+            #     annotated_frame = det_res[0].plot(
+            #         pil=True, line_width=5, font_size=20
+            #     )
+
+            self.img_copy = pil_image.copy()
+            self.rel_scale = pil_image.width / pil_image.height
             return ImageTk.PhotoImage(pil_image)
         except Exception as e:
             error_msg = f"Error converting Cairo surface to PhotoImage: {e}"

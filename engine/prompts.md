@@ -194,3 +194,16 @@ what you should take account for , learn from my previous experience ( though no
 [ if you prefere you do not have to write a new class V2 , you can modify the existing one to perform better in detection]
   
 
+# prompt 9:
+
+I am looking for an OCR model ( local / open source). It sould ideally be able to segments the page (mostly from real PDF file), and detect images , tables , math-equation ....
+Iam intending to use it on lines or paragraph ( that I extract from pdf ), but also I want to give it a full page and let it detect tables and images/diagrams on it ..
+ideally I should be able also to provide a predicted output, some sort of token that are very likely to be present on the image , to enhance the recognision quality ..
+
+I do remember finding a model on huggingface which satisfy all my previous requirements , but I dont remember its name !!
+
+please help my find as many models as possible which satisfy all my requirments or at least some of them ...
+
+I quess its not just a model , because segmentation require code ( preferably python ), so there should be some sort of module with it or a repo with script on it ..
+
+beside that it should be accurate as much as possible and have a hight score on relevant benchmarks

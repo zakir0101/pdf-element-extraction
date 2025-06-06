@@ -1,6 +1,7 @@
 import enum
 from os.path import sep
-from models.core_models import Symbol, SymSequence
+from typing import Sequence
+from models.core_models import Paragraph, Part, SubPart, Symbol, SymSequence
 from models.question import QuestionBase
 from models.question import Question
 from .utils import get_next_label, checkIfRomanNumeral
@@ -61,14 +62,14 @@ class QuestionDetectorBase(BaseDetector):
             "",
             ")",
             "]",
-            ".",
+            # ".",
         ]
         self.allowed_chars_startup = ["1", "a", "i"]
 
         # main attributes
         self.question_list: list[QuestionBase] = []
         self.left_most_x: list[int] = [0] * 3
-        self.current: list[QuestionBase] = [None, None, None]
+        self.current_question: list[QuestionBase] = [None, None, None]
         self.type: list[int] = [UNKNOWN, UNKNOWN, UNKNOWN]
 
         # Constants
@@ -83,7 +84,7 @@ class QuestionDetectorBase(BaseDetector):
 
         self.question_list: list[QuestionBase] = []
         self.left_most_x: list[int] = [0] * 3
-        self.current: list[QuestionBase] = [None, None, None]
+        self.current_question: list[QuestionBase] = [None, None, None]
         self.type: list[int] = [UNKNOWN, UNKNOWN, UNKNOWN]
 
         # Constants
@@ -126,7 +127,7 @@ class QuestionDetectorBase(BaseDetector):
     def get_alternative_allowed(self, level):
         # TODO: fix this
         n_type = self.type[level]
-        curr: QuestionBase = self.current[level]
+        curr: QuestionBase = self.current_question[level]
         """we can assume that this function will only be called if curr is already set
         following condition can be commented (if everything else is logically correct)
         I will leave it for debugging purposes uncommented"""
@@ -139,7 +140,7 @@ class QuestionDetectorBase(BaseDetector):
 
     def get_next_allowed(self, level):
         n_type = self.type[level]
-        curr = self.current[level]
+        curr = self.current_question[level]
         if n_type == UNKNOWN and curr is not None:
             raise Exception("non sense : debug")
         if n_type == UNKNOWN:
@@ -213,7 +214,7 @@ class QuestionDetectorBase(BaseDetector):
         self.type[level:] = [UNKNOWN] * (3 - level)
 
     def reset_current(self, level):
-        self.current[level:] = [None] * (3 - level)
+        self.current_question[level:] = [None] * (3 - level)
 
     def reset(
         self,
@@ -224,12 +225,12 @@ class QuestionDetectorBase(BaseDetector):
 
         if level == LEVEL_QUESTION:
             self.question_list = []
-        elif level == LEVEL_PART and self.current[LEVEL_QUESTION]:
-            self.current[LEVEL_QUESTION].parts = []
-        elif level == LEVEL_SUBPART and self.current[LEVEL_PART]:
-            self.current[LEVEL_PART].parts = []
+        elif level == LEVEL_PART and self.current_question[LEVEL_QUESTION]:
+            self.current_question[LEVEL_QUESTION].parts = []
+        elif level == LEVEL_SUBPART and self.current_question[LEVEL_PART]:
+            self.current_question[LEVEL_PART].parts = []
 
-        self.current[level:] = [None] * (3 - level)
+        self.current_question[level:] = [None] * (3 - level)
         self.reset_current(level)
 
     # ***********************************************************
@@ -240,9 +241,11 @@ class QuestionDetectorBase(BaseDetector):
         if self.is_first_detection_in_page:
             self.is_first_detection_in_page = False
             if level == LEVEL_SUBPART:
-                self.current[LEVEL_PART].pages.append(self.curr_page)
+                self.current_question[LEVEL_PART].pages.append(self.curr_page)
             if level in [LEVEL_SUBPART, LEVEL_PART]:
-                self.current[LEVEL_QUESTION].pages.append(self.curr_page)
+                self.current_question[LEVEL_QUESTION].pages.append(
+                    self.curr_page
+                )
 
     def get_question_list(self, pdf_file_name_or_path) -> list[Question]:
         q_list = []
@@ -255,6 +258,7 @@ class QuestionDetector(QuestionDetectorBase):
 
     def __init__(self, id: int) -> None:
         super().__init__(id)
+        self.current_paragraph: Paragraph | None = None
 
         pass
 
@@ -264,10 +268,13 @@ class QuestionDetector(QuestionDetectorBase):
 
     def attach(self, page_width, page_height, page: int):
         if page > 1 and self.bufferd_line:
-            self.handle_sequence([], -1)
+            self.handle_sequence(None, -1)
+        self.add_curr_paragraph_to_current_question()
         super().attach(page_width, page_height, page)
         self.MINIMAL_X = 0.081 * page_width
         self.MAXIMAL_X = [i * page_width for i in [0.1, 0.19, 0.27]]
+        self.header_y = page_height * 0.065
+        self.footer_y = page_height * 0.93
 
         if len(self.question_list) == 0:
             self.reset_left_most()
@@ -285,15 +292,16 @@ class QuestionDetector(QuestionDetectorBase):
         self.print_internal_status("After:")
         self.prev_first_char = None
         self.line_height = 0.01 * page_height * 5
-        self.bufferd_line: list[Symbol] = []
+        self.bufferd_line: SymSequence | None = None
 
     def on_finish(
         self,
     ):
         """call this function after all pages has beeing prcessed"""
         if self.bufferd_line:
-            self.handle_sequence([], -1)
-        last = self.current[LEVEL_QUESTION]
+            self.handle_sequence(None, -1)
+        self.add_curr_paragraph_to_current_question()
+        last = self.current_question[LEVEL_QUESTION]
         if not last:
             return
         last.y1 = self.height
@@ -302,42 +310,66 @@ class QuestionDetector(QuestionDetectorBase):
         if last.parts and len(last.parts[-1].parts) < 2:
             last.parts[-1].parts = []
 
-    def handle_sequence(self, seq: SymSequence, page: int):
-        first_char: Symbol = seq[0] if seq else None
-        if not self.prev_first_char:
-            self.prev_first_char = first_char
-            self.bufferd_line = seq.data
-            print("First: appending to Buffered line")
+    def handle_sequence(self, seg: SymSequence, page: int):
+        if seg:
+            if seg.y >= self.footer_y or seg.y <= self.header_y:
+                return
+        if not self.bufferd_line:
+            self.bufferd_line = seg
             return
 
-        if (
-            first_char
-            and abs(first_char.y - self.prev_first_char.y)
-            < 0.25 * self.line_height
-        ):
-            self.bufferd_line.extend(seq.data)
-            print("appending to Buffered line")
+        if seg and self.bufferd_line.row_align_with(seg, self.line_height):
+            self.bufferd_line.extend(seg.data)
         else:
-            bufferd_seg = SymSequence(self.bufferd_line)
-            print("exec buffered Line", bufferd_seg.get_text(verbose=False))
+            # print(
+            #     "exec buffered Line", self.bufferd_line.get_text(verbose=False)
+            # )
             starting_j = 0
             for level in range(3):
-                for j, sub_seq in enumerate(bufferd_seg.iterate_split_space()):
+                for j, sub_seq in enumerate(
+                    self.bufferd_line.iterate_split_space()
+                ):
                     if j > level:
                         break
                     elif j < starting_j:
                         continue
-                    print("subline ", sub_seq.get_text(verbose=False))
+                    # print("subline ", sub_seq.get_text(verbose=False))
                     found = self.__handle_sequence(sub_seq, level)
                     if found:
                         starting_j += 1
                         break
-                if self.current[level] is None:
+                if self.current_question[level] is None:
                     break
 
-            if seq:
-                self.prev_first_char = first_char
-                self.bufferd_line = seq.data
+            if (
+                not self.current_paragraph
+                or not self.current_paragraph.make_paragraph_with(
+                    self.bufferd_line, self.line_height
+                )
+            ):
+                # self.current_paragraph.add_line(self.bufferd_line)
+                # else:
+
+                print("saving Paragraph to Question content")
+                print(self.current_paragraph)
+                self.add_curr_paragraph_to_current_question()
+
+                self.current_paragraph = (
+                    Paragraph([self.bufferd_line])
+                    if self.bufferd_line
+                    else None
+                )
+
+            self.bufferd_line = seg
+
+    def add_curr_paragraph_to_current_question(
+        self,
+    ):
+        if self.current_question[LEVEL_QUESTION] and self.current_paragraph:
+            self.current_question[LEVEL_QUESTION].contents.append(
+                self.current_paragraph
+            )
+        self.current_paragraph = None
 
     # ***********************************************************
     # ************* the 3 Core Methods    ***********************
@@ -355,6 +387,7 @@ class QuestionDetector(QuestionDetectorBase):
         char, x, y, symbole_height, diff = "", 0, 0, 0, None
 
         can_append, can_overwrite = None, None
+        last_sym = None
 
         for _, sym in enumerate(seq):
             sym: Symbol = sym
@@ -390,11 +423,13 @@ class QuestionDetector(QuestionDetectorBase):
 
             if valid_as_next:
                 char_all += char
+                last_sym = sym
                 is_next_candidate = True
                 continue
 
             elif valid_as_alt:
                 char_all += char
+                last_sym = sym
                 is_alternative_candidate = True
                 continue
 
@@ -435,7 +470,7 @@ class QuestionDetector(QuestionDetectorBase):
                 self.height,
                 2 * symbole_height,
             )
-            self.add_question(new_q, level)
+            self.add_question(new_q, level, label_y1=last_sym.box[-1])
             return True
 
         elif is_next_candidate and self.is_char_valid_as_next(
@@ -456,7 +491,7 @@ class QuestionDetector(QuestionDetectorBase):
                 self.height,
                 2 * symbole_height,
             )
-            self.add_question(new_q, level)
+            self.add_question(new_q, level, label_y1=last_sym.box[-1])
             return True
 
         elif is_alternative_candidate and self.is_char_valid_as_alternative(
@@ -477,14 +512,14 @@ class QuestionDetector(QuestionDetectorBase):
                 self.height,
                 2 * symbole_height,
             )
-            self.replace_question(new_q, level)
+            self.replace_question(new_q, level, label_y1=last_sym.box[-1])
             return True
 
         else:
             return False
 
-    def replace_question(self, q: QuestionBase, level: int):
-        old_curr = self.current[level]
+    def replace_question(self, q: QuestionBase, level: int, label_y1: float):
+        old_curr = self.current_question[level]
         if old_curr and len(old_curr.parts) > 1:
             print(
                 "Can not replace old question because it already has detected 2+ parts"
@@ -501,7 +536,7 @@ class QuestionDetector(QuestionDetectorBase):
             )
             return
         elif not old_curr:
-            self.add_question(q, level)
+            self.add_question(q, level, label_y1=label_y1)
             return
 
         print(
@@ -518,14 +553,28 @@ class QuestionDetector(QuestionDetectorBase):
         print("old_question => \n", old_curr)
         print([str(f) for f in self.question_list])
 
+        part_or_subpart = None
         if level == LEVEL_QUESTION:
             self.question_list[-1] = q
-        elif level == LEVEL_PART and self.current[LEVEL_QUESTION]:
-            self.current[LEVEL_QUESTION].parts[-1] = q
-        elif level == LEVEL_SUBPART and self.current[LEVEL_PART]:
-            self.current[LEVEL_PART].parts[-1] = q
+        elif level == LEVEL_PART and self.current_question[LEVEL_QUESTION]:
+            part_or_subpart = Part(
+                q.label, q.x, q.y, label_y1, q.y + self.line_height
+            )
+            self.current_question[LEVEL_QUESTION].parts[-1] = q
+        elif level == LEVEL_SUBPART and self.current_question[LEVEL_PART]:
+
+            part_or_subpart = SubPart(
+                q.label, q.x, q.y, label_y1, q.y + self.line_height
+            )
+            self.current_question[LEVEL_PART].parts[-1] = q
+
         else:
             raise Exception
+
+        if part_or_subpart:
+            self.current_question[LEVEL_QUESTION].contents.append(
+                part_or_subpart
+            )
 
         # print(q)
         # print([f.get_title() for f in self.question_list])
@@ -533,14 +582,14 @@ class QuestionDetector(QuestionDetectorBase):
         n_type = self.get_question_type(q)
         self.type[level] = n_type
         self.left_most_x[level] = q.x
-        self.current[level] = q
+        self.current_question[level] = q
 
-    def add_question(self, q: QuestionBase, level: int):
+    def add_question(self, q: QuestionBase, level: int, label_y1):
         print(
             f"\nP{self.curr_page}-L{level}: trying to add question ..(label = {q.label})"
         )
         self.set_page_number_for_first_detection(level)
-        old_cur = self.current[level]
+        old_cur = self.current_question[level]
         if old_cur:
             if len(old_cur.parts) < 2:
                 self.reset(level + 1)
@@ -552,18 +601,32 @@ class QuestionDetector(QuestionDetectorBase):
             self.reset_current(level + 1)
             self.reset_types(level + 1)
 
+        part_or_subpart = None
+
+        self.add_curr_paragraph_to_current_question()
         if level == LEVEL_QUESTION:
             self.question_list.append(q)
-            self.current[LEVEL_QUESTION] = q
-        elif level == LEVEL_PART and self.current[LEVEL_QUESTION]:
+            self.current_question[LEVEL_QUESTION] = q
+        elif level == LEVEL_PART and self.current_question[LEVEL_QUESTION]:
+            part_or_subpart = Part(
+                q.label, q.x, q.y, label_y1, q.y + self.line_height
+            )
             print("adding [sub]partts to main questino !")
-            self.current[LEVEL_QUESTION].parts.append(q)
-            self.current[LEVEL_PART] = q
-        elif level == LEVEL_SUBPART and self.current[1]:
-            self.current[LEVEL_PART].parts.append(q)
-            self.current[LEVEL_SUBPART] = q
+            self.current_question[LEVEL_QUESTION].parts.append(q)
+            self.current_question[LEVEL_PART] = q
+        elif level == LEVEL_SUBPART and self.current_question[1]:
+            part_or_subpart = SubPart(
+                q.label, q.x, q.y, label_y1, q.y + self.line_height
+            )
+            self.current_question[LEVEL_PART].parts.append(q)
+            self.current_question[LEVEL_SUBPART] = q
         else:
             raise Exception
+
+        if part_or_subpart:
+            self.current_question[LEVEL_QUESTION].contents.append(
+                part_or_subpart
+            )
 
         print("new_question =>\n", q)
         print([f.get_title() for f in self.question_list])
