@@ -629,39 +629,7 @@ class AdvancedPDFViewer(tk.Tk):
                 temp_draw.text((10, 10), error_msg, fill="white")
 
             if self.layout_detection:
-                model = YOLOv10(
-                    sep.join(
-                        [
-                            ".",
-                            "local-models",
-                            "yolo",
-                            "doclayout_yolo_docstructbench_imgsz1024.pt",
-                        ]
-                    )
-                )
-                img = pil_image
-                # .resize( (pil_image.width // 1, pil_image.height // 1))
-                det_res = model.predict(
-                    img,
-                    imgsz=1024,  # math.ceil(img.height // 32) * 32,
-                    # 1024 * self.engine.scaling,  # Prediction image size
-                    conf=0.2,
-                    device="cpu",  # Device to use (e.g., 'cuda:0' or 'cpu')
-                )
-
-                # res : Results  = det_res[0]
-
-                # Annotate and save the result
-                print("scaling is", self.engine.scaling)
-
-                annotated_frame: NDArray = det_res[0].plot(
-                    pil=True,
-                    line_width=1 * self.engine.scaling,
-                    font_size=20 * self.engine.scaling,
-                )
-                print("array_size = ", annotated_frame.size)
-
-                pil_image = Image.fromarray(annotated_frame)
+                pil_image = self.detect_layout_yolo(pil_image)
 
             self.img_copy = pil_image.copy()
             self.rel_scale = pil_image.width / pil_image.height
@@ -677,6 +645,40 @@ class AdvancedPDFViewer(tk.Tk):
             temp_draw = ImageDraw.Draw(pil_image)
             temp_draw.text((10, 10), error_msg, fill="black")
             return ImageTk.PhotoImage(pil_image)
+
+    def detect_layout_yolo(self, pil_image):
+
+        model = YOLOv10(
+            sep.join(
+                [
+                    ".",
+                    "local-models",
+                    "yolo",
+                    "doclayout_yolo_docstructbench_imgsz1024.pt",
+                ]
+            )
+        )
+        img = pil_image
+        # .resize( (pil_image.width // 1, pil_image.height // 1))
+        det_res = model.predict(
+            img,
+            imgsz=1024,  # math.ceil(img.height // 32) * 32,
+            # 1024 * self.engine.scaling,  # Prediction image size
+            conf=0.2,
+            device="cpu",  # Device to use (e.g., 'cuda:0' or 'cpu')
+        )
+
+        # print("scaling is", self.engine.scaling)
+
+        annotated_frame: NDArray = det_res[0].plot(
+            pil=True,
+            line_width=1 * self.engine.scaling,
+            font_size=20 * self.engine.scaling,
+        )
+        # print("array_size = ", annotated_frame.size)
+
+        pil_image = Image.fromarray(annotated_frame)
+        return pil_image
 
     def debug_current_item(self, event=None, combined_debug=False):
         """
