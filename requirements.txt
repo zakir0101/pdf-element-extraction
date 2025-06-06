@@ -97,8 +97,8 @@ sympy==1.14.0
 thop==0.1.1.post2209072238
 threadpoolctl==3.6.0
 tokenizers==0.21.1
-torch==2.7.1+cpu
-torchvision==0.22.1+cpu
+torch==2.7.1
+torchvision==0.22.1
 tqdm==4.67.1
 transformers==4.52.4
 typing-inspection==0.4.1
