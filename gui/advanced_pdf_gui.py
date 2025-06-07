@@ -1,24 +1,16 @@
 #! ./venv/bin/python
 
 import fitz  # PyMuPDF
+import json
+import io
 import tkinter as tk
 from tkinter import ttk
 import os
 from os.path import sep
 from numpy.typing import NDArray
-from doclayout_yolo import YOLOv10
+import requests
 
-from magic_pdf.data.data_reader_writer import (
-    FileBasedDataWriter,
-    FileBasedDataReader,
-)
-from magic_pdf.data.dataset import ImageDataset
-from magic_pdf.model.doc_analyze_by_custom_model import doc_analyze
-
-# from magic_pdf.model.sub_modules.ocr.paddleocr2pytorch.pytorch_paddle
-from magic_pdf.data.read_api import read_local_images
-from magic_pdf.operators.models import InferenceResult, PipeResult
-from magic_pdf.tools.common import do_parse
+# MinerU
 
 # from tkinter import filedialog  # Though not used for file picking yet
 # from functools import partial  # For cleaner command binding if needed
@@ -56,7 +48,8 @@ ALL_MODULES = [
     pdf_engine_module,
 ]
 
-
+KAGGLE_SERVER_URL = "https://bd94-35-225-161-222.ngrok-free.app"
+KAGGLE_SERVER_URL += "/predict"
 """
 Advanced PDF Viewer GUI application.
 
@@ -653,7 +646,7 @@ class AdvancedPDFViewer(tk.Tk):
 
             if self.layout_detection >= 2:
                 img_path = self.save_surface_to_png()
-                pil_image = self.detect_layout_miner_u(img_path)
+                pil_image = self.detect_layout_miner_u_remote(img_path)
 
             self.img_copy = pil_image.copy()
             self.rel_scale = pil_image.width / pil_image.height
@@ -671,7 +664,52 @@ class AdvancedPDFViewer(tk.Tk):
             temp_draw.text((10, 10), error_msg, fill="black")
             return ImageTk.PhotoImage(pil_image)
 
-    def detect_layout_miner_u(self, input_file: str):
+    def detect_layout_miner_u_remote(self, input_file: str):
+        want = (
+            "content.md"
+            if self.layout_detection == 7
+            else f"draw{self.layout_detection}.png"
+        )
+        data = {
+            "exam": self.engine.pdf_name,
+            "display-mode": self.navigation_mode,
+            "number": (
+                self.current_page_number
+                if self.navigation_mode == "page"
+                else self.current_question_number
+            ),
+            "want": want,
+        }
+        data_str = json.dumps(data)
+        files = {
+            "image": (
+                os.path.basename(input_file),
+                open(input_file, "rb"),
+                "image/png",
+            )
+        }
+
+        res = requests.post(
+            KAGGLE_SERVER_URL, files=files, data=data
+        )  # timeout=60 60-second timeout
+
+        if self.layout_detection != 7:
+            return Image.open(io.BytesIO(res.content))
+        else:
+            return res.content.decode("utf-8")
+
+    def detect_layout_miner_u_old(self, input_file: str):
+
+        from magic_pdf.data.data_reader_writer import (
+            FileBasedDataWriter,
+            FileBasedDataReader,
+        )
+        from magic_pdf.data.dataset import ImageDataset
+        from magic_pdf.model.doc_analyze_by_custom_model import doc_analyze
+        from magic_pdf.data.read_api import read_local_images
+        from magic_pdf.operators.models import InferenceResult, PipeResult
+        from magic_pdf.tools.common import do_parse
+
         # prepare env
         local_image_dir, local_md_dir = "output/images", "output"
         image_dir = str(os.path.basename(local_image_dir))
@@ -682,28 +720,19 @@ class AdvancedPDFViewer(tk.Tk):
             local_image_dir
         ), FileBasedDataWriter(local_md_dir)
 
-        # ds: ImageDataset = read_local_images(input_file)[0]
-
-        # img_k = open(input_file, "rb")
-        # img_f.close()
-
-        lang = "ch_lite"
+        lang = "ch"
         reader = FileBasedDataReader()
         ds = ImageDataset(reader.read(input_file), lang=lang)
-        # ds._lang = lang
 
         inf_res: InferenceResult = ds.apply(
             doc_analyze,
             ocr=True,
             lang=lang,
             show_log=True,
-            # layout_model = "layoutlmv3"
         )
 
-        # print("inf_res Type=",type(inf_res))
         pip_res: PipeResult = inf_res.pipe_ocr_mode(image_writer, lang=lang)
 
-        #
         pip_res.dump_md(md_writer, f"testing_miner_u.md", image_dir)
         output_file = sep.join([".", "output", "gui_temp_image.pdf"])
         if self.layout_detection == 2:
@@ -729,6 +758,8 @@ class AdvancedPDFViewer(tk.Tk):
         return img
 
     def detect_layout_yolo(self, pil_image):
+
+        from doclayout_yolo import YOLOv10
 
         model = YOLOv10(
             sep.join(
