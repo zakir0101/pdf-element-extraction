@@ -1,14 +1,24 @@
 #! ./venv/bin/python
 
-import math
+import fitz  # PyMuPDF
 import tkinter as tk
 from tkinter import ttk
 import os
 from os.path import sep
-import numpy as np
 from numpy.typing import NDArray
 from doclayout_yolo import YOLOv10
-from doclayout_yolo.engine.results import Results
+
+from magic_pdf.data.data_reader_writer import (
+    FileBasedDataWriter,
+    FileBasedDataReader,
+)
+from magic_pdf.data.dataset import ImageDataset
+from magic_pdf.model.doc_analyze_by_custom_model import doc_analyze
+
+# from magic_pdf.model.sub_modules.ocr.paddleocr2pytorch.pytorch_paddle
+from magic_pdf.data.read_api import read_local_images
+from magic_pdf.operators.models import InferenceResult, PipeResult
+from magic_pdf.tools.common import do_parse
 
 # from tkinter import filedialog  # Though not used for file picking yet
 # from functools import partial  # For cleaner command binding if needed
@@ -289,7 +299,14 @@ class AdvancedPDFViewer(tk.Tk):
         )
 
         self.bind("<Control-s>", self.save_surface_to_png)
-        self.bind("<Control-t>", self.toggle_layout_detection)
+        self.bind("<Control-t>", lambda x: self.toggle_layout_detection(1))
+        self.bind(
+            "<Control-Shift-T>", lambda x: self.toggle_layout_detection(2)
+        )
+        self.bind("<Control-Alt-t>", lambda x: self.toggle_layout_detection(3))
+        self.bind(
+            "<Control-Alt-Shift-T>", lambda x: self.toggle_layout_detection(4)
+        )
         # --- Initial Load ---
         self.update_status_bar(
             "Welcome! Load a PDF to begin."
@@ -298,10 +315,13 @@ class AdvancedPDFViewer(tk.Tk):
         if self.engine.all_pdf_paths:
             self.next_pdf_file()  # Load the first PDF
 
-    def toggle_layout_detection(self, event=None):
-        self.layout_detection = not self.layout_detection
+    def toggle_layout_detection(self, mode: int):
+        if self.layout_detection:
+            self.layout_detection = 0
+        else:
+            self.layout_detection = mode
         self.render_current_page_or_question()
-        msg = f"Turned {'On' if self.layout_detection else 'Off'} Layout Detection"
+        msg = f"Turned {'On' if self.layout_detection else 'Off'} Layout Detection [{'YOLO' if mode == 1 else 'Miner-U'}]"
         self.update_status_bar(msg)
         print(msg)
 
@@ -374,8 +394,8 @@ class AdvancedPDFViewer(tk.Tk):
         """
 
         # Method attributes like current_file_name are derived by update_status_bar or within logic.
-        status_message_detail = ""
-        action_description = ""  # For print logging
+        # status_message_detail = ""
+        # action_description = ""  # For print logging
 
         # Clear any old text items from canvas, except the image item itself
         for item in self.display_canvas.find_all():
@@ -628,14 +648,19 @@ class AdvancedPDFViewer(tk.Tk):
                 temp_draw = ImageDraw.Draw(pil_image)
                 temp_draw.text((10, 10), error_msg, fill="white")
 
-            if self.layout_detection:
+            if self.layout_detection == 1:
                 pil_image = self.detect_layout_yolo(pil_image)
+
+            if self.layout_detection >= 2:
+                img_path = self.save_surface_to_png()
+                pil_image = self.detect_layout_miner_u(img_path)
 
             self.img_copy = pil_image.copy()
             self.rel_scale = pil_image.width / pil_image.height
             return ImageTk.PhotoImage(pil_image)
         except Exception as e:
             error_msg = f"Error converting Cairo surface to PhotoImage: {e}"
+            print(traceback.format_exc())
             print(error_msg)
             pil_image = Image.new(
                 "RGB", (max(1, width), max(1, height)), color="orange"
@@ -645,6 +670,63 @@ class AdvancedPDFViewer(tk.Tk):
             temp_draw = ImageDraw.Draw(pil_image)
             temp_draw.text((10, 10), error_msg, fill="black")
             return ImageTk.PhotoImage(pil_image)
+
+    def detect_layout_miner_u(self, input_file: str):
+        # prepare env
+        local_image_dir, local_md_dir = "output/images", "output"
+        image_dir = str(os.path.basename(local_image_dir))
+
+        os.makedirs(local_image_dir, exist_ok=True)
+
+        image_writer, md_writer = FileBasedDataWriter(
+            local_image_dir
+        ), FileBasedDataWriter(local_md_dir)
+
+        # ds: ImageDataset = read_local_images(input_file)[0]
+
+        # img_k = open(input_file, "rb")
+        # img_f.close()
+
+        lang = "ch_lite"
+        reader = FileBasedDataReader()
+        ds = ImageDataset(reader.read(input_file), lang=lang)
+        # ds._lang = lang
+
+        inf_res: InferenceResult = ds.apply(
+            doc_analyze,
+            ocr=True,
+            lang=lang,
+            show_log=True,
+            # layout_model = "layoutlmv3"
+        )
+
+        # print("inf_res Type=",type(inf_res))
+        pip_res: PipeResult = inf_res.pipe_ocr_mode(image_writer, lang=lang)
+
+        #
+        pip_res.dump_md(md_writer, f"testing_miner_u.md", image_dir)
+        output_file = sep.join([".", "output", "gui_temp_image.pdf"])
+        if self.layout_detection == 2:
+            print("mode == 2")
+            pip_res.draw_layout(output_file)
+        elif self.layout_detection == 3:
+            print("mode == 3")
+            pip_res.draw_span(output_file)
+        elif self.layout_detection == 4:
+            print("mode == 3")
+            pip_res.draw_line_sort(output_file)
+        else:
+            raise Exception("Invalid mode")
+
+        dpi = 150
+        doc = fitz.open(output_file)
+        page = doc.load_page(0)
+        pix = page.get_pixmap(dpi=dpi)
+        mode = "RGBA" if pix.alpha else "RGB"
+        img = Image.frombytes(mode, (pix.width, pix.height), pix.samples)
+        doc.close()
+
+        return img
 
     def detect_layout_yolo(self, pil_image):
 
@@ -802,7 +884,7 @@ class AdvancedPDFViewer(tk.Tk):
                         )
                     except AttributeError:
                         print(
-                            f"Error: Question object missing 'pages'. Defaulting page 1 for debug."
+                            "Error: Question object missing 'pages'. Defaulting page 1 for debug."
                         )
 
                 self.update_status_bar(
