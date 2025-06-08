@@ -250,7 +250,7 @@ class QuestionDetectorBase(BaseDetector):
     def get_question_list(self, pdf_file_name_or_path) -> list[Question]:
         q_list = []
         for i, q in enumerate(self.question_list):
-            q_list.append(Question.from_base(q, pdf_file_name_or_path, i + 0))
+            q_list.append(Question.from_base(q, pdf_file_name_or_path))
         return q_list
 
 
@@ -304,7 +304,10 @@ class QuestionDetector(QuestionDetectorBase):
         last = self.current_question[LEVEL_QUESTION]
         if not last:
             return
-        last.y1 = self.height
+        self.curr_page = last.pages[-1]
+        self.updata_last_y1(last, self.height)
+        # last.y1 = self.height
+
         if len(last.parts) < 2:
             last.parts = []
         if last.parts and len(last.parts[-1].parts) < 2:
@@ -584,6 +587,18 @@ class QuestionDetector(QuestionDetectorBase):
         self.left_most_x[level] = q.x
         self.current_question[level] = q
 
+    def updata_last_y1(self, old_cur: QuestionBase, new_y_start):
+        last_y1 = (
+            (new_y_start - 0.2 * self.line_height)
+            if self.curr_page in old_cur.pages
+            else self.height
+        )
+        old_cur.y1 = last_y1
+        if old_cur.parts:
+            old_cur.parts[-1].y1 = last_y1
+            if old_cur.parts[-1].parts:
+                old_cur.parts[-1].parts[-1].y1 = last_y1
+
     def add_question(self, q: QuestionBase, level: int, label_y1):
         print(
             f"\nP{self.curr_page}-L{level}: trying to add question ..(label = {q.label})"
@@ -593,10 +608,8 @@ class QuestionDetector(QuestionDetectorBase):
         if old_cur:
             if len(old_cur.parts) < 2:
                 self.reset(level + 1)
-            if level == LEVEL_QUESTION:
-                old_cur.y1 = (
-                    q.y if self.curr_page in old_cur.pages else self.height
-                )
+            self.updata_last_y1(old_cur, q.y)
+
         if level < LEVEL_SUBPART:
             self.reset_current(level + 1)
             self.reset_types(level + 1)

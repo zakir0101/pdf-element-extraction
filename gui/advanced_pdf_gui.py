@@ -1,14 +1,16 @@
 #! ./venv/bin/python
 
-import fitz  # PyMuPDF
 import json
 import io
+import zipfile
 import tkinter as tk
 from tkinter import ttk
 import os
 from os.path import sep
 from numpy.typing import NDArray
 import requests
+from PIL import Image, ImageTk
+import cairo  # For type hinting and direct use if necessary
 
 # MinerU
 
@@ -34,8 +36,8 @@ from models import core_models as core_model_module
 from engine import engine_state as pdf_state_module
 
 from engine.pdf_engine import PdfEngine
-from PIL import Image, ImageTk
-import cairo  # For type hinting and direct use if necessary
+
+from external.markdown import render_markdown_to_png
 
 ALL_MODULES = [
     core_model_module,
@@ -48,7 +50,7 @@ ALL_MODULES = [
     pdf_engine_module,
 ]
 
-KAGGLE_SERVER_URL = "https://bd94-35-225-161-222.ngrok-free.app"
+KAGGLE_SERVER_URL = "https://f152-34-127-104-190.ngrok-free.app"
 KAGGLE_SERVER_URL += "/predict"
 """
 Advanced PDF Viewer GUI application.
@@ -86,7 +88,7 @@ class AdvancedPDFViewer(tk.Tk):
 
         # Initialize PDF Engine
         self.engine = PdfEngine(
-            scaling=1
+            scaling=2
         )  # Initial instantiation using PdfEngine directly
         self.navigation_mode = "page"  # "page" or "question"
         self.current_page_number = 0
@@ -103,7 +105,10 @@ class AdvancedPDFViewer(tk.Tk):
         sample_pdf_paths = pdf_pathes
         # my Vars
         self.rel_scale = 1
-        self.layout_detection = False
+        self.rel_scale_2 = 1
+        self.layout_detection = 0
+        self.ocr_mode = ""
+        self.dual_display_mode = False
         # Ensure the PDFs directory exists for sample paths if running from repo root
         # For now, assuming these paths are valid relative to where the script is run
         # Or that the PdfEngine handles path resolution.
@@ -154,6 +159,9 @@ class AdvancedPDFViewer(tk.Tk):
             0, 0, anchor=tk.NW, image=None
         )
 
+        self.canvas_image_item_2 = self.display_canvas.create_image(
+            0, 0, anchor=tk.NW, image=None
+        )
         # --- Controls Frame ---
         # PDF Navigation Buttons
         self.prev_pdf_button = ttk.Button(
@@ -241,6 +249,20 @@ class AdvancedPDFViewer(tk.Tk):
         )
         empty_frame.pack(fill=tk.X, padx=5, pady=5, expand=True)
 
+        self.md_button = ttk.Button(
+            self.controls_frame,
+            text="OCR.md (Ctrl+m)",
+            command=self.toggle_ocr_md,
+        )
+        self.md_button.pack(fill=tk.X, padx=5, pady=2)
+
+        self.tex_button = ttk.Button(
+            self.controls_frame,
+            text="OCR.latex (Ctrl+l)",
+            command=self.toggle_ocr_tex,
+        )
+        self.tex_button.pack(fill=tk.X, padx=5, pady=2)
+
         self.png_button = ttk.Button(
             self.controls_frame,
             text="Save PNG (Ctrl+s)",
@@ -292,7 +314,18 @@ class AdvancedPDFViewer(tk.Tk):
         )
 
         self.bind("<Control-s>", self.save_surface_to_png)
-        self.bind("<Control-t>", lambda x: self.toggle_layout_detection(1))
+        self.bind("<Control-m>", self.toggle_ocr_md)
+        self.bind("<Control-l>", self.toggle_ocr_tex)
+
+        # scrolling :
+
+        self.bind(
+            "<j>", lambda x: self.display_canvas.yview_scroll(1, "units")
+        )
+        self.bind(
+            "<k>", lambda x: self.display_canvas.yview_scroll(-1, "units")
+        )
+        self.bind("<Control-t>", lambda x: self.toggle_layout_detection(5))
         self.bind(
             "<Control-Shift-T>", lambda x: self.toggle_layout_detection(2)
         )
@@ -309,7 +342,7 @@ class AdvancedPDFViewer(tk.Tk):
             self.next_pdf_file()  # Load the first PDF
 
     def toggle_layout_detection(self, mode: int):
-        if self.layout_detection:
+        if self.layout_detection > 0:
             self.layout_detection = 0
         else:
             self.layout_detection = mode
@@ -319,6 +352,7 @@ class AdvancedPDFViewer(tk.Tk):
         print(msg)
 
     def save_surface_to_png(self, event=None):
+
         if self.current_surface:
             img_path = sep.join([".", "output", "gui_saved_image.png"])
             self.current_surface.write_to_png(img_path)
@@ -326,6 +360,31 @@ class AdvancedPDFViewer(tk.Tk):
             print("image saved Successfully")
             return img_path
         return False
+
+    def image_to_png_bytes(self, cairo_image_surface: cairo.ImageSurface):
+        surface_format = cairo_image_surface.get_format()
+        width = cairo_image_surface.get_width()
+        height = cairo_image_surface.get_height()
+        stride = cairo_image_surface.get_stride()
+
+        cairo_image_surface.flush()
+
+        image_data_buffer = cairo_image_surface.get_data()
+
+        pil_image = None
+        if surface_format != cairo.FORMAT_ARGB32:
+            raise Exception("make sure to use ARGB32")
+        pil_image = Image.frombytes(
+            "RGBA",
+            (width, height),
+            image_data_buffer.tobytes(),
+            "raw",
+            "BGRA",
+            stride,
+        )
+        bytes_png = io.BytesIO()
+        pil_image.save(bytes_png, format="png")
+        return bytes_png.getvalue()
 
     def update_status_bar(self, general_message: str = ""):
         """
@@ -392,7 +451,10 @@ class AdvancedPDFViewer(tk.Tk):
 
         # Clear any old text items from canvas, except the image item itself
         for item in self.display_canvas.find_all():
-            if item != self.canvas_image_item:
+            if item not in [
+                self.canvas_image_item,
+                self.canvas_image_item_2 if self.dual_display_mode else "",
+            ]:
                 self.display_canvas.delete(item)
 
         # Method attributes like current_file_name are derived by update_status_bar or within logic.
@@ -400,15 +462,19 @@ class AdvancedPDFViewer(tk.Tk):
         general_render_message = ""  # Specific message for this render action
 
         # Clear any old text items from canvas, except the image item itself
-        for item in self.display_canvas.find_all():
-            if item != self.canvas_image_item:
-                self.display_canvas.delete(item)
+
+        # for item in self.display_canvas.find_all():
+        #     if item not in  [self.canvas_image_item, self.canvas_image_item_2]  :
+        #         self.display_canvas.delete(item)
 
         if (
             not self.engine.current_pdf_document
             or not self.engine.get_current_file_path()
         ):
             self.display_canvas.itemconfig(self.canvas_image_item, image=None)
+            self.display_canvas.itemconfig(
+                self.canvas_image_item_2, image=None
+            )
             self._photo_image_ref = None
             self.display_canvas.config(scrollregion=(0, 0, 0, 0))
             self.update_status_bar("No PDF loaded.")
@@ -423,6 +489,8 @@ class AdvancedPDFViewer(tk.Tk):
             # ren = self.engine.renderer
             # ren.set_clean_mode(ren.O_CLEAN_HEADER_FOOTER)
             q_content = ""
+            # if self.navigation_mode == "ocr-md":
+            #     if not self.md_
             if self.navigation_mode == "page":
                 if self.current_page_number > 0 and self.total_pages > 0:
                     self.update_status_bar(
@@ -499,24 +567,37 @@ class AdvancedPDFViewer(tk.Tk):
 
             if surface:
                 self.current_surface = surface
-                self._photo_image_ref = (
-                    self.convert_cairo_surface_to_photoimage(surface)
-                )
-                self.display_canvas.itemconfig(
-                    self.canvas_image_item, image=self._photo_image_ref
-                )
-                self.display_canvas.coords(self.canvas_image_item, 0, 0)
-                self.display_canvas.config(
-                    scrollregion=self.display_canvas.bbox(
-                        self.canvas_image_item
-                    )
-                )
-
-                self.display_canvas.bind("<Configure>", self._resize_image)
 
                 class event_c:
                     width = self.display_canvas.winfo_width()
                     height = self.display_canvas.winfo_height()
+
+                self._photo_image_ref = (
+                    self.convert_cairo_surface_to_photoimage(surface)
+                )
+
+                self.display_canvas.itemconfig(
+                    self.canvas_image_item, image=self._photo_image_ref
+                )
+                self.display_canvas.coords(self.canvas_image_item, 0, 0)
+                box1 = self.display_canvas.bbox(self.canvas_image_item)
+
+                if self.dual_display_mode:  # self.ocr_mode == "md":
+                    self._photo_image_ref_2 = ImageTk.PhotoImage(
+                        self.img_copy_2.copy()
+                    )
+                    self.display_canvas.itemconfig(
+                        self.canvas_image_item_2, image=self._photo_image_ref_2
+                    )
+                    self.display_canvas.coords(
+                        self.canvas_image_item_2, event_c.width // 2, 0
+                    )
+                    box2 = self.display_canvas.bbox(self.canvas_image_item_2)
+                    box = [0, 0, box2[2], max(box2[3], box1[3])]
+                else:
+                    box = box1
+                self.display_canvas.config(scrollregion=box)
+                self.display_canvas.bind("<Configure>", self._resize_image)
 
                 # event_c = self.img_copy
                 # print(event_c.width, event_c.height)
@@ -526,7 +607,13 @@ class AdvancedPDFViewer(tk.Tk):
                 self.display_canvas.itemconfig(
                     self.canvas_image_item, image=None
                 )
+
                 self._photo_image_ref = None
+
+                self.display_canvas.itemconfig(
+                    self.canvas_image_item_2, image=None
+                )
+                self._photo_image_ref_2 = None
                 self.display_canvas.config(scrollregion=(0, 0, 0, 0))
 
             self.update_status_bar(
@@ -540,6 +627,10 @@ class AdvancedPDFViewer(tk.Tk):
             self.update_status_bar(error_msg)
             self.display_canvas.itemconfig(self.canvas_image_item, image=None)
             self._photo_image_ref = None
+            self.display_canvas.itemconfig(
+                self.canvas_image_item_2, image=None
+            )
+            self._photo_image_ref_2 = None
             self.display_canvas.config(scrollregion=(0, 0, 0, 0))
 
         self.update_all_button_states()
@@ -547,29 +638,65 @@ class AdvancedPDFViewer(tk.Tk):
     def _resize_image(self, event: tk.Event):
         _canvas = self.display_canvas
         try:
-            width = self.img_copy.width or 100
-            height = self.img_copy.height or 100 * self.rel_scale
+            target_width = event.width
+            target_height = event.height
 
-            if width > event.width:
-                width = event.width
-                height = int(width / self.rel_scale)
-
-            if height > event.height:
-                height = event.height
-                width = int(height * self.rel_scale)
-            # if not width or not height:
-            #     return
-            print(f"new dim ({width},{height} )")
-            image = self.img_copy.resize((width, height))
-            self._photo_image_ref = ImageTk.PhotoImage(image)
+            if self.dual_display_mode:
+                target_width //= 2
+            im1 = self._resize_img_copy(
+                self.img_copy, target_width, target_height, self.rel_scale
+            )
+            self._photo_image_ref = ImageTk.PhotoImage(im1)
             _canvas.itemconfig(
                 self.canvas_image_item, image=self._photo_image_ref
             )
-            _canvas.config(scrollregion=(0, 0, width, height))
+
+            im2 = None
+            if self.dual_display_mode:
+                im2 = self._resize_img_copy(
+                    self.img_copy_2,
+                    target_width,
+                    target_height,
+                    self.rel_scale_2,
+                )
+                self._photo_image_ref_2 = ImageTk.PhotoImage(im2)
+                _canvas.itemconfig(
+                    self.canvas_image_item_2, image=self._photo_image_ref_2
+                )
+
+                self.display_canvas.coords(
+                    self.canvas_image_item_2, target_width, 0
+                )
+
+            _canvas.config(
+                scrollregion=(
+                    0,
+                    0,
+                    event.width,
+                    max(im1.height, im2.height if im2 else 0),
+                )
+            )
 
         except Exception as e:
             print(traceback.format_exc())
             raise Exception(e)
+
+    def _resize_img_copy(
+        self, img_copy, target_width, target_height, rel_scale
+    ):
+        width = img_copy.width or 100
+        height = img_copy.height or 100 * rel_scale
+
+        if width > target_width:
+            width = target_width
+            height = int(width / rel_scale)
+
+        # if height > target_height:
+        #     height = target_height
+        #     width = int(height * rel_scale)
+
+        image = img_copy.resize((width, height))
+        return image
 
     def convert_cairo_surface_to_photoimage(
         self, surface: cairo.ImageSurface
@@ -641,12 +768,14 @@ class AdvancedPDFViewer(tk.Tk):
                 temp_draw = ImageDraw.Draw(pil_image)
                 temp_draw.text((10, 10), error_msg, fill="white")
 
-            if self.layout_detection == 1:
-                pil_image = self.detect_layout_yolo(pil_image)
+            # if self.layout_detection == 1:
+            #     pil_image = self.detect_layout_yolo(pil_image)
 
-            if self.layout_detection >= 2:
-                img_path = self.save_surface_to_png()
-                pil_image = self.detect_layout_miner_u_remote(img_path)
+            if 7 > self.layout_detection >= 2:
+                img_bytes = self.image_to_png_bytes(self.current_surface)
+                pil_image = self.detect_layout_miner_u_remote(
+                    img_bytes, self.layout_detection
+                )
 
             self.img_copy = pil_image.copy()
             self.rel_scale = pil_image.width / pil_image.height
@@ -664,12 +793,97 @@ class AdvancedPDFViewer(tk.Tk):
             temp_draw.text((10, 10), error_msg, fill="black")
             return ImageTk.PhotoImage(pil_image)
 
-    def detect_layout_miner_u_remote(self, input_file: str):
-        want = (
-            "content.md"
-            if self.layout_detection == 7
-            else f"draw{self.layout_detection}.png"
+    def toggle_ocr_md(self, event=None):
+        if self.dual_display_mode:
+            self.ocr_mode = ""
+            self.dual_display_mode = False
+            self.img_copy_2 = None
+            self._photo_image_ref_2 = None
+            self.render_current_page_or_question()
+            self.update_status_bar("[CLOSED] the OCR.md Mode ")
+            return
+
+        self.ocr_mode = "md"
+        self.dual_display_mode = True
+        ocr_out_path = sep.join([".", "output", "ocr_md.png"])
+
+        if self.navigation_mode == "page":
+            self.update_status_bar("Simple Ocr ...")
+            self.simple_ocr(ocr_out_path)
+        else:
+            self.update_status_bar("Advance Ocr ...")
+            self.advance_ocr(ocr_out_path)
+
+        img = Image.open(ocr_out_path)
+        self.rel_scale_2 = img.width / img.height
+        self.img_copy_2 = img
+        self.canvas_image_item_2 = self.display_canvas.create_image(
+            0, 0, anchor=tk.NW, image=None
         )
+        self.render_current_page_or_question()
+        self.update_status_bar("[OPENED] the OCR.md Mode")
+        pass
+
+    def simple_ocr(self, ocr_out_path):
+        img_bytes = self.image_to_png_bytes(self.current_surface)
+        bytes_content = self.detect_layout_miner_u_remote(img_bytes, 7)
+        zip_dict = self.expand_zip_in_memory(bytes_content)
+        render_markdown_to_png(zip_dict, ocr_out_path)
+
+    def advance_ocr(self, ocr_out_path):
+        surf_res = self.engine.render_a_question(
+            self.current_question_number, devide=True
+        )
+        q = self.engine.question_list[self.current_question_number]
+        idx_list = []
+        all_bytes = b""
+        seperator = b"IAM_A_SEPERATOR_PLEASE"
+        for id, surf in surf_res.items():
+            idx_list.append(id)
+            all_bytes += self.image_to_png_bytes(surf) + seperator
+
+        ocr_res = self.detect_layout_miner_u_remote_advance(
+            all_bytes, seperator, idx_list
+        )
+        temp_f = "." + sep + "output" + sep + "ocr_res.json"
+        with open(temp_f, "w", encoding="utf-8") as f:
+            f.write(json.dumps(ocr_res))
+
+        self.update_status_bar("OCR_RES saved to :" + temp_f)
+        return
+        # html = q.get_html_repr(ocr_res, surf_res)
+        # render_markdown_to_png(zip_dict, ocr_out_path)
+
+    def expand_zip_in_memory(self, zip_bytes):
+        in_memory_zip = io.BytesIO(zip_bytes)
+        with open("output/temp.zip", "wb") as fb:
+            fb.write(zip_bytes)
+        with zipfile.ZipFile(in_memory_zip, "r") as zip_ref:
+            return {name: zip_ref.read(name) for name in zip_ref.namelist()}
+
+    def toggle_ocr_tex(self, event=None):
+        pass
+
+    def detect_layout_miner_u_remote_advance(
+        self, all_bytes: bytes, seperator: bytes, idx_list
+    ):
+        data = {"idx": idx_list, "seperator": seperator.decode("latin")}
+        files = {
+            "image": (
+                "some_name.png",
+                all_bytes,
+                "image/png",
+            )
+        }
+        res = requests.post(
+            KAGGLE_SERVER_URL + "/advance",
+            files=files,
+            data={"json": json.dumps(data)},
+        )
+        return res.json()
+
+    def detect_layout_miner_u_remote(self, img_bytes: str, mode: str):
+        want = "md_content.md" if mode == 7 else f"draw{mode}.png"
         data = {
             "exam": self.engine.pdf_name,
             "display-mode": self.navigation_mode,
@@ -683,8 +897,8 @@ class AdvancedPDFViewer(tk.Tk):
         data_str = json.dumps(data)
         files = {
             "image": (
-                os.path.basename(input_file),
-                open(input_file, "rb"),
+                "some_name.png",
+                img_bytes,
                 "image/png",
             )
         }
@@ -693,105 +907,99 @@ class AdvancedPDFViewer(tk.Tk):
             KAGGLE_SERVER_URL, files=files, data=data
         )  # timeout=60 60-second timeout
 
-        if self.layout_detection != 7:
+        if mode != 7:
             return Image.open(io.BytesIO(res.content))
         else:
-            return res.content.decode("utf-8")
+            return res.content
 
-    def detect_layout_miner_u_old(self, input_file: str):
+    # def detect_layout_miner_u_old(self, input_file: str):
+    #
+    #     from magic_pdf.data.data_reader_writer import (
+    #         FileBasedDataWriter,
+    #         FileBasedDataReader,
+    #     )
+    #     from magic_pdf.data.dataset import ImageDataset
+    #     from magic_pdf.model.doc_analyze_by_custom_model import doc_analyze
+    #     from magic_pdf.data.read_api import read_local_images
+    #     from magic_pdf.operators.models import InferenceResult, PipeResult
+    #     from magic_pdf.tools.common import do_parse
+    #
+    #     # prepare env
+    #     local_image_dir, local_md_dir = "output/images", "output"
+    #     image_dir = str(os.path.basename(local_image_dir))
+    #
+    #     os.makedirs(local_image_dir, exist_ok=True)
+    #
+    #     image_writer, md_writer = FileBasedDataWriter(
+    #         local_image_dir
+    #     ), FileBasedDataWriter(local_md_dir)
+    #
+    #     lang = "ch"
+    #     reader = FileBasedDataReader()
+    #     ds = ImageDataset(reader.read(input_file), lang=lang)
+    #
+    #     inf_res: InferenceResult = ds.apply(
+    #         doc_analyze,
+    #         ocr=True,
+    #         lang=lang,
+    #         show_log=True,
+    #     )
+    #
+    #     pip_res: PipeResult = inf_res.pipe_ocr_mode(image_writer, lang=lang)
+    #
+    #     pip_res.dump_md(md_writer, f"testing_miner_u.md", image_dir)
+    #     output_file = sep.join([".", "output", "gui_temp_image.pdf"])
+    #     if self.layout_detection == 2:
+    #         print("mode == 2")
+    #         pip_res.draw_layout(output_file)
+    #     elif self.layout_detection == 3:
+    #         print("mode == 3")
+    #         pip_res.draw_span(output_file)
+    #     elif self.layout_detection == 4:
+    #         print("mode == 3")
+    #         pip_res.draw_line_sort(output_file)
+    #     else:
+    #         raise Exception("Invalid mode")
+    #
+    #     dpi = 150
+    #     doc = fitz.open(output_file)
+    #     page = doc.load_page(0)
+    #     pix = page.get_pixmap(dpi=dpi)
+    #     mode = "RGBA" if pix.alpha else "RGB"
+    #     img = Image.frombytes(mode, (pix.width, pix.height), pix.samples)
+    #     doc.close()
+    #
+    #     return img
+    #
 
-        from magic_pdf.data.data_reader_writer import (
-            FileBasedDataWriter,
-            FileBasedDataReader,
-        )
-        from magic_pdf.data.dataset import ImageDataset
-        from magic_pdf.model.doc_analyze_by_custom_model import doc_analyze
-        from magic_pdf.data.read_api import read_local_images
-        from magic_pdf.operators.models import InferenceResult, PipeResult
-        from magic_pdf.tools.common import do_parse
-
-        # prepare env
-        local_image_dir, local_md_dir = "output/images", "output"
-        image_dir = str(os.path.basename(local_image_dir))
-
-        os.makedirs(local_image_dir, exist_ok=True)
-
-        image_writer, md_writer = FileBasedDataWriter(
-            local_image_dir
-        ), FileBasedDataWriter(local_md_dir)
-
-        lang = "ch"
-        reader = FileBasedDataReader()
-        ds = ImageDataset(reader.read(input_file), lang=lang)
-
-        inf_res: InferenceResult = ds.apply(
-            doc_analyze,
-            ocr=True,
-            lang=lang,
-            show_log=True,
-        )
-
-        pip_res: PipeResult = inf_res.pipe_ocr_mode(image_writer, lang=lang)
-
-        pip_res.dump_md(md_writer, f"testing_miner_u.md", image_dir)
-        output_file = sep.join([".", "output", "gui_temp_image.pdf"])
-        if self.layout_detection == 2:
-            print("mode == 2")
-            pip_res.draw_layout(output_file)
-        elif self.layout_detection == 3:
-            print("mode == 3")
-            pip_res.draw_span(output_file)
-        elif self.layout_detection == 4:
-            print("mode == 3")
-            pip_res.draw_line_sort(output_file)
-        else:
-            raise Exception("Invalid mode")
-
-        dpi = 150
-        doc = fitz.open(output_file)
-        page = doc.load_page(0)
-        pix = page.get_pixmap(dpi=dpi)
-        mode = "RGBA" if pix.alpha else "RGB"
-        img = Image.frombytes(mode, (pix.width, pix.height), pix.samples)
-        doc.close()
-
-        return img
-
-    def detect_layout_yolo(self, pil_image):
-
-        from doclayout_yolo import YOLOv10
-
-        model = YOLOv10(
-            sep.join(
-                [
-                    ".",
-                    "local-models",
-                    "yolo",
-                    "doclayout_yolo_docstructbench_imgsz1024.pt",
-                ]
-            )
-        )
-        img = pil_image
-        # .resize( (pil_image.width // 1, pil_image.height // 1))
-        det_res = model.predict(
-            img,
-            imgsz=1024,  # math.ceil(img.height // 32) * 32,
-            # 1024 * self.engine.scaling,  # Prediction image size
-            conf=0.2,
-            device="cpu",  # Device to use (e.g., 'cuda:0' or 'cpu')
-        )
-
-        # print("scaling is", self.engine.scaling)
-
-        annotated_frame: NDArray = det_res[0].plot(
-            pil=True,
-            line_width=1 * self.engine.scaling,
-            font_size=20 * self.engine.scaling,
-        )
-        # print("array_size = ", annotated_frame.size)
-
-        pil_image = Image.fromarray(annotated_frame)
-        return pil_image
+    # def detect_layout_yolo(self, pil_image):
+    #     from doclayout_yolo import YOLOv10
+    #     model = YOLOv10(
+    #         sep.join(
+    #             [
+    #                 ".",
+    #                 "local-models",
+    #                 "yolo",
+    #                 "doclayout_yolo_docstructbench_imgsz1024.pt",
+    #             ]
+    #         )
+    #     )
+    #     img = pil_image
+    #
+    #     det_res = model.predict(
+    #         img,
+    #         imgsz=1024,
+    #
+    #         conf=0.2,
+    #         device="cpu",
+    #     )
+    #     annotated_frame: NDArray = det_res[0].plot(
+    #         pil=True,
+    #         line_width=1 * self.engine.scaling,
+    #         font_size=20 * self.engine.scaling,
+    #     )
+    #     pil_image = Image.fromarray(annotated_frame)
+    #     return pil_image
 
     def debug_current_item(self, event=None, combined_debug=False):
         """
@@ -1106,6 +1314,8 @@ class AdvancedPDFViewer(tk.Tk):
         """
 
         self.layout_detection = False
+        self.dual_display_mode = False
+
         if self.engine.proccess_next_pdf_file():
             self.navigation_mode = "page"  # Default to page mode on new PDF
             self.total_pages = (
@@ -1141,6 +1351,7 @@ class AdvancedPDFViewer(tk.Tk):
             self.update_all_button_states()
             return
         self.layout_detection = False
+        self.dual_display_mode = False
 
         if self.engine.proccess_prev_pdf_file():
             self.navigation_mode = "page"
@@ -1174,6 +1385,8 @@ class AdvancedPDFViewer(tk.Tk):
             return
 
         self.layout_detection = False
+        self.dual_display_mode = False
+
         print("Switching to Page Mode")
         self.navigation_mode = "page"
         if not self.engine.current_pdf_document or self.total_pages == 0:
@@ -1199,6 +1412,8 @@ class AdvancedPDFViewer(tk.Tk):
         if self.navigation_mode == "question":
             self.update_status_bar("Already in Question Mode.")
             return
+        self.layout_detection = False
+        self.dual_display_mode = False
         print("Switching to Question Mode")
         self.navigation_mode = "question"
 
@@ -1251,6 +1466,7 @@ class AdvancedPDFViewer(tk.Tk):
             return
 
         self.layout_detection = False
+        self.dual_display_mode = False
         changed = False
         if self.navigation_mode == "page":
             if self.current_page_number < self.total_pages:
@@ -1278,6 +1494,7 @@ class AdvancedPDFViewer(tk.Tk):
             self.update_status_bar("No PDF loaded to navigate items.")
             return
         self.layout_detection = False
+        self.dual_display_mode = False
 
         changed = False
         if self.navigation_mode == "page":

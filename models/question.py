@@ -115,16 +115,18 @@ class Question(QuestionBase):
     ) -> None:
         heigh = self.calculate_height(y, y1, pages, page_height)
         super().__init__(label, pages, level, x, y, w, y1 - y, line_height)
-        self.parts = parts
+        self.parts: list[Question] = parts
         self.contents = contents
         self.y1 = y1
         self.id = id
-        if isinstance(label, str) and not label.isdigit():
-            raise Exception(
-                "only top level BaseQuestion can form a question object"
-            )
-        self.number = int(label)
-        self.exam = exam
+        # if isinstance(label, str) and not label.isdigit():
+        #     raise Exception(
+        #         "only top level BaseQuestion can form a question object"
+        #     )
+
+        # self.number = int(label)
+        self.exam = exam  ## should be trimmed for level > 0
+        self.parent_id = exam
         pass
 
     def calculate_height(self, y0, y1, pages, page_height):
@@ -139,17 +141,24 @@ class Question(QuestionBase):
             return height1 + height2 + height_middle
 
     @classmethod
-    def from_base(cls, q: QuestionBase, exam_path_or_filename: str, q_nr: int):
+    def from_base(
+        cls, q: QuestionBase, exam_path_or_filename: str, parent_y1=None
+    ):
         exam = os.path.basename(exam_path_or_filename)
         exam_id = exam.split(".")[0]
-        q_id = f"{exam_id}_{str(q_nr)}"
+        q_id = f"{exam_id}_{str(q.label)}"
+        q_parts = []
+        # parent_y1 = q.y1 or parent_y1
+        for p in q.parts:
+            q_parts.append(Question.from_base(p, q_id))
+
         return Question(
             q_id,
             exam_id,
             q.label,
             q.pages,
             q.level,
-            q.parts,
+            q_parts,
             q.contents,
             q.x,
             q.y,
@@ -165,69 +174,100 @@ class Question(QuestionBase):
         header_y,
         footer_y,
         scale: int,
+        devide: bool = False,
     ):
         """render the question on cairo image surface"""
-        out_ctx = None
-        out_surf = None
+        # if not full and len(self.parts) == 0:
+        #     raise Exception("Question doe not has part , and should be rendered fully")
+        only_render_pre = devide and len(self.parts) > 0
+        has_pre = (
+            len(self.parts) > 0
+            and self.parts[0].y - self.y1 < 0.4 * self.line_height
+        )
+        result = {}
+        if not only_render_pre or has_pre:
+            out_ctx = None
+            out_surf = None
 
-        total_height = sum([s.net_height for s in page_segments_dict.values()])
-        if total_height <= 0:
-            raise Exception("Total Height = 0")
-
-        self.current_y = 0
-        for i, page in enumerate(self.pages):
-            # TODO:
-            print([k for k in page_segments_dict.keys()])
-            page_seg = page_segments_dict[page]
-
-            page_surf = page_seg.surface
-            if i == 0:
-                # assume all have the same width
-                out_ctx, out_surf = self.create_output_surface(
-                    page_surf.get_width(), total_height
-                )
-                out_ctx.save()
-                out_ctx.set_font_size(11 * scale)
-                # out_ctx.get_font_matrix().scale(scale, scale)
-                out_ctx.move_to(self.line_height * 4, self.line_height * 2)
-                out_ctx.show_text(f"<Question {self.number}>")
-                out_ctx.restore()
-
-            q_segments: list[Box] = page_seg.filter_question_segments(
-                self.y, self.y1, self.pages, page
+            total_height = sum(
+                [s.net_height for s in page_segments_dict.values()]
             )
+            if total_height <= 0:
+                raise Exception("Total Height = 0")
 
-            seg_remove = []
-            for j in range(len(q_segments)):
-                # print("len = ", len(q_segments), "j=", j)
-                b = q_segments[j]
-                (b.y < header_y) and seg_remove.append(b)
-                ((b.y + b.h) > footer_y) and seg_remove.append(b)
-            for seg in seg_remove:
-                q_segments.remove(seg)
+            self.current_y = 0
+            for i, page in enumerate(self.pages):
+                if (
+                    only_render_pre
+                    and self.current_y
+                    > self.parts[0].y - 0.4 * self.line_height
+                ):
+                    break
 
-            if not q_segments or len(q_segments) == 0:
-                print(
-                    f"WARN: skipping page {page}, no Segments found for question {self.__str__()}"
+                page_seg = page_segments_dict[page]
+
+                page_surf = page_seg.surface
+                if i == 0:
+                    out_ctx, out_surf = self.create_output_surface(
+                        page_surf.get_width(), total_height
+                    )
+                    # out_ctx.save()
+                    # out_ctx.set_font_size(11 * scale)
+                    # # out_ctx.get_font_matrix().scale(scale, scale)
+                    # out_ctx.move_to(self.line_height * 4, self.line_height * 2)
+                    # out_ctx.show_text(f"<Question {self.number}>")
+                    # out_ctx.restore()
+                last_y = (
+                    (self.parts[0].y - (0.2) * self.line_height)
+                    if (only_render_pre and has_pre)
+                    else self.y1
                 )
-                continue
-            # f_seg = q_segments[0]
-            # l_seg = q_segments[-1]
-            # q_height = l_seg.y + l_seg.h - f_seg.y
-            # q_segments = [Box(f_seg.x, f_seg.y, f_seg.w, q_height)]
-            self.current_y = page_seg.clip_segments_from_surface_into_contex(
-                out_ctx, self.current_y, scale, q_segments
+                q_segments: list[Box] = page_seg.filter_question_segments(
+                    self.y, last_y, self.pages, page
+                )
+
+                seg_remove = []
+                for j in range(len(q_segments)):
+                    # print("len = ", len(q_segments), "j=", j)
+                    b = q_segments[j]
+                    (b.y < header_y) and seg_remove.append(b)
+                    ((b.y + b.h) > footer_y) and seg_remove.append(b)
+                for seg in seg_remove:
+                    q_segments.remove(seg)
+
+                if not q_segments or len(q_segments) == 0:
+                    print(
+                        f"WARN: skipping page {page}, no Segments found for question {self.__str__()}"
+                    )
+                    continue
+                self.current_y = (
+                    page_seg.clip_segments_from_surface_into_contex(
+                        out_ctx, self.current_y, scale, q_segments
+                    )
+                )
+
+            if self.current_y == 0:
+                print(self.__str__())
+                print("all Segs")
+                for seg in page_seg:
+                    print(seg)
+                print("no heigth for question", self.__str__())
+            else:
+                padding = 3 * (self.line_height)
+                croped_surface = crop_image_surface(
+                    out_surf, 0, self.current_y, padding
+                )
+                if not devide:
+                    return croped_surface
+                result[self.id] = croped_surface
+
+        for p in self.parts:
+            result.update(
+                p.draw_question_on_image_surface(
+                    page_segments_dict, header_y, footer_y, scale, devide
+                )
             )
-
-        if self.current_y == 0:
-            print(self.__str__())
-            print("all Segs")
-            for seg in page_seg:
-                print(seg)
-            raise Exception("no heigth for question")
-
-        padding = 3 * (self.line_height)
-        return crop_image_surface(out_surf, 0, self.current_y, padding)
+        return result
 
     def create_output_surface(self, width: int, total_height: int):
         out_surf = cairo.ImageSurface(
@@ -238,3 +278,15 @@ class Question(QuestionBase):
         out_ctx.paint()
         out_ctx.set_source_rgb(0, 0, 0)  # Black
         return out_ctx, out_surf
+
+    def get_html_repr(self, ocr_res, surf_res):
+        surf = surf_res.get(self.id, None)
+        ocr = ocr_res.get(self.id, None)
+        html = f"Q({self.label})" if self.level == 0 else f"({self.label})"
+        if surf and ocr:
+            pass
+        for p in self.parts:
+            html += p.get_html_repr(ocr_res, surf_res)
+
+        css_class = ["question", "part", "subpart"][self.level]
+        return f"<div class='{css_class}'>\n{html}\n</div>"

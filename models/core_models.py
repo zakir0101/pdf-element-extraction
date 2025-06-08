@@ -548,16 +548,15 @@ class SurfaceGapsSegments(BoxSegments):
 
             if h0 > line_height * 2.0:
                 image_counter += 1
-                out_ctx.save()
-                out_ctx.set_font_size(10 * scale)
-                out_ctx.set_source_rgb(0, 0, 0)
-                out_ctx.move_to(
-                    line_height * 1.7, out_y_start + line_height * 0.4
-                )
-                out_ctx.show_text(f"<Image {image_counter}>")
-                # out_ctx.move_to(0, 0)  # - line_height
-                out_ctx.restore()
-                out_y_start += 0.8 * line_height
+                # out_ctx.save()
+                # out_ctx.set_font_size(10 * scale)
+                # out_ctx.set_source_rgb(0, 0, 0)
+                # out_ctx.move_to(
+                #     line_height * 1.7, out_y_start + line_height * 0.4
+                # )
+                # out_ctx.show_text(f"<Image {image_counter}>")
+                # out_ctx.restore()
+                # out_y_start += 0.8 * line_height
 
             sub = input_surf.create_for_rectangle(
                 0, y0, input_surf.get_width(), h0

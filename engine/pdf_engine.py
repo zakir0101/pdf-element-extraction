@@ -1,5 +1,7 @@
 import os
+import fitz  # PyMuPDF library
 import cairo
+import numpy as np
 from pypdf.generic import (
     IndirectObject,
     EncodedStreamObject,
@@ -141,15 +143,41 @@ class PdfEngine:
         #     surface = self.page_seg_dict[page_number].surface
         # else:
         self.execute_page_stream()
-        surface = self.renderer.surface
+        if False:
+            self.doc_page: fitz = self.doc.load_page(page_number - 1)
+            # zoom = 300 / 72
+            # mat = fitz.Matrix(zoom, zoom)
+            pix = self.doc_page.get_pixmap(dpi=150, alpha=False)  # matrix=mat
+            # np_array = (
+            #     np.frombuffer(pix.samples, dtype=np.uint8)
+            #     .reshape(pix.height, pix.width, 4)
+            #     .copy()
+            # )
+            # np_array[:, :, [0, 2]] = np_array[:, :, [2, 0]]
+            source_bytes = pix.samples
+            width, height = pix.width, pix.height
+            rgb_array = np.frombuffer(source_bytes, dtype=np.uint8).reshape(
+                (height, width, 3)
+            )
+            bgra_array = np.zeros((height, width, 4), dtype=np.uint8)
+            bgra_array[:, :, 0] = rgb_array[:, :, 2]  # Blue
+            bgra_array[:, :, 1] = rgb_array[:, :, 1]  # Green
+            bgra_array[:, :, 2] = rgb_array[:, :, 0]  # Red
+            bgra_array[:, :, 3] = 255  # Alpha (fully opaque)
+            surface = cairo.ImageSurface.create_for_data(
+                bgra_array, cairo.FORMAT_ARGB32, pix.width, pix.height
+            )
 
+            self.renderer.surface = surface
+        else:
+            surface = self.renderer.surface
         if not self.detection_types and (self.clean & self.O_CROP_EMPTY_LINES):
             print("calling wrong function")
-            surface = self.remove_empty_lines_from_current_page()
+            surface = self.remove_empty_lines_from_current_page(surface)
 
         return surface
 
-    def render_a_question(self, q_nr):
+    def render_a_question(self, q_nr, devide=False):
         if not self.question_list:
             raise Exception("there is no detected Question on this exam")
         if 0 > q_nr > len(self.question_list):
@@ -158,8 +186,11 @@ class PdfEngine:
         q: Question = self.question_list[q_nr - 1]
         ren = self.renderer
         return q.draw_question_on_image_surface(
-            self.page_seg_dict, ren.header_y, ren.footer_y,self.scaling
-
+            self.page_seg_dict,
+            ren.header_y,
+            ren.footer_y,
+            self.scaling,
+            devide,
         )
 
     # *******************************************************
@@ -172,6 +203,7 @@ class PdfEngine:
         self.current_pdf_document = self.pdf_path
         self.pdf_name = pdf_path[0]
         self.reader: PdfReader = PdfReader(self.pdf_path)
+        self.doc = fitz.open(self.pdf_path)
         first_page: PageObject = self.reader.pages[0]
         self.scaled_page_width: float = (
             float(first_page.mediabox.width) * self.scaling
@@ -715,7 +747,7 @@ class PdfEngine:
     # __________________________________________________________
 
     def remove_empty_lines_from_current_page(
-        self,
+        self, page_surf: cairo.ImageSurface
     ):
         """this should only be called after self.execute_page_stream()
         it will raise Exception if the PageSurface is empty !!!"""
@@ -723,7 +755,6 @@ class PdfEngine:
         # if page_number > len(self.pages):
         #     raise Exception("page number out of index ,nr=", page_number)
         page_number = self.current_page
-        page_surf = self.renderer.surface
         # if page_number in self.page_seg_dict:
         #     page_seg_obj = self.page_seg_dict[page_number]
         # else:
@@ -750,7 +781,7 @@ class PdfEngine:
             raise Exception(f"WARN: page {page_number}, no Segments found")
         start_y = 0
         last_y = page_seg_obj.clip_segments_from_surface_into_contex(
-            out_ctx, start_y,self.scaling
+            out_ctx, start_y, self.scaling
         )
 
         if last_y == 0:
