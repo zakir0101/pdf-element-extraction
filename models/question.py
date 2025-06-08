@@ -199,12 +199,6 @@ class Question(QuestionBase):
 
             all_pages = [self.pages[0]] if only_render_pre else self.pages
             for i, page in enumerate(all_pages):
-                # if (
-                #     only_render_pre
-                #     and self.current_y
-                #     > self.parts[0].y - 0.4 * self.line_height
-                # ):
-                #     break
 
                 page_seg = page_segments_dict[page]
 

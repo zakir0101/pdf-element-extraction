@@ -9,7 +9,7 @@ from playwright.async_api import async_playwright
 from markdown_it import MarkdownIt
 
 """
-pip install markdown-it-py
+pip install markdown-it-pyh
 
 # Install playwright and its browser binaries
 pip install playwright
@@ -86,7 +86,7 @@ async def _render_async(
         async with async_playwright() as p:
             browser = await p.chromium.launch()
             page = await browser.new_page()
-
+            page.set_viewport_size({"width": 1920, "height": 1080})
             # await page.set_content(html_content)
             await page.goto(Path(main_path).resolve().as_uri())
 

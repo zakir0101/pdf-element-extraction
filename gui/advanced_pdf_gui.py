@@ -4,10 +4,10 @@ import json
 import io
 import zipfile
 import tkinter as tk
+
 from tkinter import ttk
 import os
 from os.path import sep
-from numpy.typing import NDArray
 import requests
 from PIL import Image, ImageTk
 import cairo  # For type hinting and direct use if necessary
@@ -19,6 +19,7 @@ import cairo  # For type hinting and direct use if necessary
 import traceback
 import importlib
 from engine.pdf_utils import open_pdf_using_sumatra
+from detectors.ocr_detectors import OcrQuestion
 
 
 # Import for reloading and instantiation
@@ -50,7 +51,7 @@ ALL_MODULES = [
     pdf_engine_module,
 ]
 
-KAGGLE_SERVER_URL = "https://f152-34-127-104-190.ngrok-free.app"
+KAGGLE_SERVER_URL = "https://fc43-34-141-131-96.ngrok-free.app"
 KAGGLE_SERVER_URL += "/predict"
 """
 Advanced PDF Viewer GUI application.
@@ -88,7 +89,7 @@ class AdvancedPDFViewer(tk.Tk):
 
         # Initialize PDF Engine
         self.engine = PdfEngine(
-            scaling=1
+            scaling=2
         )  # Initial instantiation using PdfEngine directly
         self.navigation_mode = "page"  # "page" or "question"
         self.current_page_number = 0
@@ -803,8 +804,6 @@ class AdvancedPDFViewer(tk.Tk):
             self.update_status_bar("[CLOSED] the OCR.md Mode ")
             return
 
-        self.ocr_mode = "md"
-        self.dual_display_mode = True
         ocr_out_path = sep.join([".", "output", "ocr_md.png"])
 
         if self.navigation_mode == "page":
@@ -812,8 +811,12 @@ class AdvancedPDFViewer(tk.Tk):
             self.simple_ocr(ocr_out_path)
         else:
             self.update_status_bar("Advance Ocr ...")
-            self.advance_ocr(ocr_out_path)
+            ok = self.advance_ocr(ocr_out_path)
+            if not ok:
+                return
 
+        self.ocr_mode = "md"
+        self.dual_display_mode = True
         img = Image.open(ocr_out_path)
         self.rel_scale_2 = img.width / img.height
         self.img_copy_2 = img
@@ -834,7 +837,7 @@ class AdvancedPDFViewer(tk.Tk):
         surf_res = self.engine.render_a_question(
             self.current_question_number, devide=True
         )
-        q = self.engine.question_list[self.current_question_number]
+        q = self.engine.question_list[self.current_question_number - 1]
         idx_list = []
         all_bytes = b""
         seperator = b"IAM_A_SEPERATOR_PLEASE"
@@ -846,11 +849,18 @@ class AdvancedPDFViewer(tk.Tk):
             all_bytes, seperator, idx_list
         )
         temp_f = "." + sep + "output" + sep + "ocr_res.json"
+        temp_html = "." + sep + "output" + sep + "ocr_res.html"
         with open(temp_f, "w", encoding="utf-8") as f:
             f.write(json.dumps(ocr_res))
 
         self.update_status_bar("OCR_RES saved to :" + temp_f)
-        return
+        self.ocr_question_processor.set_question(q, ocr_res, surf_res)
+
+        with open(temp_html, "w", encoding="utf-8") as f:
+            f.write(self.ocr_question_processor.html)
+
+        self.update_status_bar("OCR_HTML + HTML saved to :" + temp_html)
+        return False
         # html = q.get_html_repr(ocr_res, surf_res)
         # render_markdown_to_png(zip_dict, ocr_out_path)
 
@@ -894,7 +904,6 @@ class AdvancedPDFViewer(tk.Tk):
             ),
             "want": want,
         }
-        data_str = json.dumps(data)
         files = {
             "image": (
                 "some_name.png",
@@ -1327,6 +1336,10 @@ class AdvancedPDFViewer(tk.Tk):
             self.total_questions = 0  # Reset questions for new PDF
             self.current_question_number = 0
             self.questions_list = []
+            en = self.engine
+            self.ocr_question_processor = OcrQuestion(
+                en.scaled_page_width, en.scaled_page_height, en.line_height
+            )
             self.render_current_page_or_question()
         else:
             # self.total_pages = 0

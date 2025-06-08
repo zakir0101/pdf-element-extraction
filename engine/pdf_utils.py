@@ -57,9 +57,9 @@ def crop_image_surface(out_surf: cairo.ImageSurface, y_start, y_end, padding):
     surf_width = out_surf.get_width()
     surf_height = e - s
     data = o.get_data()[s_index:e_index]
-    print(surf_height, "vs", (e_index - s_index) // o.get_stride())
-    print("full_data_len", len(o.get_data()))
-    print(len(data), "vs", surf_height * surf_width * 4)
+    # print(surf_height, "vs", (e_index - s_index) // o.get_stride())
+    # print("full_data_len", len(o.get_data()))
+    # print(len(data), "vs", surf_height * surf_width * 4)
     out_surf = cairo.ImageSurface.create_for_data(
         data,
         cairo.FORMAT_ARGB32,

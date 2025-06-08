@@ -12,7 +12,7 @@ import pprint
 
 from detectors import question_detectors
 from engine.pdf_operator import PdfOperator
-from models.core_models import SurfaceGapsSegments
+from models.core_models import SurfaceGapsSegments, Symbol
 from models.question import Question
 from .pdf_renderer import BaseRenderer
 from .pdf_font import PdfFont
@@ -213,6 +213,8 @@ class PdfEngine:
         self.scaled_page_height: float = (
             float(first_page.mediabox.height) * self.scaling
         )
+        self.d0 = self.scaled_page_height * 0.01
+        self.line_height = Symbol.LINE_HEIGHT_FACTOR * self.scaling * self.d0
 
         self.font_map: dict[str, PdfFont] | None = None
 

@@ -36,6 +36,27 @@ class Box:
     ):
         self.box = (self.x, self.y, self.x + self.w, self.y + self.h)
 
+    def row_align_with(self, box_other, line_height):
+        box_other: Box = box_other
+        upper, lower = (
+            (box_other, self)
+            if box_other.box[-1] < self.box[-1]
+            else (self, box_other)
+        )
+
+        if (
+            abs(lower.box[-1] - upper.box[-1]) < line_height * 0.1
+            or abs(lower.box[1] - upper.box[1]) < line_height * 0.1
+        ):
+            return True
+        return lower.box[1] - upper.box[-1] < 0.1 * line_height
+
+        # return (
+        #     abs(self.mean[1] - seg_other.mean[1]) < self.threshold_y
+        #     or abs(self.box[-1] - seg_other.box[-1]) < self.threshold_y
+        #     or abs(self.box[1] - seg_other.box[1]) < self.threshold_y
+        # )
+
 
 class Part(Box):
     def __init__(self, label, x, y, x1, y1) -> None:
@@ -230,27 +251,6 @@ class SymSequence(BoxSegments):
         self.mean = []
         self.mean.append((x0 + x1) / 2)
         self.mean.append((y0 + y1) / 2)
-
-    def row_align_with(self, seg_other, line_height):
-        seg_other: SymSequence = seg_other
-        upper, lower = (
-            (seg_other, self)
-            if seg_other.box[-1] < self.box[-1]
-            else (self, seg_other)
-        )
-
-        if (
-            abs(lower.box[-1] - upper.box[-1]) < line_height * 0.1
-            or abs(lower.box[1] - upper.box[1]) < line_height * 0.1
-        ):
-            return True
-        # return False
-        return lower.box[1] - upper.box[-1] < 0.1 * line_height
-        # return (
-        #     abs(self.mean[1] - seg_other.mean[1]) < self.threshold_y
-        #     or abs(self.box[-1] - seg_other.box[-1]) < self.threshold_y
-        #     or abs(self.box[1] - seg_other.box[1]) < self.threshold_y
-        # )
 
     def column_align_with(self, seq_other):
         seq_other: SymSequence = seq_other
