@@ -256,9 +256,10 @@ class QuestionDetectorBase(BaseDetector):
 
 class QuestionDetector(QuestionDetectorBase):
 
-    def __init__(self, id: int) -> None:
+    def __init__(self, id: int, scale: None) -> None:
         super().__init__(id)
         self.current_paragraph: Paragraph | None = None
+        self.scale = scale
 
         pass
 
@@ -291,7 +292,9 @@ class QuestionDetector(QuestionDetectorBase):
         self.reset_left_most(1)
         self.print_internal_status("After:")
         self.prev_first_char = None
-        self.line_height = 0.01 * page_height * 5
+        self.line_height = (
+            0.01 * page_height * Symbol.LINE_HEIGHT_FACTOR * self.scale
+        )
         self.bufferd_line: SymSequence | None = None
 
     def on_finish(

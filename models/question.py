@@ -182,10 +182,10 @@ class Question(QuestionBase):
         only_render_pre = devide and len(self.parts) > 0
         has_pre = (
             len(self.parts) > 0
-            and self.parts[0].y - self.y1 < 0.4 * self.line_height
+            and abs(self.parts[0].y - self.y) > 0.65 * self.line_height
         )
         result = {}
-        if not only_render_pre or has_pre:
+        if not devide or has_pre or len(self.parts) == 0:
             out_ctx = None
             out_surf = None
 
@@ -196,13 +196,15 @@ class Question(QuestionBase):
                 raise Exception("Total Height = 0")
 
             self.current_y = 0
-            for i, page in enumerate(self.pages):
-                if (
-                    only_render_pre
-                    and self.current_y
-                    > self.parts[0].y - 0.4 * self.line_height
-                ):
-                    break
+
+            all_pages = [self.pages[0]] if only_render_pre else self.pages
+            for i, page in enumerate(all_pages):
+                # if (
+                #     only_render_pre
+                #     and self.current_y
+                #     > self.parts[0].y - 0.4 * self.line_height
+                # ):
+                #     break
 
                 page_seg = page_segments_dict[page]
 
@@ -223,7 +225,7 @@ class Question(QuestionBase):
                     else self.y1
                 )
                 q_segments: list[Box] = page_seg.filter_question_segments(
-                    self.y, last_y, self.pages, page
+                    self.y, last_y, all_pages, page
                 )
 
                 seg_remove = []

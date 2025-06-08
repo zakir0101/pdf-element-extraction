@@ -116,7 +116,7 @@ class PdfEngine:
             #     continue
             surface = self.render_pdf_page(page_nr, debug=None, clean=None)
             self.page_seg_dict[page_nr] = SurfaceGapsSegments(
-                surface, gap_factor=0.1
+                surface, gap_factor=0.1, scale=self.scaling
             )
 
         self.question_detector.on_finish()
@@ -143,11 +143,13 @@ class PdfEngine:
         #     surface = self.page_seg_dict[page_number].surface
         # else:
         self.execute_page_stream()
-        if False:
+        if True:
             self.doc_page: fitz = self.doc.load_page(page_number - 1)
             # zoom = 300 / 72
             # mat = fitz.Matrix(zoom, zoom)
-            pix = self.doc_page.get_pixmap(dpi=150, alpha=False)  # matrix=mat
+            pix = self.doc_page.get_pixmap(
+                dpi=round(72 * self.scaling), alpha=False
+            )  # matrix=mat
             # np_array = (
             #     np.frombuffer(pix.samples, dtype=np.uint8)
             #     .reshape(pix.height, pix.width, 4)
@@ -215,7 +217,7 @@ class PdfEngine:
         self.font_map: dict[str, PdfFont] | None = None
 
         self.question_detector: QuestionDetector = QuestionDetector(
-            self.D_DETECT_QUESTION
+            self.D_DETECT_QUESTION, self.scaling
         )
         self.ALL_DETECTORS = [self.question_detector]
 
@@ -758,7 +760,7 @@ class PdfEngine:
         # if page_number in self.page_seg_dict:
         #     page_seg_obj = self.page_seg_dict[page_number]
         # else:
-        page_seg_obj = SurfaceGapsSegments(page_surf)
+        page_seg_obj = SurfaceGapsSegments(page_surf, scale=self.scaling)
         net_height = page_seg_obj.net_height
         if net_height <= 0:
             raise Exception("Total Height = 0")

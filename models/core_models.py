@@ -52,6 +52,8 @@ class SubPart(Box):
 
 
 class Symbol(Box):
+    LINE_HEIGHT_FACTOR = 4.2
+
     def __init__(self, ch, x, y, w, h) -> None:
         super().__init__(x, y, w, h)
         self.ch = ch
@@ -316,7 +318,7 @@ class Paragraph:
 class SurfaceGapsSegments(BoxSegments):
 
     def __init__(
-        self, surface: cairo.ImageSurface, gap_factor: float = 0.5
+        self, surface: cairo.ImageSurface, gap_factor: float = 0.5, scale=None
     ) -> None:
         """factor: a float number which will multiply (0.01 * page_height ) and be used
         as min empty gap (gap = number of sequencially empty/white rows of pixel) that should be skipped ...
@@ -331,6 +333,7 @@ class SurfaceGapsSegments(BoxSegments):
         self.gap_factor = gap_factor
         self.d0 = s_height * 0.01
         self.MIN_GAP_HEIGHT = self.gap_factor * self.d0
+        self.scale = scale
 
         self.find_empty_gaps(0)
         self.non_empty_segments, self.net_height = self.get_non_empty_gaps(
@@ -419,7 +422,7 @@ class SurfaceGapsSegments(BoxSegments):
             print("COMPARE", max_y, q_y_max)
         # print(y0, "   ", y1, "for debugging")
         # print("seq length = ", len(segments))
-        line_height = 5 * self.d0
+        line_height = self.scale * Symbol.LINE_HEIGHT_FACTOR * self.d0
         for box in self.non_empty_segments:
             box_min, box_max, d0 = box.y, box.h + box.y, self.d0
             # if not self.default_d0 and d0:
@@ -498,7 +501,6 @@ class SurfaceGapsSegments(BoxSegments):
         out_y_start: float,
         scale: int,
         segments: list[Box] | None = None,
-        # line_height: float | None = None,
     ):
         """return (y_after) the y-location after drawing the segments into the output Context"""
         if not segments:
@@ -511,7 +513,7 @@ class SurfaceGapsSegments(BoxSegments):
         # TODO: FIX ME FOR FULL PAGE RENDERING , the line_height is independent of page_height , following line should be change
         # for instande by adding a char_height (d0) to Box class
         # if not line_height:
-        line_height = self.d0 * 5
+        line_height = self.d0 * Symbol.LINE_HEIGHT_FACTOR * self.scale
 
         image_counter = 0
         for i, box in enumerate(segments):

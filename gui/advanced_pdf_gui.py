@@ -88,7 +88,7 @@ class AdvancedPDFViewer(tk.Tk):
 
         # Initialize PDF Engine
         self.engine = PdfEngine(
-            scaling=2
+            scaling=1
         )  # Initial instantiation using PdfEngine directly
         self.navigation_mode = "page"  # "page" or "question"
         self.current_page_number = 0
