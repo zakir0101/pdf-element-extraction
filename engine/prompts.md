@@ -207,3 +207,25 @@ please help my find as many models as possible which satisfy all my requirments 
 I quess its not just a model , because segmentation require code ( preferably python ), so there should be some sort of module with it or a repo with script on it ..
 
 beside that it should be accurate as much as possible and have a hight score on relevant benchmarks
+
+
+# prompt 10:
+
+
+this project goal was mainly to extract question portions(start_page,start_y , end_page,end_y) from and igcse exams , so that they can be later renderer and categorized indevidually .
+
+currently question are extracted through preprocessing algorithim which operate on raw pdf page-stream, it output the cordinates of each question and its part  , then we crop each question/part/subpart and use an OCR model (MinerU) for ocering each item indevidually , an example of the ocr model output can be found in (resources/ocr-output-example/*) , which is json file containing part/subparts/blocks/lines/span extraction information , to understand the json file better you can look at [https://mineru.readthedocs.io/en/latest/user_guide/pipe_result.html] 
+
+then we use the json file to create an html file containing one structred question , with many css classes for each detection type ( question/part/subpart/block-*/line/span-*) , and example html file can be found in resources/html-example ..
+
+the class [also look at the code in : detectors/ocr_detectors.py ] is responsible for parsing the detect-json-file and creating the output html file with css class ...
+
+your task is to actually write css code for these css class, a basic (empty) css schema is made ready for your under (resources/question.css) , just implement all the needed classes ... but
+
+it has to look extraordinary , it has to renderer like its from the outer space. it sould be so vissually appealling that it can cause distraction for viewer ...
+
+also make sure to :
+1- do not modify any file beside the resources/question.css.
+2- css should make each question item rendere clearly and some-what distinguishly from other item , for easy debugging and detecting ocr error
+
+keep that in mind , view all the mentioned resources and refrence and do the job

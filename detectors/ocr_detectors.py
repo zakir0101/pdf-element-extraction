@@ -36,7 +36,7 @@ class BlockType:
 
 class OcrItem(Box):
 
-    OCR_OUTPUT_DIR = os.path.join(".", "resources", "test-example")
+    OCR_OUTPUT_DIR = os.path.join(".", "resources", "html-example")
     OCR_PAGE_WIDTH = 0
     OCR_PAGE_HEIGHT = 0
     OCR_LINE_HEIGHT = 0
@@ -164,7 +164,7 @@ class OcrSpan(OcrItem):
             img_uri = self.crop_and_save_image_span()
             self.html = (
                 # "<span class='span image-span'>\n"
-                "<img"
+                "<img  "
                 + f"src='{img_uri}' alt='{img_uri}'"
                 + f"width='{round(self.w)}' height='{round(self.h)}'"
                 + ">"

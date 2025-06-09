@@ -51,7 +51,7 @@ ALL_MODULES = [
     pdf_engine_module,
 ]
 
-KAGGLE_SERVER_URL = "https://7348-34-141-131-96.ngrok-free.app"
+KAGGLE_SERVER_URL = "https://a8d4-34-80-220-64.ngrok-free.app"
 KAGGLE_SERVER_URL += "/predict"
 """
 Advanced PDF Viewer GUI application.
@@ -80,7 +80,7 @@ class AdvancedPDFViewer(tk.Tk):
         and keyboard shortcuts. Also loads the initial PDF if available.
         """
         super().__init__()
-        self.example_counter = 0
+        self.example_counter = 3
         self._photo_image_ref = (
             None  # Keep reference to PhotoImage preventing garbage collection
         )
