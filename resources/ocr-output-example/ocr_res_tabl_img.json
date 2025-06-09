@@ -1,0 +1,1439 @@
+{
+	"content-list": {
+		"0580_m23_qp_32_1_a": [
+			{
+				"page_idx": 0,
+				"text": "1(a) The table shows some information about the opening hours of a cafe. The caf\u00e9 opens 4 days a week. ",
+				"type": "text"
+			},
+			{
+				"img_path": "./temp/d545e848fc87aa6c4ae935e09306a5788bc9e63708b71d25ec3aaf8537be8490.jpg",
+				"page_idx": 0,
+				"table_body": "<html><body><table><tr><td>Day</td><td>Opening time</td><td>Closing time</td><td>Number of hours open</td></tr><tr><td>Thursday</td><td>8am</td><td>4.30 pm</td><td></td></tr><tr><td>Friday</td><td>8.30 am</td><td></td><td>7\\frac{1} {2 }$</td></tr><tr><td>Saturday</td><td>9.30 am</td><td>5.30 pm</td><td>8</td></tr><tr><td>Sunday</td><td></td><td>3.30 pm</td><td>5</td></tr><tr><td></td><td></td><td>Total number of hours open</td><td>29</td></tr></table></body></html>",
+				"table_caption": [],
+				"table_footnote": [],
+				"type": "table"
+			},
+			{
+				"page_idx": 0,
+				"text": "Complete the table. ",
+				"type": "text"
+			}
+		],
+		"0580_m23_qp_32_1_b_i": [
+			{
+				"page_idx": 0,
+				"text": "(b) () A waiter works 29 hours a week in the cafe. He is paid $\\$ 9.50$ per hour. He is paid for 52 weeks of the year. Work out his total pay for the year. ",
+				"type": "text"
+			},
+			{
+				"page_idx": 0,
+				"text": "$\\$ 5$ [2] ",
+				"type": "text"
+			}
+		],
+		"0580_m23_qp_32_1_b_ii": [
+			{
+				"page_idx": 0,
+				"text": "(i) The chef is paid $32 \\%$ more than the waiter per hour. Work out how much the chef is paid per hour. ",
+				"type": "text"
+			},
+			{
+				"page_idx": 0,
+				"text": "$\\mathbb { S }$ [2] ",
+				"type": "text"
+			}
+		],
+		"0580_m23_qp_32_1_c": [
+			{
+				"page_idx": 0,
+				"text": "(c) Here is part of the cafe's menu. ",
+				"type": "text"
+			},
+			{
+				"img_path": "./temp/1a4ce7a84dd92e78739ad331b481f08ba8c7f21d45d09b4da8cbf732dbfcafb4.jpg",
+				"page_idx": 0,
+				"table_body": "<html><body><table><tr><td colspan=\"3\">MENU</td></tr><tr><td>Cup of coffee</td><td>$2.50</td><td>Slice of pizza</td></tr><tr><td>Cup of tea</td><td>$2.30</td><td>$3.70</td></tr></table></body></html>",
+				"table_caption": [],
+				"table_footnote": [],
+				"type": "table"
+			},
+			{
+				"page_idx": 0,
+				"text": "Raj buys 2 cups of coffee,1 cup of tea and 3 slices of pizza. ",
+				"type": "text"
+			},
+			{
+				"page_idx": 0,
+				"text": "Calculate the change he receives from $\\$ 20$ ",
+				"type": "text"
+			}
+		],
+		"0580_m23_qp_32_1_d": [
+			{
+				"page_idx": 0,
+				"text": "(d) The chef records the types of baguettes the caf\u00e9 sells in one day. ",
+				"type": "text"
+			},
+			{
+				"img_path": "./temp/0a183adc997edc471c292195c0a4f6cd3b3913158ca2ec9d8fe18befa9eaf924.jpg",
+				"page_idx": 0,
+				"table_body": "<html><body><table><tr><td>salad</td><td>cheese</td><td>salad</td><td>salad</td><td>egg</td><td>cheese</td><td>cheese</td><td>salad</td><td>cheese</td><td>egg</td><td>salad</td></tr><tr><td>cheese</td><td>salad</td><td>salad</td><td>egg</td><td>cheese</td><td>salad</td><td>salad</td><td>egg</td><td>salad</td><td>cheese</td><td>salad</td></tr></table></body></html>",
+				"table_caption": [],
+				"table_footnote": [],
+				"type": "table"
+			}
+		],
+		"0580_m23_qp_32_1_d_i": [
+			{
+				"page_idx": 0,
+				"text": "(i) Complete the frequency table to show this information. You may use the tally column to help you. ",
+				"type": "text"
+			},
+			{
+				"img_path": "./temp/11d3fdabefa72bd5e8b34472d65b3f4efb266bed50c50f2e561891c44a2fda80.jpg",
+				"page_idx": 0,
+				"table_body": "<html><body><table><tr><td>Type of baguette</td><td>Tally</td><td>Frequency</td></tr><tr><td>Cheese</td><td></td><td></td></tr><tr><td>Egg</td><td></td><td></td></tr><tr><td>Salad</td><td></td><td></td></tr></table></body></html>",
+				"table_caption": [],
+				"table_footnote": [],
+				"type": "table"
+			}
+		],
+		"0580_m23_qp_32_1_d_ii": [
+			{
+				"page_idx": 0,
+				"text": "(i) On the grid, draw a bar chart to show this information. ",
+				"type": "text"
+			},
+			{
+				"img_caption": [
+					"Type of baguette "
+				],
+				"img_footnote": [],
+				"img_path": "./temp/9ceb9678051b4ae4827fa0cfe2d586f4aaa8f06ad15b1e154e6a0f1a2c263fcd.jpg",
+				"page_idx": 0,
+				"type": "image"
+			}
+		]
+	},
+	"md-content": {
+		"0580_m23_qp_32_1_a": "1(a) The table shows some information about the opening hours of a cafe. The caf\u00e9 opens 4 days a week.\n\n<html><body><table><tr><td>Day</td><td>Opening time</td><td>Closing time</td><td>Number of hours open</td></tr><tr><td>Thursday</td><td>8am</td><td>4.30 pm</td><td></td></tr><tr><td>Friday</td><td>8.30 am</td><td></td><td>7\\frac{1} {2 }$</td></tr><tr><td>Saturday</td><td>9.30 am</td><td>5.30 pm</td><td>8</td></tr><tr><td>Sunday</td><td></td><td>3.30 pm</td><td>5</td></tr><tr><td></td><td></td><td>Total number of hours open</td><td>29</td></tr></table></body></html>\n\nComplete the table.",
+		"0580_m23_qp_32_1_b_i": "(b) () A waiter works 29 hours a week in the cafe. He is paid $\\$ 9.50$ per hour. He is paid for 52 weeks of the year. Work out his total pay for the year.\n\n$\\$ 5$ [2]",
+		"0580_m23_qp_32_1_b_ii": "(i) The chef is paid $32 \\%$ more than the waiter per hour. Work out how much the chef is paid per hour.\n\n$\\mathbb { S }$ [2]",
+		"0580_m23_qp_32_1_c": "(c) Here is part of the cafe's menu.\n\n<html><body><table><tr><td colspan=\"3\">MENU</td></tr><tr><td>Cup of coffee</td><td>$2.50</td><td>Slice of pizza</td></tr><tr><td>Cup of tea</td><td>$2.30</td><td>$3.70</td></tr></table></body></html>\n\nRaj buys 2 cups of coffee,1 cup of tea and 3 slices of pizza.\n\nCalculate the change he receives from $\\$ 20$",
+		"0580_m23_qp_32_1_d": "(d) The chef records the types of baguettes the caf\u00e9 sells in one day.\n\n<html><body><table><tr><td>salad</td><td>cheese</td><td>salad</td><td>salad</td><td>egg</td><td>cheese</td><td>cheese</td><td>salad</td><td>cheese</td><td>egg</td><td>salad</td></tr><tr><td>cheese</td><td>salad</td><td>salad</td><td>egg</td><td>cheese</td><td>salad</td><td>salad</td><td>egg</td><td>salad</td><td>cheese</td><td>salad</td></tr></table></body></html>",
+		"0580_m23_qp_32_1_d_i": "(i) Complete the frequency table to show this information. You may use the tally column to help you.\n\n<html><body><table><tr><td>Type of baguette</td><td>Tally</td><td>Frequency</td></tr><tr><td>Cheese</td><td></td><td></td></tr><tr><td>Egg</td><td></td><td></td></tr><tr><td>Salad</td><td></td><td></td></tr></table></body></html>",
+		"0580_m23_qp_32_1_d_ii": "(i) On the grid, draw a bar chart to show this information.\n\n![](./temp/9ceb9678051b4ae4827fa0cfe2d586f4aaa8f06ad15b1e154e6a0f1a2c263fcd.jpg)  \nType of baguette"
+	},
+	"middle-json": {
+		"0580_m23_qp_32_1_a": [
+			{
+				"bbox": [
+					74,
+					113,
+					621,
+					154
+				],
+				"bbox_fs": [
+					72,
+					114,
+					619,
+					153
+				],
+				"index": 0.5,
+				"lines": [
+					{
+						"bbox": [
+							72,
+							114,
+							619,
+							134
+						],
+						"index": 0,
+						"spans": [
+							{
+								"bbox": [
+									72,
+									114,
+									619,
+									134
+								],
+								"content": "1(a) The table shows some information about the opening hours of a cafe.",
+								"score": 0.962,
+								"type": "text"
+							}
+						]
+					},
+					{
+						"bbox": [
+							141,
+							134,
+							352,
+							153
+						],
+						"index": 1,
+						"spans": [
+							{
+								"bbox": [
+									141,
+									134,
+									352,
+									153
+								],
+								"content": "The caf\u00e9 opens 4 days a week.",
+								"score": 0.969,
+								"type": "text"
+							}
+						]
+					}
+				],
+				"page_num": "page_0",
+				"page_size": [
+					893.25,
+					708.0
+				],
+				"type": "text"
+			},
+			{
+				"bbox": [
+					189,
+					166,
+					702,
+					399
+				],
+				"blocks": [
+					{
+						"bbox": [
+							189,
+							166,
+							702,
+							399
+						],
+						"group_id": 0,
+						"index": 3,
+						"lines": [
+							{
+								"bbox": [
+									189,
+									166,
+									702,
+									399
+								],
+								"spans": [
+									{
+										"bbox": [
+											189,
+											166,
+											702,
+											399
+										],
+										"html": "<html><body><table><tr><td>Day</td><td>Opening time</td><td>Closing time</td><td>Number of hours open</td></tr><tr><td>Thursday</td><td>8am</td><td>4.30 pm</td><td></td></tr><tr><td>Friday</td><td>8.30 am</td><td></td><td>7\\frac{1} {2 }$</td></tr><tr><td>Saturday</td><td>9.30 am</td><td>5.30 pm</td><td>8</td></tr><tr><td>Sunday</td><td></td><td>3.30 pm</td><td>5</td></tr><tr><td></td><td></td><td>Total number of hours open</td><td>29</td></tr></table></body></html>",
+										"image_path": "d545e848fc87aa6c4ae935e09306a5788bc9e63708b71d25ec3aaf8537be8490.jpg",
+										"score": 0.981,
+										"type": "table"
+									}
+								]
+							}
+						],
+						"type": "table_body",
+						"virtual_lines": [
+							{
+								"bbox": [
+									189,
+									166,
+									702,
+									243.66666666666669
+								],
+								"index": 2,
+								"spans": []
+							},
+							{
+								"bbox": [
+									189,
+									243.66666666666669,
+									702,
+									321.33333333333337
+								],
+								"index": 3,
+								"spans": []
+							},
+							{
+								"bbox": [
+									189,
+									321.33333333333337,
+									702,
+									399.00000000000006
+								],
+								"index": 4,
+								"spans": []
+							}
+						]
+					}
+				],
+				"index": 3,
+				"page_num": "page_0",
+				"page_size": [
+					893.25,
+					708.0
+				],
+				"type": "table"
+			},
+			{
+				"bbox": [
+					141,
+					423,
+					278,
+					444
+				],
+				"bbox_fs": [
+					142,
+					426,
+					276,
+					443
+				],
+				"index": 5,
+				"lines": [
+					{
+						"bbox": [
+							142,
+							426,
+							276,
+							443
+						],
+						"index": 5,
+						"spans": [
+							{
+								"bbox": [
+									142,
+									426,
+									276,
+									443
+								],
+								"content": "Complete the table.",
+								"score": 0.998,
+								"type": "text"
+							}
+						]
+					}
+				],
+				"page_num": "page_0",
+				"page_size": [
+					893.25,
+					708.0
+				],
+				"type": "text"
+			}
+		],
+		"0580_m23_qp_32_1_b_i": [
+			{
+				"bbox": [
+					105,
+					113,
+					481,
+					214
+				],
+				"bbox_fs": [
+					106,
+					115,
+					476,
+					212
+				],
+				"index": 1.5,
+				"lines": [
+					{
+						"bbox": [
+							106,
+							115,
+							476,
+							132
+						],
+						"index": 0,
+						"spans": [
+							{
+								"bbox": [
+									106,
+									115,
+									476,
+									132
+								],
+								"content": "(b) () A waiter works 29 hours a week in the cafe.",
+								"score": 0.901,
+								"type": "text"
+							}
+						]
+					},
+					{
+						"bbox": [
+							174,
+							133,
+							356,
+							154
+						],
+						"index": 1,
+						"spans": [
+							{
+								"bbox": [
+									174,
+									134,
+									248,
+									154
+								],
+								"content": "He is paid",
+								"score": 0.926,
+								"type": "text"
+							},
+							{
+								"bbox": [
+									249,
+									133,
+									290,
+									152
+								],
+								"content": "\\$ 9.50",
+								"score": 0.82,
+								"type": "inline_equation"
+							},
+							{
+								"bbox": [
+									291,
+									134,
+									356,
+									154
+								],
+								"content": "per hour.",
+								"score": 0.945,
+								"type": "text"
+							}
+						]
+					},
+					{
+						"bbox": [
+							176,
+							155,
+							421,
+							171
+						],
+						"index": 2,
+						"spans": [
+							{
+								"bbox": [
+									176,
+									155,
+									421,
+									171
+								],
+								"content": "He is paid for 52 weeks of the year.",
+								"score": 0.935,
+								"type": "text"
+							}
+						]
+					},
+					{
+						"bbox": [
+							176,
+							192,
+							416,
+							212
+						],
+						"index": 3,
+						"spans": [
+							{
+								"bbox": [
+									176,
+									192,
+									416,
+									212
+								],
+								"content": "Work out his total pay for the year.",
+								"score": 0.973,
+								"type": "text"
+							}
+						]
+					}
+				],
+				"page_num": "page_0",
+				"page_size": [
+					893.25,
+					570.75
+				],
+				"type": "text"
+			},
+			{
+				"bbox": [
+					560,
+					308,
+					821,
+					330
+				],
+				"bbox_fs": [
+					563,
+					308,
+					822,
+					332
+				],
+				"index": 4,
+				"lines": [
+					{
+						"bbox": [
+							563,
+							308,
+							822,
+							332
+						],
+						"index": 4,
+						"spans": [
+							{
+								"bbox": [
+									563,
+									312,
+									572,
+									327
+								],
+								"content": "\\$ 5",
+								"score": 0.32,
+								"type": "inline_equation"
+							},
+							{
+								"bbox": [
+									797,
+									308,
+									822,
+									332
+								],
+								"content": "[2]",
+								"score": 0.986,
+								"type": "text"
+							}
+						]
+					}
+				],
+				"page_num": "page_0",
+				"page_size": [
+					893.25,
+					570.75
+				],
+				"type": "text"
+			}
+		],
+		"0580_m23_qp_32_1_b_ii": [
+			{
+				"bbox": [
+					135,
+					112,
+					538,
+					174
+				],
+				"bbox_fs": [
+					137,
+					113,
+					533,
+					172
+				],
+				"index": 0.5,
+				"lines": [
+					{
+						"bbox": [
+							137,
+							113,
+							533,
+							133
+						],
+						"index": 0,
+						"spans": [
+							{
+								"bbox": [
+									137,
+									115,
+									163,
+									133
+								],
+								"content": "(i)",
+								"score": 0.908,
+								"type": "text"
+							},
+							{
+								"bbox": [
+									172,
+									115,
+									289,
+									133
+								],
+								"content": "The chef is paid",
+								"score": 0.948,
+								"type": "text"
+							},
+							{
+								"bbox": [
+									290,
+									113,
+									324,
+									132
+								],
+								"content": "32 \\%",
+								"score": 0.85,
+								"type": "inline_equation"
+							},
+							{
+								"bbox": [
+									324,
+									115,
+									533,
+									133
+								],
+								"content": "more than the waiter per hour.",
+								"score": 0.954,
+								"type": "text"
+							}
+						]
+					},
+					{
+						"bbox": [
+							177,
+							154,
+							491,
+							172
+						],
+						"index": 1,
+						"spans": [
+							{
+								"bbox": [
+									177,
+									154,
+									491,
+									172
+								],
+								"content": "Work out how much the chef is paid per hour.",
+								"score": 0.957,
+								"type": "text"
+							}
+						]
+					}
+				],
+				"page_num": "page_0",
+				"page_size": [
+					893.25,
+					516.0
+				],
+				"type": "text"
+			},
+			{
+				"bbox": [
+					559,
+					253,
+					821,
+					277
+				],
+				"bbox_fs": [
+					563,
+					254,
+					822,
+					278
+				],
+				"index": 2,
+				"lines": [
+					{
+						"bbox": [
+							563,
+							254,
+							822,
+							278
+						],
+						"index": 2,
+						"spans": [
+							{
+								"bbox": [
+									563,
+									258,
+									572,
+									273
+								],
+								"content": "\\mathbb { S }",
+								"score": 0.42,
+								"type": "inline_equation"
+							},
+							{
+								"bbox": [
+									797,
+									254,
+									822,
+									278
+								],
+								"content": "[2]",
+								"score": 0.989,
+								"type": "text"
+							}
+						]
+					}
+				],
+				"page_num": "page_0",
+				"page_size": [
+					893.25,
+					516.0
+				],
+				"type": "text"
+			}
+		],
+		"0580_m23_qp_32_1_c": [
+			{
+				"bbox": [
+					106,
+					114,
+					359,
+					134
+				],
+				"bbox_fs": [
+					105,
+					114,
+					360,
+					135
+				],
+				"index": 0,
+				"lines": [
+					{
+						"bbox": [
+							105,
+							114,
+							360,
+							135
+						],
+						"index": 0,
+						"spans": [
+							{
+								"bbox": [
+									105,
+									114,
+									360,
+									135
+								],
+								"content": "(c) Here is part of the cafe's menu.",
+								"score": 0.958,
+								"type": "text"
+							}
+						]
+					}
+				],
+				"page_num": "page_0",
+				"page_size": [
+					893.25,
+					568.5
+				],
+				"type": "text"
+			},
+			{
+				"bbox": [
+					254,
+					150,
+					639,
+					228
+				],
+				"blocks": [
+					{
+						"bbox": [
+							254,
+							150,
+							639,
+							228
+						],
+						"group_id": 0,
+						"index": 2,
+						"lines": [
+							{
+								"bbox": [
+									254,
+									150,
+									639,
+									228
+								],
+								"spans": [
+									{
+										"bbox": [
+											254,
+											150,
+											639,
+											228
+										],
+										"html": "<html><body><table><tr><td colspan=\"3\">MENU</td></tr><tr><td>Cup of coffee</td><td>$2.50</td><td>Slice of pizza</td></tr><tr><td>Cup of tea</td><td>$2.30</td><td>$3.70</td></tr></table></body></html>",
+										"image_path": "1a4ce7a84dd92e78739ad331b481f08ba8c7f21d45d09b4da8cbf732dbfcafb4.jpg",
+										"score": 0.95,
+										"type": "table"
+									}
+								]
+							}
+						],
+						"type": "table_body",
+						"virtual_lines": [
+							{
+								"bbox": [
+									254,
+									150,
+									639,
+									176.0
+								],
+								"index": 1,
+								"spans": []
+							},
+							{
+								"bbox": [
+									254,
+									176.0,
+									639,
+									202.0
+								],
+								"index": 2,
+								"spans": []
+							},
+							{
+								"bbox": [
+									254,
+									202.0,
+									639,
+									228.0
+								],
+								"index": 3,
+								"spans": []
+							}
+						]
+					}
+				],
+				"index": 2,
+				"page_num": "page_0",
+				"page_size": [
+					893.25,
+					568.5
+				],
+				"type": "table"
+			},
+			{
+				"bbox": [
+					138,
+					250,
+					557,
+					271
+				],
+				"bbox_fs": [
+					142,
+					253,
+					554,
+					270
+				],
+				"index": 4,
+				"lines": [
+					{
+						"bbox": [
+							142,
+							253,
+							554,
+							270
+						],
+						"index": 4,
+						"spans": [
+							{
+								"bbox": [
+									142,
+									253,
+									554,
+									270
+								],
+								"content": "Raj buys 2 cups of coffee,1 cup of tea and 3 slices of pizza.",
+								"score": 0.938,
+								"type": "text"
+							}
+						]
+					}
+				],
+				"page_num": "page_0",
+				"page_size": [
+					893.25,
+					568.5
+				],
+				"type": "text"
+			},
+			{
+				"bbox": [
+					140,
+					289,
+					442,
+					310
+				],
+				"bbox_fs": [
+					142,
+					289,
+					436,
+					308
+				],
+				"index": 5,
+				"lines": [
+					{
+						"bbox": [
+							142,
+							289,
+							436,
+							308
+						],
+						"index": 5,
+						"spans": [
+							{
+								"bbox": [
+									142,
+									292,
+									408,
+									307
+								],
+								"content": "Calculate the change he receives from",
+								"score": 0.989,
+								"type": "text"
+							},
+							{
+								"bbox": [
+									408,
+									289,
+									436,
+									308
+								],
+								"content": "\\$ 20",
+								"score": 0.84,
+								"type": "inline_equation"
+							}
+						]
+					}
+				],
+				"page_num": "page_0",
+				"page_size": [
+					893.25,
+					568.5
+				],
+				"type": "text"
+			}
+		],
+		"0580_m23_qp_32_1_d": [
+			{
+				"bbox": [
+					104,
+					113,
+					586,
+					134
+				],
+				"bbox_fs": [
+					106,
+					114,
+					586,
+					136
+				],
+				"index": 0,
+				"lines": [
+					{
+						"bbox": [
+							106,
+							114,
+							586,
+							136
+						],
+						"index": 0,
+						"spans": [
+							{
+								"bbox": [
+									106,
+									114,
+									586,
+									136
+								],
+								"content": "(d) The chef records the types of baguettes the caf\u00e9 sells in one day.",
+								"score": 0.936,
+								"type": "text"
+							}
+						]
+					}
+				],
+				"page_num": "page_0",
+				"page_size": [
+					893.25,
+					483.0
+				],
+				"type": "text"
+			},
+			{
+				"bbox": [
+					87,
+					147,
+					806,
+					212
+				],
+				"blocks": [
+					{
+						"bbox": [
+							87,
+							147,
+							806,
+							212
+						],
+						"group_id": 0,
+						"index": 2,
+						"lines": [
+							{
+								"bbox": [
+									87,
+									147,
+									806,
+									212
+								],
+								"spans": [
+									{
+										"bbox": [
+											87,
+											147,
+											806,
+											212
+										],
+										"html": "<html><body><table><tr><td>salad</td><td>cheese</td><td>salad</td><td>salad</td><td>egg</td><td>cheese</td><td>cheese</td><td>salad</td><td>cheese</td><td>egg</td><td>salad</td></tr><tr><td>cheese</td><td>salad</td><td>salad</td><td>egg</td><td>cheese</td><td>salad</td><td>salad</td><td>egg</td><td>salad</td><td>cheese</td><td>salad</td></tr></table></body></html>",
+										"image_path": "0a183adc997edc471c292195c0a4f6cd3b3913158ca2ec9d8fe18befa9eaf924.jpg",
+										"score": 0.977,
+										"type": "table"
+									}
+								]
+							}
+						],
+						"type": "table_body",
+						"virtual_lines": [
+							{
+								"bbox": [
+									87,
+									147,
+									806,
+									168.66666666666666
+								],
+								"index": 1,
+								"spans": []
+							},
+							{
+								"bbox": [
+									87,
+									168.66666666666666,
+									806,
+									190.33333333333331
+								],
+								"index": 2,
+								"spans": []
+							},
+							{
+								"bbox": [
+									87,
+									190.33333333333331,
+									806,
+									211.99999999999997
+								],
+								"index": 3,
+								"spans": []
+							}
+						]
+					}
+				],
+				"index": 2,
+				"page_num": "page_0",
+				"page_size": [
+					893.25,
+					483.0
+				],
+				"type": "table"
+			}
+		],
+		"0580_m23_qp_32_1_d_i": [
+			{
+				"bbox": [
+					139,
+					114,
+					560,
+					153
+				],
+				"bbox_fs": [
+					143,
+					116,
+					556,
+					153
+				],
+				"index": 0.5,
+				"lines": [
+					{
+						"bbox": [
+							143,
+							116,
+							556,
+							133
+						],
+						"index": 0,
+						"spans": [
+							{
+								"bbox": [
+									143,
+									117,
+									161,
+									132
+								],
+								"content": "(i)",
+								"score": 0.824,
+								"type": "text"
+							},
+							{
+								"bbox": [
+									173,
+									116,
+									556,
+									133
+								],
+								"content": "Complete the frequency table to show this information.",
+								"score": 0.988,
+								"type": "text"
+							}
+						]
+					},
+					{
+						"bbox": [
+							176,
+							135,
+							468,
+							153
+						],
+						"index": 1,
+						"spans": [
+							{
+								"bbox": [
+									176,
+									135,
+									468,
+									153
+								],
+								"content": "You may use the tally column to help you.",
+								"score": 0.97,
+								"type": "text"
+							}
+						]
+					}
+				],
+				"page_num": "page_0",
+				"page_size": [
+					893.25,
+					611.25
+				],
+				"type": "text"
+			},
+			{
+				"bbox": [
+					246,
+					167,
+					647,
+					350
+				],
+				"blocks": [
+					{
+						"bbox": [
+							246,
+							167,
+							647,
+							350
+						],
+						"group_id": 0,
+						"index": 6.5,
+						"lines": [
+							{
+								"bbox": [
+									246,
+									167,
+									647,
+									350
+								],
+								"spans": [
+									{
+										"bbox": [
+											246,
+											167,
+											647,
+											350
+										],
+										"html": "<html><body><table><tr><td>Type of baguette</td><td>Tally</td><td>Frequency</td></tr><tr><td>Cheese</td><td></td><td></td></tr><tr><td>Egg</td><td></td><td></td></tr><tr><td>Salad</td><td></td><td></td></tr></table></body></html>",
+										"image_path": "11d3fdabefa72bd5e8b34472d65b3f4efb266bed50c50f2e561891c44a2fda80.jpg",
+										"score": 0.981,
+										"type": "table"
+									}
+								]
+							}
+						],
+						"type": "table_body",
+						"virtual_lines": [
+							{
+								"bbox": [
+									246,
+									167,
+									647,
+									185.3
+								],
+								"index": 2,
+								"spans": []
+							},
+							{
+								"bbox": [
+									246,
+									185.3,
+									647,
+									203.60000000000002
+								],
+								"index": 3,
+								"spans": []
+							},
+							{
+								"bbox": [
+									246,
+									203.60000000000002,
+									647,
+									221.90000000000003
+								],
+								"index": 4,
+								"spans": []
+							},
+							{
+								"bbox": [
+									246,
+									221.90000000000003,
+									647,
+									240.20000000000005
+								],
+								"index": 5,
+								"spans": []
+							},
+							{
+								"bbox": [
+									246,
+									240.20000000000005,
+									647,
+									258.50000000000006
+								],
+								"index": 6,
+								"spans": []
+							},
+							{
+								"bbox": [
+									246,
+									258.50000000000006,
+									647,
+									276.80000000000007
+								],
+								"index": 7,
+								"spans": []
+							},
+							{
+								"bbox": [
+									246,
+									276.80000000000007,
+									647,
+									295.1000000000001
+								],
+								"index": 8,
+								"spans": []
+							},
+							{
+								"bbox": [
+									246,
+									295.1000000000001,
+									647,
+									313.4000000000001
+								],
+								"index": 9,
+								"spans": []
+							},
+							{
+								"bbox": [
+									246,
+									313.4000000000001,
+									647,
+									331.7000000000001
+								],
+								"index": 10,
+								"spans": []
+							},
+							{
+								"bbox": [
+									246,
+									331.7000000000001,
+									647,
+									350.0000000000001
+								],
+								"index": 11,
+								"spans": []
+							}
+						]
+					}
+				],
+				"index": 6.5,
+				"page_num": "page_0",
+				"page_size": [
+					893.25,
+					611.25
+				],
+				"type": "table"
+			}
+		],
+		"0580_m23_qp_32_1_d_ii": [
+			{
+				"bbox": [
+					132,
+					113,
+					555,
+					134
+				],
+				"bbox_fs": [
+					137,
+					115,
+					552,
+					133
+				],
+				"index": 0,
+				"lines": [
+					{
+						"bbox": [
+							137,
+							115,
+							552,
+							133
+						],
+						"index": 0,
+						"spans": [
+							{
+								"bbox": [
+									137,
+									115,
+									552,
+									133
+								],
+								"content": "(i) On the grid, draw a bar chart to show this information.",
+								"score": 0.946,
+								"type": "text"
+							}
+						]
+					}
+				],
+				"page_num": "page_0",
+				"page_size": [
+					893.25,
+					870.75
+				],
+				"type": "text"
+			},
+			{
+				"bbox": [
+					206,
+					150,
+					685,
+					609
+				],
+				"blocks": [
+					{
+						"bbox": [
+							206,
+							150,
+							685,
+							609
+						],
+						"group_id": 0,
+						"index": 2,
+						"lines": [
+							{
+								"bbox": [
+									206,
+									150,
+									685,
+									609
+								],
+								"spans": [
+									{
+										"bbox": [
+											206,
+											150,
+											685,
+											609
+										],
+										"image_path": "9ceb9678051b4ae4827fa0cfe2d586f4aaa8f06ad15b1e154e6a0f1a2c263fcd.jpg",
+										"score": 0.944,
+										"type": "image"
+									}
+								]
+							}
+						],
+						"type": "image_body",
+						"virtual_lines": [
+							{
+								"bbox": [
+									206,
+									150,
+									685,
+									303.0
+								],
+								"index": 1,
+								"spans": []
+							},
+							{
+								"bbox": [
+									206,
+									303.0,
+									685,
+									456.0
+								],
+								"index": 2,
+								"spans": []
+							},
+							{
+								"bbox": [
+									206,
+									456.0,
+									685,
+									609.0
+								],
+								"index": 3,
+								"spans": []
+							}
+						]
+					},
+					{
+						"bbox": [
+							464,
+							610,
+							583,
+							630
+						],
+						"group_id": 0,
+						"index": 4,
+						"lines": [
+							{
+								"bbox": [
+									464,
+									611,
+									582,
+									629
+								],
+								"index": 4,
+								"spans": [
+									{
+										"bbox": [
+											464,
+											611,
+											582,
+											629
+										],
+										"content": "Type of baguette",
+										"score": 0.972,
+										"type": "text"
+									}
+								]
+							}
+						],
+						"type": "image_caption"
+					}
+				],
+				"index": 3.0,
+				"page_num": "page_0",
+				"page_size": [
+					893.25,
+					870.75
+				],
+				"type": "image"
+			}
+		]
+	}
+}

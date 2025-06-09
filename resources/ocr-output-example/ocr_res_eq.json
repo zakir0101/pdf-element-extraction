@@ -1,0 +1,447 @@
+{
+	"content-list": {
+		"9231_s23_qp_11_2": [
+			{
+				"page_idx": 0,
+				"text": "2 The cubic equation $x ^ { 3 } + 4 x ^ { 2 } + 6 x + 1 = 0$ has roots $\\alpha , \\beta , \\gamma ,$ . ",
+				"type": "text"
+			}
+		],
+		"9231_s23_qp_11_2_a": [
+			{
+				"page_idx": 0,
+				"text": "(a) Find the value of $\\alpha ^ { 2 } + \\beta ^ { 2 } + \\gamma ^ { 2 }$ ",
+				"type": "text"
+			}
+		],
+		"9231_s23_qp_11_2_b": [
+			{
+				"page_idx": 0,
+				"text": "(b)Use standard results from the list of formulae (MF19) to show that ",
+				"type": "text"
+			},
+			{
+				"page_idx": 0,
+				"text": "$$\n\\sum _ { r = 1 } ^ { n } \\bigl ( \\left( \\alpha + r \\right) ^ { 2 } + ( \\beta + r ) ^ { 2 } + ( \\gamma + r ) ^ { 2 } \\bigr ) = n ( n ^ { 2 } + a n + b ) ,\n$$",
+				"text_format": "latex",
+				"type": "equation"
+			},
+			{
+				"page_idx": 0,
+				"text": "where $a$ and $b$ are constants to be determined. ",
+				"type": "text"
+			},
+			{
+				"page_idx": 0,
+				"text": "",
+				"type": "text"
+			}
+		]
+	},
+	"md-content": {
+		"9231_s23_qp_11_2": "2 The cubic equation $x ^ { 3 } + 4 x ^ { 2 } + 6 x + 1 = 0$ has roots $\\alpha , \\beta , \\gamma ,$ .",
+		"9231_s23_qp_11_2_a": "(a) Find the value of $\\alpha ^ { 2 } + \\beta ^ { 2 } + \\gamma ^ { 2 }$",
+		"9231_s23_qp_11_2_b": "(b)Use standard results from the list of formulae (MF19) to show that\n\n$$\n\\sum _ { r = 1 } ^ { n } \\bigl ( \\left( \\alpha + r \\right) ^ { 2 } + ( \\beta + r ) ^ { 2 } + ( \\gamma + r ) ^ { 2 } \\bigr ) = n ( n ^ { 2 } + a n + b ) ,\n$$\n\nwhere $a$ and $b$ are constants to be determined."
+	},
+	"middle-json": {
+		"9231_s23_qp_11_2": [
+			{
+				"bbox": [
+					69,
+					114,
+					529,
+					139
+				],
+				"bbox_fs": [
+					71,
+					115,
+					526,
+					139
+				],
+				"index": 0,
+				"lines": [
+					{
+						"bbox": [
+							71,
+							115,
+							526,
+							139
+						],
+						"index": 0,
+						"spans": [
+							{
+								"bbox": [
+									71,
+									119,
+									85,
+									136
+								],
+								"content": "2",
+								"score": 0.999,
+								"type": "text"
+							},
+							{
+								"bbox": [
+									109,
+									117,
+									249,
+									139
+								],
+								"content": "The cubic equation",
+								"score": 0.995,
+								"type": "text"
+							},
+							{
+								"bbox": [
+									249,
+									115,
+									396,
+									136
+								],
+								"content": "x ^ { 3 } + 4 x ^ { 2 } + 6 x + 1 = 0",
+								"score": 0.93,
+								"type": "inline_equation"
+							},
+							{
+								"bbox": [
+									396,
+									117,
+									466,
+									139
+								],
+								"content": "has roots",
+								"score": 0.998,
+								"type": "text"
+							},
+							{
+								"bbox": [
+									466,
+									118,
+									524,
+									139
+								],
+								"content": "\\alpha , \\beta , \\gamma ,",
+								"score": 0.43,
+								"type": "inline_equation"
+							},
+							{
+								"bbox": [
+									524,
+									117,
+									526,
+									139
+								],
+								"content": ".",
+								"score": 0.415,
+								"type": "text"
+							}
+						]
+					}
+				],
+				"page_num": "page_0",
+				"page_size": [
+					893.25,
+					403.5
+				],
+				"type": "text"
+			}
+		],
+		"9231_s23_qp_11_2_a": [
+			{
+				"bbox": [
+					105,
+					114,
+					359,
+					139
+				],
+				"bbox_fs": [
+					105,
+					116,
+					353,
+					139
+				],
+				"index": 0,
+				"lines": [
+					{
+						"bbox": [
+							105,
+							116,
+							353,
+							139
+						],
+						"index": 0,
+						"spans": [
+							{
+								"bbox": [
+									105,
+									117,
+									264,
+									137
+								],
+								"content": "(a) Find the value of",
+								"score": 0.949,
+								"type": "text"
+							},
+							{
+								"bbox": [
+									264,
+									116,
+									353,
+									139
+								],
+								"content": "\\alpha ^ { 2 } + \\beta ^ { 2 } + \\gamma ^ { 2 }",
+								"score": 0.91,
+								"type": "inline_equation"
+							}
+						]
+					}
+				],
+				"page_num": "page_0",
+				"page_size": [
+					893.25,
+					790.5
+				],
+				"type": "text"
+			}
+		],
+		"9231_s23_qp_11_2_b": [
+			{
+				"bbox": [
+					105,
+					112,
+					605,
+					135
+				],
+				"bbox_fs": [
+					106,
+					114,
+					604,
+					135
+				],
+				"index": 0,
+				"lines": [
+					{
+						"bbox": [
+							106,
+							114,
+							604,
+							135
+						],
+						"index": 0,
+						"spans": [
+							{
+								"bbox": [
+									106,
+									114,
+									604,
+									135
+								],
+								"content": "(b)Use standard results from the list of formulae (MF19) to show that",
+								"score": 0.93,
+								"type": "text"
+							}
+						]
+					}
+				],
+				"page_num": "page_0",
+				"page_size": [
+					893.25,
+					971.25
+				],
+				"type": "text"
+			},
+			{
+				"bbox": [
+					300,
+					149,
+					660,
+					204
+				],
+				"index": 2,
+				"lines": [
+					{
+						"bbox": [
+							300,
+							149,
+							660,
+							204
+						],
+						"spans": [
+							{
+								"bbox": [
+									300,
+									149,
+									660,
+									204
+								],
+								"content": "\\sum _ { r = 1 } ^ { n } \\bigl ( \\left( \\alpha + r \\right) ^ { 2 } + ( \\beta + r ) ^ { 2 } + ( \\gamma + r ) ^ { 2 } \\bigr ) = n ( n ^ { 2 } + a n + b ) ,",
+								"score": 0.93,
+								"type": "interline_equation"
+							}
+						]
+					}
+				],
+				"page_num": "page_0",
+				"page_size": [
+					893.25,
+					971.25
+				],
+				"type": "interline_equation",
+				"virtual_lines": [
+					{
+						"bbox": [
+							300,
+							149,
+							660,
+							167.33333333333334
+						],
+						"index": 1,
+						"spans": []
+					},
+					{
+						"bbox": [
+							300,
+							167.33333333333334,
+							660,
+							185.66666666666669
+						],
+						"index": 2,
+						"spans": []
+					},
+					{
+						"bbox": [
+							300,
+							185.66666666666669,
+							660,
+							204.00000000000003
+						],
+						"index": 3,
+						"spans": []
+					}
+				]
+			},
+			{
+				"bbox": [
+					140,
+					215,
+					459,
+					237
+				],
+				"bbox_fs": [
+					142,
+					217,
+					456,
+					233
+				],
+				"index": 4,
+				"lines": [
+					{
+						"bbox": [
+							142,
+							217,
+							456,
+							233
+						],
+						"index": 4,
+						"spans": [
+							{
+								"bbox": [
+									142,
+									217,
+									188,
+									233
+								],
+								"content": "where",
+								"score": 1.0,
+								"type": "text"
+							},
+							{
+								"bbox": [
+									188,
+									225,
+									197,
+									233
+								],
+								"content": "a",
+								"score": 0.86,
+								"type": "inline_equation"
+							},
+							{
+								"bbox": [
+									197,
+									217,
+									230,
+									233
+								],
+								"content": "and",
+								"score": 1.0,
+								"type": "text"
+							},
+							{
+								"bbox": [
+									230,
+									220,
+									239,
+									233
+								],
+								"content": "b",
+								"score": 0.86,
+								"type": "inline_equation"
+							},
+							{
+								"bbox": [
+									240,
+									217,
+									456,
+									233
+								],
+								"content": "are constants to be determined.",
+								"score": 0.974,
+								"type": "text"
+							}
+						]
+					}
+				],
+				"page_num": "page_0",
+				"page_size": [
+					893.25,
+					971.25
+				],
+				"type": "text"
+			},
+			{
+				"bbox": [
+					141,
+					332,
+					817,
+					354
+				],
+				"bbox_fs": [
+					141,
+					332,
+					817,
+					354
+				],
+				"index": 5,
+				"lines": [
+					{
+						"bbox": [
+							141,
+							332,
+							817,
+							354
+						],
+						"index": 5,
+						"spans": []
+					}
+				],
+				"page_num": "page_0",
+				"page_size": [
+					893.25,
+					971.25
+				],
+				"type": "text"
+			}
+		]
+	}
+}
