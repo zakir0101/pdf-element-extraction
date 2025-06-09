@@ -224,10 +224,7 @@ class PdfEngine:
         self.ALL_DETECTORS = [self.question_detector]
 
         self.state: EngineState | None = None
-        self.renderer: BaseRenderer | None = None
-        self.pages = self.reader.pages
-
-    # *******************************************************
+        self.renderer: BaseRenderer | None = None self.pages = self.reader.pages # *******************************************************
     # **************** Parsing Stream  **********************
     # _______________________________________________________
 

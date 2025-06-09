@@ -19,7 +19,7 @@ import cairo  # For type hinting and direct use if necessary
 import traceback
 import importlib
 from engine.pdf_utils import open_pdf_using_sumatra
-from detectors.ocr_detectors import OcrQuestion
+from detectors.ocr_detectors import OcrQuestion, OcrItem
 
 
 # Import for reloading and instantiation
@@ -51,7 +51,7 @@ ALL_MODULES = [
     pdf_engine_module,
 ]
 
-KAGGLE_SERVER_URL = "https://fc43-34-141-131-96.ngrok-free.app"
+KAGGLE_SERVER_URL = "https://7348-34-141-131-96.ngrok-free.app"
 KAGGLE_SERVER_URL += "/predict"
 """
 Advanced PDF Viewer GUI application.
@@ -80,6 +80,7 @@ class AdvancedPDFViewer(tk.Tk):
         and keyboard shortcuts. Also loads the initial PDF if available.
         """
         super().__init__()
+        self.example_counter = 0
         self._photo_image_ref = (
             None  # Keep reference to PhotoImage preventing garbage collection
         )
@@ -849,15 +850,41 @@ class AdvancedPDFViewer(tk.Tk):
             all_bytes, seperator, idx_list
         )
         temp_f = "." + sep + "output" + sep + "ocr_res.json"
-        temp_html = "." + sep + "output" + sep + "ocr_res.html"
+        self.example_counter += 1
+        temp_html = (
+            OcrItem.OCR_OUTPUT_DIR
+            + sep
+            + f"example{self.example_counter}.html"
+        )
+
         with open(temp_f, "w", encoding="utf-8") as f:
             f.write(json.dumps(ocr_res))
 
         self.update_status_bar("OCR_RES saved to :" + temp_f)
-        self.ocr_question_processor.set_question(q, ocr_res, surf_res)
+        p_size = ocr_res["page-size"]
 
+        self.ocr_question_processor.set_question(q, ocr_res, surf_res, p_size)
+
+        template = f"""
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>MathJax TeX Test Page</title>
+  <script type="text/javascript" id="MathJax-script" async
+    src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js">
+    </script>
+</head>
+
+<body>
+
+            {self.ocr_question_processor.html}
+</body>
+
+</html>
+        """
         with open(temp_html, "w", encoding="utf-8") as f:
-            f.write(self.ocr_question_processor.html)
+            f.write(template)
 
         self.update_status_bar("OCR_HTML + HTML saved to :" + temp_html)
         return False

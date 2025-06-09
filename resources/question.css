@@ -1,0 +1,272 @@
+/* ******** Generall ************/
+
+*,
+body,
+html {}
+
+
+/* for  more infor visit : */
+/* https://mineru.readthedocs.io/en/latest/user_guide/pipe_result.html */
+/* also look at the code in : detectors/ocr_detectors.py */
+/* sample of generated html-question files can be found in resources/temp */
+
+
+
+
+/* **********************************************/
+/* ******** Question, Part & Subpart ************/
+/* ******** ------------------------- ***********/
+
+/* ********  Genrall ************/
+
+
+.container {
+
+	&>.label {}
+
+	&>.content {
+
+		&>.main-blocks-container {
+			/* if the question has no subparts or part */
+		}
+	}
+}
+
+
+
+/* ******** Question  ************/
+
+.question {
+	&>.label {}
+
+	&>.content {
+
+		&>.main-blocks-container {
+			/* if the question has no part */
+		}
+
+
+		&>.pre-blocks-container {
+			/* for containing any additional question text before parts start */
+			/* only if the question has  parts and additional text before the  parts start */
+
+		}
+
+
+		&>.children--container {
+			/* for containing the parts-container: */
+			/* if the main question has  part */
+
+			>.spacer {
+				/* for spacing between the parts of the main question */
+			}
+
+
+		}
+	}
+
+}
+
+
+
+
+
+/* ******** part  ************/
+
+
+.part {
+	/* come inside question-children-container */
+
+	&>.label {}
+
+	&>.content {
+
+
+		&>.main-blocks-container {
+			/* if the question has no subparts or part */
+		}
+
+
+		&>.pre-blocks-container {
+			/* for containing any additional question text before subparts start */
+			/* only if the part has subparts  and additional text before part start */
+
+		}
+
+
+		&>.children--container {
+			/* for containing the  subpart-container: */
+			/* if the part has subparts  */
+
+			>.spacer {
+				/* for spacing between the parts of the main question */
+			}
+
+
+		}
+	}
+
+
+}
+
+
+
+/* ******** part  ************/
+
+
+.subpart {
+
+	/* come inside part-children-container */
+
+	&>.label {}
+
+	&>.content {
+
+
+		&>.main-blocks-container {}
+
+
+	}
+
+
+}
+
+
+
+
+
+/* **********************************************/
+/* ******** Block, Lines and Spans ************/
+/* ******** ------------------------- ***********/
+
+/* for  more infor visit : */
+/* https://mineru.readthedocs.io/en/latest/user_guide/pipe_result.html */
+
+
+/* ******** Block ************/
+/* Nested  are table/image block, they have other block as children*/
+
+
+.nested-block {
+
+	&.table-block {
+
+		&>.table_body-block {
+			&>.line {
+				&>table {}
+			}
+
+		}
+
+		&>.table_caption-block {
+
+			&>.line {
+
+				/* other valid class are inline-span for latex inline_equation */
+
+				&>.text-span {}
+
+
+				&>.inline-span {}
+
+			}
+
+		}
+
+		&>.table_footnote-block {
+
+			&>.line {
+
+				/* other valid class are inline-span for latex inline_equation */
+
+				&>.text-span {}
+
+
+				&>.inline-span {}
+
+			}
+
+		}
+
+	}
+
+	&.image-block {
+
+		&>.image_body-block {
+
+			&>.line {
+
+				&>img {}
+
+			}
+
+		}
+
+		&>.image_caption-block {
+
+
+			&>.line {
+
+				/* other valid class are inline-span for latex inline_equation */
+				&>.text-span {}
+
+
+				&>.inline-span {}
+
+			}
+		}
+
+
+	}
+
+}
+
+
+
+/* normal blocks have lines as there children*/
+
+.block {
+
+	&.text-block {
+		&>.line {
+
+			&>.text-span {}
+
+			&>.inline-span {}
+		}
+
+	}
+
+	&.interline_equation-block {
+		&>.line {
+
+			/* only valid subclass  */
+			&>.display-span {}
+		}
+
+
+	}
+
+
+	&.title-block {
+
+		/* not very important , most qustion does not have this title class at alll */
+
+		&>.line {
+
+			&>.text-span {
+				/* normal text block */
+			}
+
+			&>.inline-span {
+
+				/* inline-latex block */
+			}
+		}
+	}
+
+
+}
+
+/* ******** Span ************/
+/* ******** Span ************/

@@ -36,10 +36,11 @@ class BlockType:
 
 class OcrItem(Box):
 
-    OCR_OUTPUT_DIR = os.path.join(".", "output", "ocr-results")
+    OCR_OUTPUT_DIR = os.path.join(".", "resources", "test-example")
     OCR_PAGE_WIDTH = 0
     OCR_PAGE_HEIGHT = 0
     OCR_LINE_HEIGHT = 0
+    SC = 1
 
     def __init__(self, json_dict: dict, src_surface: np.ndarray) -> None:
         box = json_dict["bbox"]
@@ -50,10 +51,10 @@ class OcrItem(Box):
         pass
 
     def __set_box__(self, box):
-        self.x = box[0]
-        self.y = box[1]
-        self.x1 = box[2]
-        self.y1 = box[3]
+        self.x = box[0] * OcrItem.SC[0]
+        self.y = box[1] * OcrItem.SC[0]
+        self.x1 = box[2] * OcrItem.SC[0]
+        self.y1 = box[3] * OcrItem.SC[0]
         self.box = (self.x, self.y, self.x1, self.y1)
         self.w = self.x1 - self.x
         self.h = self.y1 - self.y
@@ -62,7 +63,7 @@ class OcrItem(Box):
 
     def get_margin_top(self, prev_item):
         margin_top = 2.0 * OcrItem.OCR_LINE_HEIGHT
-        diff = self.y1 - prev_item.y1
+        diff = abs(self.y1 - prev_item.y1)
         if diff <= 2.12 * OcrItem.OCR_LINE_HEIGHT:
             margin_top = diff - 0.12 * OcrItem.OCR_LINE_HEIGHT
         return margin_top
@@ -91,14 +92,12 @@ class OcrBlock(OcrItem):
         if self.html:
             return self.html
         if self.is_nested:
-            self.html = (
-                f"<div class='nested-block nested-{self.type}-block'>\n"
-            )
+            self.html = f"<div class='nested-block {self.type}-block'>\n"
             prev_b = None
             for sub_b in self.sub_blocks:
                 if prev_b:
                     self.html += (
-                        f"<div class='block-spacer {sub_b.type}-block-spacer' style='height:{sub_b.get_margin_top(prev_b)}'>  </div>"
+                        f"<div class='spacer' style='height:{sub_b.get_margin_top(prev_b)}'>  </div>"
                         + "\n"
                     )
                 self.html += sub_b.get_html() + "\n"
@@ -110,7 +109,7 @@ class OcrBlock(OcrItem):
             for line in self.lines:
                 if prev_l:
                     self.html += (
-                        f"<div class='line-spacer' style='height:{line.get_margin_top(prev_l)}'>  </div>"
+                        f"<div class='spacer' style='height:{line.get_margin_top(prev_l)}'>  </div>"
                         + "\n"
                     )
                 self.html += line.get_html() + "\n"
@@ -164,12 +163,12 @@ class OcrSpan(OcrItem):
         if self.type == SpanType.Image:
             img_uri = self.crop_and_save_image_span()
             self.html = (
-                "<span class='span image-span'>\n"
-                + "<img"
+                # "<span class='span image-span'>\n"
+                "<img"
                 + f"src='{img_uri}' alt='{img_uri}'"
                 + f"width='{round(self.w)}' height='{round(self.h)}'"
                 + ">"
-                + "</span>\n"
+                # + "</span>\n"
             )
         elif self.type == SpanType.Table:
             self.html = self.table_html
@@ -206,24 +205,27 @@ class OcrSpan(OcrItem):
     def crop_and_save_image_span(self):
         array = self.np_src_image
 
+        scale = 2  # OcrItem.OCR_SCALE
         # --
         sy = round(self.y)  # * o.get_stride()
         ey = round(self.y1)  # * o.get_stride()
-        out_height = round(self.y1) - round(self.y)
+        out_height = ey - sy
 
         # --
         sx = round(self.x)
         ex = round(self.x1)
-        out_width = round(self.x1) - round(self.x)
+        out_width = ex - sx
 
         # ----
-        croped_array = array[sy:ey, sx:ex]
+        croped_array = array[sy:ey, sx:ex, :]
+
         stride = 4 * out_width  # WARN:
 
         pil_image = Image.frombytes(
             "RGBA",
             (out_width, out_height),
             croped_array.tobytes(),
+            # bytes(croped_list),
             "raw",
             "BGRA",
             stride,
@@ -254,13 +256,15 @@ class OcrQuestion:
         OcrItem.OCR_LINE_HEIGHT = line_height
 
         os.makedirs(OcrItem.OCR_OUTPUT_DIR, exist_ok=True)
-        self.block_dict = None
+        self.block_dict: dict[str, OcrBlock] = None
         self.html = ""
         pass
 
     def set_question(
-        self, q: Question, ocr_result_dict: dict, surf_dict: dict
+        self, q: Question, ocr_result_dict: dict, surf_dict: dict, scale: dict
     ):
+        # OcrItem.SC = scale
+        self.scale = scale
         self.content_list = ocr_result_dict["content-list"]
         self.para_blocks = ocr_result_dict["middle-json"]
         self.surf_dict = surf_dict
@@ -269,7 +273,11 @@ class OcrQuestion:
         main_q_blocks_json = self.para_blocks.get(q.id, [])
         main_q_surface: cairo.ImageSurface = surf_dict.get(q.id, None)
         self.block_dict = {}
-        self.handle_question_part(q, main_q_blocks_json, main_q_surface)
+        self.handle_question_part(
+            q,
+            main_q_blocks_json,
+            main_q_surface,
+        )
         self.dump_question_to_html()
 
         pass
@@ -281,6 +289,14 @@ class OcrQuestion:
         surface: cairo.ImageSurface,
     ):
 
+        scale = self.scale.get(
+            p.id, (OcrItem.OCR_PAGE_WIDTH, OcrItem.OCR_PAGE_HEIGHT)
+        )
+        w_scale = OcrItem.OCR_PAGE_WIDTH / scale[0]
+        h_scale = OcrItem.OCR_PAGE_HEIGHT / scale[1]
+        OcrItem.SC = (w_scale, h_scale)
+
+        print("OcrItem.SC", OcrItem.SC)
         nparray_src = (
             self.get_nparray_from_surface(surface) if surface else None
         )
@@ -300,6 +316,7 @@ class OcrQuestion:
             q = self.question
 
         lev = q.level
+        # lev_name = ["question", "part", "subpart", None][lev + 1]
         if lev == 0:
             if self.html:
                 return self.html
@@ -307,20 +324,18 @@ class OcrQuestion:
 
         cclass = ["question", "part", "subpart"][lev]
         label = f"Q({q.label})" if lev == 0 else f"({q.label})"
-        self.html += f"<div class='container {cclass}-container'>\n\n"
-        self.html += f"<span class='label {cclass}-label'>{label}</span>"
+        self.html += f"<div class='container {cclass}'>\n\n"
+        self.html += f"<span class='label'>{label}</span>"
         # **************** Question Begin ********************
-        self.html += f"\n<div class='{cclass}'>\n"
-        blocks = self.block_dict[q.id]
+        self.html += f"\n<div class='content'>\n"
+        blocks: list[OcrBlock] = self.block_dict[q.id]
         has_pre = blocks and q.parts
-        self.html += (
-            f"<div class='{'pre-content' if has_pre else 'main-content'}'>\n"
-        )
+        self.html += f"<div class='{'pre-blocks-container' if has_pre else 'main-blocks-container'}'>\n"
         prev_b = None
         for block in blocks:
             if prev_b:
                 self.html += (
-                    f"<div class='block-spacer  {block.type}-block-spacer ' style='height:{block.get_margin_top(prev_b)}'>  </div>"
+                    f"<div class='spacer' style='height:{block.get_margin_top(prev_b)}'>  </div>"
                     + "\n"
                 )
             self.html += block.get_html() + "\n"
@@ -328,9 +343,15 @@ class OcrQuestion:
 
         if has_pre:
             self.html += "</div>\n"  # end pre
-            self.html += "<div class='main-content'>\n"  # start-main
+            self.html += "<div class='children-container'>\n"  # start-main
+
+        prev_part = None
         for part in q.parts:
+            if prev_part:
+                self.html += f"<div class='spacer'>  </div>" + "\n"
+
             self.dump_question_to_html(part)
+            prev_part = part
             pass
 
         self.html += "</div>\n"  # end pre or main
@@ -342,7 +363,7 @@ class OcrQuestion:
         h, stride = surface.get_height(), surface.get_stride()
         surface.flush()
         buf = surface.get_data()
-        return np.frombuffer(buf, dtype=np.uint32).reshape(h, stride // 4)
+        return np.frombuffer(buf, dtype=np.int8).reshape(h, stride // 4, 4)
 
     #
     # def handle_nested_block(self, b):
