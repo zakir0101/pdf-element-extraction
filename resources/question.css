@@ -1,8 +1,24 @@
 /* ******** Generall ************/
 
-*,
-body,
-html {}
+* {
+	margin: 0;
+	padding: 0;
+	box-sizing: border-box;
+}
+
+html {
+	background-color: #050505;
+	/* Near-black background */
+}
+
+body {
+	background-color: #0A192F;
+	/* Dark blue background */
+	color: #F0F0F0;
+	/* Light gray text */
+	font-family: 'Orbitron', 'Titillium Web', sans-serif;
+	/* Futuristic font stack */
+}
 
 
 /* for  more infor visit : */
@@ -19,116 +35,150 @@ html {}
 
 /* ********  Genrall ************/
 
-
 .container {
+	padding: 15px;
+	margin: 10px 0;
+	border: 1px solid #00FFFF;
+	/* Electric blue */
+	background: linear-gradient(to bottom right, #0A192F, #1A294F);
+	/* Subtle gradient */
 
-	&>.label {}
+	&>.label {
+		background-color: #1034A6;
+		/* Darker blue background for label */
+		color: #EAEAEA;
+		/* Light gray text for label */
+		padding: 5px;
+		border-radius: 3px;
+		font-weight: bold;
+		margin-right: 10px;
+		/* Space after label */
+		display: inline-block;
+		/* To allow margin and padding */
+	}
 
 	&>.content {
+		padding-top: 10px;
+		/* Space between label and content */
 
 		&>.main-blocks-container {
-			/* if the question has no subparts or part */
+			/* Basic styling - can be enhanced if needed */
+			padding: 5px;
+			border: 1px solid #2a3f5f;
+			/* Subtle border for main blocks */
+		}
+
+		&>.pre-blocks-container {
+			padding: 5px;
+			border: 1px dashed #2a3f5f;
+			/* Dashed border for pre-blocks */
+			margin-bottom: 10px;
+			/* Space before main content or children */
+		}
+
+		&>.children--container {
+			margin-top: 10px;
+			/* Space above nested items */
+			padding: 10px;
+			border: 1px solid #1f4e6f;
+			/* Border to show it's a container for children */
+
+			>.spacer {
+				/* Height is set inline. Adding a very subtle visual rule */
+				border-top: 1px solid #1A294F;
+				/* Faint horizontal line */
+				margin: 5px 0;
+				/* Minimal vertical margin for the line */
+			}
 		}
 	}
 }
-
-
 
 /* ******** Question  ************/
 
 .question {
+	border: 2px solid #39FF14;
+	/* Neon green */
+
 	&>.label {}
 
+	/* Inherits from .container > .label, can add specific overrides if needed */
+
 	&>.content {
+		/* Inherits from .container > .content, can add specific overrides if needed */
 
 		&>.main-blocks-container {
-			/* if the question has no part */
+			/* Inherits from .container > .content > .main-blocks-container */
 		}
-
 
 		&>.pre-blocks-container {
-			/* for containing any additional question text before parts start */
-			/* only if the question has  parts and additional text before the  parts start */
-
+			/* Inherits from .container > .content > .pre-blocks-container */
 		}
-
 
 		&>.children--container {
-			/* for containing the parts-container: */
-			/* if the main question has  part */
+			/* Inherits from .container > .content > .children--container */
 
 			>.spacer {
-				/* for spacing between the parts of the main question */
+				/* Inherits from .container > .content > .children--container > .spacer */
 			}
-
-
 		}
 	}
-
 }
 
-
-
-
-
 /* ******** part  ************/
-
 
 .part {
 	/* come inside question-children-container */
+	border: 1px solid #FF007F;
+	/* Vibrant pink */
 
 	&>.label {}
 
-	&>.content {
+	/* Inherits from .container > .label */
 
+	&>.content {
+		/* Inherits from .container > .content */
 
 		&>.main-blocks-container {
-			/* if the question has no subparts or part */
+			/* Inherits from .container > .content > .main-blocks-container */
 		}
-
 
 		&>.pre-blocks-container {
-			/* for containing any additional question text before subparts start */
-			/* only if the part has subparts  and additional text before part start */
-
+			/* Inherits from .container > .content > .pre-blocks-container */
 		}
-
 
 		&>.children--container {
-			/* for containing the  subpart-container: */
-			/* if the part has subparts  */
+			/* Inherits from .container > .content > .children--container */
 
 			>.spacer {
-				/* for spacing between the parts of the main question */
+				/* Inherits from .container > .content > .children--container > .spacer */
 			}
-
-
 		}
 	}
-
-
 }
 
-
-
-/* ******** part  ************/
-
+/* ******** subpart  ************/
+/* Corrected comment from "part" to "subpart" */
 
 .subpart {
-
 	/* come inside part-children-container */
+	border: 1px dashed #FFD700;
+	/* Bright yellow dashed */
 
 	&>.label {}
 
+	/* Inherits from .container > .label */
+
 	&>.content {
+		/* Inherits from .container > .content */
 
+		&>.main-blocks-container {
+			/* Inherits from .container > .content > .main-blocks-container */
+		}
 
-		&>.main-blocks-container {}
-
-
+		/* Subparts typically don't have pre-blocks or children--container,
+		   but styles would be inherited if they did. */
 	}
-
-
 }
 
 
@@ -144,129 +194,299 @@ html {}
 
 
 /* ******** Block ************/
-/* Nested  are table/image block, they have other block as children*/
 
+/* Generic .block styling */
+.block {
+	padding: 10px;
+	margin-bottom: 10px;
+	border: 1px solid #444;
+	/* Subtle generic border */
 
+	/* Spacers within blocks - ensure inline height is primary */
+	/* No specific visual styling for spacers here, rely on inline styles for height.
+	   Add 'width: 100%; clear: both;' if floating issues arise. */
+	&>.spacer {
+		/* Example:
+		width: 100%;
+		clear: both; */
+	}
+}
+
+/* Nested blocks are table/image block, they have other block as children */
 .nested-block {
+	padding: 10px;
+	background-color: rgba(0, 0, 30, 0.3);
+	/* Semi-transparent dark blue/purple */
+	border: 1px solid #777;
+	/* Neutral border */
+	margin-bottom: 10px;
+	/* Consistent margin */
 
 	&.table-block {
 
+		/* Specific table-block styling can go here if needed beyond .nested-block */
 		&>.table_body-block {
 			&>.line {
-				&>table {}
-			}
+				&>table {
+					width: 100%;
+					border-collapse: collapse;
+					margin: 10px 0;
+					box-shadow: 0 0 15px rgba(0, 255, 255, 0.5);
+					/* Electric blue glow */
 
+					th,
+					td {
+						border: 1px solid #00FFFF;
+						/* Electric blue cell borders */
+						padding: 8px 12px;
+						text-align: left;
+						color: #EAEAEA;
+						/* Light text for table content */
+					}
+
+					th {
+						background-color: #1034A6;
+						/* Darker blue from palette */
+						color: #FFD700;
+						/* Gold text for headers */
+						font-weight: bold;
+					}
+
+					tr:nth-child(even) {
+						background-color: rgba(0, 0, 30, 0.5);
+						/* Darker bg for even rows */
+					}
+				}
+			}
 		}
 
 		&>.table_caption-block {
+			padding: 8px;
+			text-align: center;
+			color: #FFD700;
+			/* Gold for captions */
+			font-style: italic;
+			background-color: rgba(50, 20, 70, 0.4);
+			/* Subtle purple background */
+			border: 1px dashed #FFD700;
+			margin-top: 5px;
 
 			&>.line {
 
-				/* other valid class are inline-span for latex inline_equation */
-
-				&>.text-span {}
-
-
-				&>.inline-span {}
-
+				/* Spans within caption should inherit/match caption color */
+				&>.text-span,
+				&>.inline-span {
+					color: #FFD700;
+					/* Ensure text and inline spans use caption color */
+				}
 			}
-
 		}
 
 		&>.table_footnote-block {
+			padding: 5px;
+			font-size: 0.9em;
+			color: #B0B0B0;
+			/* Lighter gray for footnotes */
+			background-color: rgba(30, 30, 30, 0.3);
+			border-top: 1px dotted #777;
+			margin-top: 5px;
 
 			&>.line {
 
-				/* other valid class are inline-span for latex inline_equation */
-
-				&>.text-span {}
-
-
-				&>.inline-span {}
-
+				/* Spans within footnote should inherit/match footnote color */
+				&>.text-span,
+				&>.inline-span {
+					color: #B0B0B0;
+					/* Ensure text and inline spans use footnote color */
+				}
 			}
-
 		}
-
 	}
 
 	&.image-block {
 
+		/* Specific image-block styling can go here if needed beyond .nested-block */
 		&>.image_body-block {
-
 			&>.line {
-
-				&>img {}
-
+				&>img {
+					max-width: 100%;
+					height: auto;
+					border: 2px solid #39FF14;
+					/* Neon green border */
+					padding: 3px;
+					/* Small padding inside border */
+					background-color: #050505;
+					/* Dark background for padding area */
+					box-shadow: 0 0 15px #39FF14;
+					/* Neon green glow */
+					display: block;
+					margin: 10px auto;
+					/* Center images with margin */
+				}
 			}
-
 		}
 
 		&>.image_caption-block {
-
+			padding: 8px;
+			text-align: center;
+			color: #39FF14;
+			/* Neon green for image captions */
+			font-style: italic;
+			background-color: rgba(20, 50, 20, 0.4);
+			/* Subtle green background */
+			border: 1px dashed #39FF14;
+			margin-top: 5px;
 
 			&>.line {
 
-				/* other valid class are inline-span for latex inline_equation */
-				&>.text-span {}
-
-
-				&>.inline-span {}
-
+				/* Spans within caption should inherit/match caption color */
+				&>.text-span,
+				&>.inline-span {
+					color: #39FF14;
+					/* Ensure text and inline spans use caption color */
+				}
 			}
 		}
-
-
 	}
-
 }
 
-
-
-/* normal blocks have lines as there children*/
+/* Normal blocks have lines as their children */
 
 .block {
+	/* This is a duplication, will merge/remove if necessary, keeping specialized ones below */
 
 	&.text-block {
-		&>.line {
+		background-color: rgba(20, 20, 50, 0.5);
+		/* Subtle dark background */
+		padding: 10px;
+		border-left: 3px solid #00FFFF;
+		/* Electric blue accent */
+		margin-bottom: 10px;
+		/* Overwrites generic .block margin if needed, or complements */
+		border: 1px solid #444;
+		/* Maintain generic border or specialize */
 
+		&>.line {
 			&>.text-span {}
 
 			&>.inline-span {}
 		}
-
 	}
 
 	&.interline_equation-block {
+		background-color: rgba(50, 20, 70, 0.6);
+		/* Subtle purple background */
+		padding: 15px;
+		border: 1px dashed #FF007F;
+		/* Vibrant pink dashed border */
+		margin-bottom: 10px;
+		box-shadow: 0 0 10px #FF007F;
+		/* Pink glow */
+
 		&>.line {
 
 			/* only valid subclass  */
 			&>.display-span {}
 		}
-
-
 	}
-
 
 	&.title-block {
-
-		/* not very important , most qustion does not have this title class at alll */
+		background-color: rgba(70, 50, 20, 0.5);
+		/* Subtle gold/brown background */
+		padding: 5px 10px;
+		border-bottom: 2px solid #FFD700;
+		/* Gold accent */
+		margin-bottom: 15px;
+		text-align: center;
+		/* Center align title text */
+		border-left: none;
+		/* Remove potential inherited left border from .text-block if structure is flat */
+		border-right: none;
+		/* Remove other borders if not needed */
+		border-top: none;
 
 		&>.line {
+			&>.text-span {}
 
-			&>.text-span {
-				/* normal text block */
-			}
-
-			&>.inline-span {
-
-				/* inline-latex block */
-			}
+			&>.inline-span {}
 		}
 	}
+}
 
-
+/* ******** Line ************/
+/* Styles for .line elements, which act as containers for spans */
+.line {
+	padding: 2px 0;
+	/* Small vertical padding for spacing between lines */
+	margin-bottom: 3px;
+	/* Small margin for line separation */
+	/* Allow spans to dictate their own styling; .line is primarily for structure. */
 }
 
 /* ******** Span ************/
+/* Generic .span styling - often a base for more specific span types */
+.span {
+	/* Assuming a generic class .span exists, if not, these are base styles for text-like content */
+	line-height: 1.6;
+	/* For readability */
+}
+
+/* Specific Span Types */
+.text-span {
+	/* Inherits default body text color (e.g., #F0F0F0 from body style) */
+	/* No specific background or border by default, keeping it clean. */
+}
+
+.inline-span {
+	/* Typically for inline equations or special text */
+	color: #39FF14;
+	/* Neon green text */
+	background-color: rgba(0, 50, 0, 0.3);
+	/* Subtle dark green background */
+	padding: 1px 3px;
+	border-radius: 3px;
+	font-family: 'Courier New', Courier, monospace;
+	/* Code-like feel */
+}
+
+.display-span {
+	/* Typically for block/interline equations */
+	/* Found within .interline_equation-block */
+	display: block;
+	/* Represents a block equation */
+	color: #00FFFF;
+	/* Electric blue text */
+	padding: 10px;
+	text-align: center;
+	/* Center equations */
+	font-family: 'Courier New', Courier, monospace;
+	/* Code-like feel */
+	font-size: 1.1em;
+	/* Slightly larger */
+	/* The parent .interline_equation-block already has a background and border.
+	   This span focuses on the text styling of the equation itself. */
+}
+
+
+/* **********************************************/
+/* *********** Utility Classes ******************/
+/* **********************************************/
+
+/* Generic spacer style */
+/* Provides structure and subtle debugging visual. Height is set via inline style attribute. */
+.spacer {
+	display: block;
+	width: 100%;
+	clear: both;
+	/* Helps with layout flow if floating elements are ever introduced nearby */
+	/* Height is intentionally NOT set here; it's controlled by inline styles on the element. */
+	/* Subtle visual cue for debugging: */
+	border-bottom: 1px dotted rgba(128, 128, 128, 0.1);
+	/* Very faint dotted line */
+	/* Alternative subtle background for debugging:
+	background-image: linear-gradient(45deg, rgba(255, 255, 255, 0.02) 25%, transparent 25%, transparent 50%, rgba(255, 255, 255, 0.02) 50%, rgba(255, 255, 255, 0.02) 75%, transparent 75%, transparent);
+	background-size: 10px 10px;
+	*/
+}
+
 /* ******** Span ************/

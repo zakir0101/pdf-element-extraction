@@ -501,6 +501,7 @@ class SurfaceGapsSegments(BoxSegments):
         out_y_start: float,
         scale: int,
         segments: list[Box] | None = None,
+        start_y: float = 10000,
     ):
         """return (y_after) the y-location after drawing the segments into the output Context"""
         if not segments:
@@ -531,12 +532,13 @@ class SurfaceGapsSegments(BoxSegments):
             """Read the doc string below : this is for padding the top most line from above"""
 
             is_first = False
-            if out_y_start == 0:
-                is_first = False
+            if out_y_start == 0 or abs(start_y - src_y) < 0.3 * line_height:
+                print("is_first is True")
+                is_first = True
                 cover_surf = cairo.ImageSurface(
                     cairo.FORMAT_ARGB32,
-                    round(line_height * 1.6),
-                    round(line_height * 1.4),
+                    round(src_x + line_height * 0.85),
+                    round(line_height * 1.8),
                 )
                 print(
                     "cover : ", cover_surf.get_width(), cover_surf.get_height()
@@ -568,7 +570,7 @@ class SurfaceGapsSegments(BoxSegments):
             if is_first:
                 out_ctx.set_source_surface(
                     cover_surf,
-                    src_x,
+                    0,  # src_x
                     out_y_start - 0.2 * line_height,
                 )
                 out_ctx.paint()

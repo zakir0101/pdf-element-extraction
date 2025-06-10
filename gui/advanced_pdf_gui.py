@@ -2,11 +2,14 @@
 
 import json
 import io
+import asyncio
 import zipfile
 import tkinter as tk
 
+from playwright.async_api import async_playwright
 from tkinter import ttk
 import os
+from pathlib import Path
 from os.path import sep
 import requests
 from PIL import Image, ImageTk
@@ -51,7 +54,8 @@ ALL_MODULES = [
     pdf_engine_module,
 ]
 
-KAGGLE_SERVER_URL = "https://a8d4-34-80-220-64.ngrok-free.app"
+KEY_SEQUENCE_TIMEOUT = 2000
+KAGGLE_SERVER_URL = "https://fbe1-35-231-43-146.ngrok-free.app"
 KAGGLE_SERVER_URL += "/predict"
 """
 Advanced PDF Viewer GUI application.
@@ -106,11 +110,13 @@ class AdvancedPDFViewer(tk.Tk):
         ]
         sample_pdf_paths = pdf_pathes
         # my Vars
+        self.img_copy_2 = None
+        self.img_copy = None
         self.rel_scale = 1
         self.rel_scale_2 = 1
         self.layout_detection = 0
         self.ocr_mode = ""
-        self.dual_display_mode = False
+        self.dual_display_mode = 1
         # Ensure the PDFs directory exists for sample paths if running from repo root
         # For now, assuming these paths are valid relative to where the script is run
         # Or that the PdfEngine handles path resolution.
@@ -335,6 +341,8 @@ class AdvancedPDFViewer(tk.Tk):
         self.bind(
             "<Control-Alt-Shift-T>", lambda x: self.toggle_layout_detection(4)
         )
+
+        self.bind("<Control-w>", self.enter_sequence_mode)
         # --- Initial Load ---
         self.update_status_bar(
             "Welcome! Load a PDF to begin."
@@ -342,6 +350,79 @@ class AdvancedPDFViewer(tk.Tk):
         self.update_all_button_states()  # Initial button state
         if self.engine.all_pdf_paths:
             self.next_pdf_file()  # Load the first PDF
+
+        # You can also use <Control-W> (capital W), Tkinter is often case-insensitive
+        # for the letter part, but <Control-w> is conventional.
+
+    def enter_sequence_mode(self, event=None):
+        """
+        Called when Ctrl+W is pressed. Puts the app in "waiting" mode.
+        """
+        print("Ctrl+W pressed. Waiting for next key...")
+        self.ctrl_w_pressed = True
+        # self.update_status_bar("Ctrl+W ... (press 1, 2, or 3)")
+
+        # --- Step 2: Temporarily bind the command keys ---
+        self.bind("1", lambda e: self.handle_command_key(1))
+        self.bind("2", lambda e: self.handle_command_key(2))
+        self.bind("3", lambda e: self.handle_command_key(3))
+        self.bind("q", lambda e: self.handle_command_key("q"))
+
+        self.bind("<Key>", self.reset_sequence_mode)
+
+        self.timer_id = self.after(
+            KEY_SEQUENCE_TIMEOUT, self.reset_sequence_mode
+        )
+
+        # The 'return "break"' is important. It prevents Tkinter from
+        # propagating the event further (e.g., a default OS action for Ctrl+W).
+        return "break"
+
+    def handle_command_key(self, number):
+        """
+        This is a wrapper that calls the target function and then resets the state.
+        """
+        # Only do something if we are in the correct state.
+        if self.ctrl_w_pressed:
+            if number == "q":
+                self.destroy()
+                exit(0)
+            elif number in [1, 2, 3]:
+                self.change_dual_mode(number)
+
+            self.reset_sequence_mode(success=True)
+
+        return "break"
+
+    def reset_sequence_mode(self, event=None, success=False):
+        """
+        Resets the application to the normal state.
+        """
+        # We need to make sure this function body only runs once per sequence.
+        if not self.ctrl_w_pressed:
+            return
+
+        # Cancel the pending timer if it exists
+        if self.timer_id:
+            self.after_cancel(self.timer_id)
+            self.timer_id = None
+
+        # Unbind the temporary keys
+        self.unbind("1")
+        self.unbind("2")
+        self.unbind("3")
+        self.unbind("q")
+        self.unbind("<Key>")  # Unbind the fallback too
+
+        self.ctrl_w_pressed = False
+
+        if not success:
+            message = "Sequence cancelled (timeout or invalid key)."
+            print(message)
+            # self.info_label.config(text=message, fg="red")
+
+        # A small delay before resetting the label text to "Ready"
+        # self.update_status_bar("Ready. Press Ctrl+W, then 1, 2, or 3.")
 
     def toggle_layout_detection(self, mode: int):
         if self.layout_detection > 0:
@@ -452,12 +533,13 @@ class AdvancedPDFViewer(tk.Tk):
         # action_description = ""  # For print logging
 
         # Clear any old text items from canvas, except the image item itself
+
         for item in self.display_canvas.find_all():
-            if item not in [
-                self.canvas_image_item,
-                self.canvas_image_item_2 if self.dual_display_mode else "",
-            ]:
-                self.display_canvas.delete(item)
+            self.display_canvas.delete(item)
+        #     if item not in [
+        #         # if self.dual_display_mode in[] else "",
+        #     ]:
+        # self.display_canvas.delete(self.canvas_image_item_2)
 
         # Method attributes like current_file_name are derived by update_status_bar or within logic.
         surface = None
@@ -574,36 +656,33 @@ class AdvancedPDFViewer(tk.Tk):
                     width = self.display_canvas.winfo_width()
                     height = self.display_canvas.winfo_height()
 
-                self._photo_image_ref = (
-                    self.convert_cairo_surface_to_photoimage(surface)
-                )
+                self.convert_cairo_surface_to_photoimage(surface)
+                #
+                # self.display_canvas.itemconfig(
+                #     self.canvas_image_item, image=self._photo_image_ref
+                # )
+                # self.display_canvas.coords(self.canvas_image_item, 0, 0)
+                # box1 = self.display_canvas.bbox(self.canvas_image_item)
+                #
+                # if self.img_copy_2:  # self.ocr_mode == "md":
+                #     self._photo_image_ref_2 = ImageTk.PhotoImage(
+                #         self.img_copy_2.copy()
+                #     )
+                #     self.display_canvas.itemconfig(
+                #         self.canvas_image_item_2, image=self._photo_image_ref_2
+                #     )
+                #     self.display_canvas.coords(
+                #         self.canvas_image_item_2, event_c.width // 2, 0
+                #     )
+                #     box2 = self.display_canvas.bbox(self.canvas_image_item_2)
+                #     box = [0, 0, box2[2], max(box2[3], box1[3])]
+                # else:
+                #     box = box1
+                # self.display_canvas.config(scrollregion=box)
 
-                self.display_canvas.itemconfig(
-                    self.canvas_image_item, image=self._photo_image_ref
-                )
-                self.display_canvas.coords(self.canvas_image_item, 0, 0)
-                box1 = self.display_canvas.bbox(self.canvas_image_item)
-
-                if self.dual_display_mode:  # self.ocr_mode == "md":
-                    self._photo_image_ref_2 = ImageTk.PhotoImage(
-                        self.img_copy_2.copy()
-                    )
-                    self.display_canvas.itemconfig(
-                        self.canvas_image_item_2, image=self._photo_image_ref_2
-                    )
-                    self.display_canvas.coords(
-                        self.canvas_image_item_2, event_c.width // 2, 0
-                    )
-                    box2 = self.display_canvas.bbox(self.canvas_image_item_2)
-                    box = [0, 0, box2[2], max(box2[3], box1[3])]
-                else:
-                    box = box1
-                self.display_canvas.config(scrollregion=box)
                 self.display_canvas.bind("<Configure>", self._resize_image)
 
-                # event_c = self.img_copy
-                # print(event_c.width, event_c.height)
-                self._resize_image(event_c)
+                self._resize_image(event_c, only_resize=False)
 
             else:
                 self.display_canvas.itemconfig(
@@ -637,24 +716,59 @@ class AdvancedPDFViewer(tk.Tk):
 
         self.update_all_button_states()
 
-    def _resize_image(self, event: tk.Event):
+    def change_dual_mode(self, mode):
+
+        for item in self.display_canvas.find_all():
+            self.display_canvas.delete(item)
+
+        if not self.img_copy_2 and mode == 2:
+            msg = (
+                "can't set mode == 2 , no img_copy_2 available, fallback == 1"
+            )
+            self.dual_display_mode = 1
+        else:
+            self.dual_display_mode = mode
+            msg = "dual display mode == " + str(mode)
+        print(msg)
+        self.update_status_bar(msg)
+
+        class event_c:
+            width = self.display_canvas.winfo_width()
+            height = self.display_canvas.winfo_height()
+
+        self._resize_image(event_c, only_resize=False)
+
+    def _resize_image(self, event: tk.Event, only_resize=True):
         _canvas = self.display_canvas
         try:
             target_width = event.width
             target_height = event.height
 
-            if self.dual_display_mode:
+            if self.dual_display_mode == 3:
                 target_width //= 2
-            im1 = self._resize_img_copy(
-                self.img_copy, target_width, target_height, self.rel_scale
-            )
-            self._photo_image_ref = ImageTk.PhotoImage(im1)
-            _canvas.itemconfig(
-                self.canvas_image_item, image=self._photo_image_ref
-            )
+
+            im1 = None
+            if self.dual_display_mode in [1, 3] and self.img_copy:
+                im1 = self._resize_img_copy(
+                    self.img_copy, target_width, target_height, self.rel_scale
+                )
+                self._photo_image_ref = ImageTk.PhotoImage(im1)
+
+                if only_resize:
+                    _canvas.itemconfig(
+                        self.canvas_image_item, image=self._photo_image_ref
+                    )
+                else:
+                    self.canvas_image_item = self.display_canvas.create_image(
+                        0, 0, anchor=tk.NW, image=self._photo_image_ref
+                    )
+                self.display_canvas.coords(self.canvas_image_item, 0, 0)
+            # else:
+            #     _canvas.itemconfig(self.canvas_image_item, image=None)
+            #     not only_resize and
 
             im2 = None
-            if self.dual_display_mode:
+            if self.dual_display_mode in [2, 3] and self.img_copy_2:
                 im2 = self._resize_img_copy(
                     self.img_copy_2,
                     target_width,
@@ -662,20 +776,30 @@ class AdvancedPDFViewer(tk.Tk):
                     self.rel_scale_2,
                 )
                 self._photo_image_ref_2 = ImageTk.PhotoImage(im2)
-                _canvas.itemconfig(
-                    self.canvas_image_item_2, image=self._photo_image_ref_2
-                )
 
-                self.display_canvas.coords(
-                    self.canvas_image_item_2, target_width, 0
-                )
+                if only_resize and self._photo_image_ref_2:
+                    _canvas.itemconfig(
+                        self.canvas_image_item_2, image=self._photo_image_ref_2
+                    )
+                else:
+                    self.canvas_image_item_2 = (
+                        self.display_canvas.create_image(
+                            0, 0, anchor=tk.NW, image=self._photo_image_ref_2
+                        )
+                    )
+
+                x_pos = target_width if self.dual_display_mode == 3 else 0
+
+                self.display_canvas.coords(self.canvas_image_item_2, x_pos, 0)
+            # else:
+            #     _canvas.itemconfig(self.canvas_image_item_2, image=None)
 
             _canvas.config(
                 scrollregion=(
                     0,
                     0,
                     event.width,
-                    max(im1.height, im2.height if im2 else 0),
+                    max(im1.height if im1 else 0, im2.height if im2 else 0),
                 )
             )
 
@@ -689,9 +813,9 @@ class AdvancedPDFViewer(tk.Tk):
         width = img_copy.width or 100
         height = img_copy.height or 100 * rel_scale
 
-        if width > target_width:
-            width = target_width
-            height = int(width / rel_scale)
+        # if width > target_width:
+        width = target_width
+        height = int(width / rel_scale)
 
         # if height > target_height:
         #     height = target_height
@@ -781,7 +905,7 @@ class AdvancedPDFViewer(tk.Tk):
 
             self.img_copy = pil_image.copy()
             self.rel_scale = pil_image.width / pil_image.height
-            return ImageTk.PhotoImage(pil_image)
+
         except Exception as e:
             error_msg = f"Error converting Cairo surface to PhotoImage: {e}"
             print(traceback.format_exc())
@@ -793,17 +917,24 @@ class AdvancedPDFViewer(tk.Tk):
 
             temp_draw = ImageDraw.Draw(pil_image)
             temp_draw.text((10, 10), error_msg, fill="black")
-            return ImageTk.PhotoImage(pil_image)
+
+            self.img_copy = pil_image.copy()
+            self.rel_scale = pil_image.width / pil_image.height
 
     def toggle_ocr_md(self, event=None):
-        if self.dual_display_mode:
-            self.ocr_mode = ""
-            self.dual_display_mode = False
-            self.img_copy_2 = None
-            self._photo_image_ref_2 = None
-            self.render_current_page_or_question()
-            self.update_status_bar("[CLOSED] the OCR.md Mode ")
-            return
+
+        self.update_status_bar("OCRing ......")
+        self.ocr_mode = "md"
+        self.img_copy_2 = None
+        self.dual_display_mode = 3
+        # if self.dual_display_mode =:
+        # self.ocr_mode = ""
+        # self.dual_display_mode = 1
+        # self.img_copy_2 = None
+        # # self._photo_image_ref_2 = None
+        # self.render_current_page_or_question()
+        # self.update_status_bar("[CLOSED] the OCR.md Mode ")
+        # return
 
         ocr_out_path = sep.join([".", "output", "ocr_md.png"])
 
@@ -816,8 +947,6 @@ class AdvancedPDFViewer(tk.Tk):
             if not ok:
                 return
 
-        self.ocr_mode = "md"
-        self.dual_display_mode = True
         img = Image.open(ocr_out_path)
         self.rel_scale_2 = img.width / img.height
         self.img_copy_2 = img
@@ -833,6 +962,7 @@ class AdvancedPDFViewer(tk.Tk):
         bytes_content = self.detect_layout_miner_u_remote(img_bytes, 7)
         zip_dict = self.expand_zip_in_memory(bytes_content)
         render_markdown_to_png(zip_dict, ocr_out_path)
+        return True
 
     def advance_ocr(self, ocr_out_path):
         surf_res = self.engine.render_a_question(
@@ -851,45 +981,56 @@ class AdvancedPDFViewer(tk.Tk):
         )
         temp_f = "." + sep + "output" + sep + "ocr_res.json"
         self.example_counter += 1
-        temp_html = (
-            OcrItem.OCR_OUTPUT_DIR
-            + sep
-            + f"example{self.example_counter}.html"
-        )
 
         with open(temp_f, "w", encoding="utf-8") as f:
             f.write(json.dumps(ocr_res))
 
-        self.update_status_bar("OCR_RES saved to :" + temp_f)
+        self.update_status_bar("OCR: responce  saved to :" + temp_f)
         p_size = ocr_res["page-size"]
 
         self.ocr_question_processor.set_question(q, ocr_res, surf_res, p_size)
+        css_path = (
+            Path(os.path.join("resources", "question.css")).resolve().as_uri()
+        )
 
         template = f"""
-<!DOCTYPE html>
-<html>
 
-<head>
-  <title>MathJax TeX Test Page</title>
-  <script type="text/javascript" id="MathJax-script" async
-    src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js">
-    </script>
-</head>
+                <!DOCTYPE html>
+                <html>
 
-<body>
+                <head>
+                  <title>MathJax TeX Test Page</title>
+                  <link rel="stylesheet" href="{css_path}">
+                  <script type="text/javascript" id="MathJax-script" async
+                    src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js">
+                    </script>
+                </head>
 
-            {self.ocr_question_processor.html}
-</body>
+                <body>
+                    {self.ocr_question_processor.html}
+                </body>
 
-</html>
+                </html>
         """
+
+        temp_html = OcrItem.OCR_OUTPUT_DIR + sep + f"{q.id}.html"
+
         with open(temp_html, "w", encoding="utf-8") as f:
             f.write(template)
 
-        self.update_status_bar("OCR_HTML + HTML saved to :" + temp_html)
-        return False
-        # html = q.get_html_repr(ocr_res, surf_res)
-        # render_markdown_to_png(zip_dict, ocr_out_path)
+        self.update_status_bar(
+            "OCR: result parsed successfully , saved to :" + temp_html
+        )
+
+        if os.name == "nt":  # Windows
+            asyncio.set_event_loop_policy(
+                asyncio.WindowsSelectorEventLoopPolicy()
+            )
+
+        asyncio.run(self.render_html_playwright(temp_html, ocr_out_path))
+
+        self.update_status_bar("html rendered successfully")
+        return True
 
     def expand_zip_in_memory(self, zip_bytes):
         in_memory_zip = io.BytesIO(zip_bytes)
@@ -897,6 +1038,41 @@ class AdvancedPDFViewer(tk.Tk):
             fb.write(zip_bytes)
         with zipfile.ZipFile(in_memory_zip, "r") as zip_ref:
             return {name: zip_ref.read(name) for name in zip_ref.namelist()}
+
+    async def render_html_playwright(
+        self, input_html_path: dict, output_png_path: str
+    ):
+        try:
+            async with async_playwright() as p:
+                browser = await p.chromium.launch()
+
+                page = await browser.new_page()
+
+                await page.set_viewport_size(
+                    {
+                        "width": self.engine.scaled_page_width
+                        // self.engine.scaling
+                        * 2,
+                        "height": 1,
+                        # self.engine.scaled_page_height // self.engine.scaling * 2,
+                    }
+                )
+
+                await page.goto(Path(input_html_path).resolve().as_uri())
+
+                # await page.add_style_tag(content=css2)
+
+                await page.wait_for_load_state("networkidle")
+
+                await page.screenshot(
+                    path=output_png_path, full_page=True, type="png"
+                )
+                await browser.close()
+
+            print(f"✅ Successfully rendered content to {output_png_path}")
+
+        finally:
+            print("Playwright : finished taking the screen shot")
 
     def toggle_ocr_tex(self, event=None):
         pass
@@ -1172,9 +1348,10 @@ class AdvancedPDFViewer(tk.Tk):
 
             # Common surface handling for non-question-extraction debug or combined page debug
             if surface:
-                self._photo_image_ref = (
-                    self.convert_cairo_surface_to_photoimage(surface)
-                )
+
+                self.convert_cairo_surface_to_photoimage(surface)
+                self._photo_image_ref = ImageTk.PhotoImage(self.pil_image)
+
                 self.display_canvas.itemconfig(
                     self.canvas_image_item, image=self._photo_image_ref
                 )
@@ -1343,16 +1520,22 @@ class AdvancedPDFViewer(tk.Tk):
 
         self.update_all_button_states()
 
+    def on_new_pdf_or_item(self):
+        self.layout_detection = False
+        # self.dual_display_mode = 1
+        if self.dual_display_mode == 2:
+            self.dual_display_mode = 1
+        self.img_copy_2 = None
+
     def next_pdf_file(self):
         """
         Loads and displays the next PDF file in the list.
         Resets view to page mode and first page. Updates status and button states.
         """
 
-        self.layout_detection = False
-        self.dual_display_mode = False
-
         if self.engine.proccess_next_pdf_file():
+
+            self.on_new_pdf_or_item()
             self.navigation_mode = "page"  # Default to page mode on new PDF
             self.total_pages = (
                 self.engine.get_num_pages()
@@ -1365,7 +1548,10 @@ class AdvancedPDFViewer(tk.Tk):
             self.questions_list = []
             en = self.engine
             self.ocr_question_processor = OcrQuestion(
-                en.scaled_page_width, en.scaled_page_height, en.line_height
+                en.scaled_page_width,
+                en.scaled_page_height,
+                en.line_height,
+                en.scaling,
             )
             self.render_current_page_or_question()
         else:
@@ -1390,10 +1576,11 @@ class AdvancedPDFViewer(tk.Tk):
             self.update_status_bar("No PDF files loaded.")
             self.update_all_button_states()
             return
-        self.layout_detection = False
-        self.dual_display_mode = False
 
         if self.engine.proccess_prev_pdf_file():
+
+            self.on_new_pdf_or_item()
+
             self.navigation_mode = "page"
             self.total_pages = (
                 self.engine.get_num_pages()
@@ -1424,9 +1611,7 @@ class AdvancedPDFViewer(tk.Tk):
             self.update_status_bar("Already in Page Mode.")
             return
 
-        self.layout_detection = False
-        self.dual_display_mode = False
-
+        self.on_new_pdf_or_item()
         print("Switching to Page Mode")
         self.navigation_mode = "page"
         if not self.engine.current_pdf_document or self.total_pages == 0:
@@ -1452,8 +1637,9 @@ class AdvancedPDFViewer(tk.Tk):
         if self.navigation_mode == "question":
             self.update_status_bar("Already in Question Mode.")
             return
-        self.layout_detection = False
-        self.dual_display_mode = False
+
+        self.on_new_pdf_or_item()
+
         print("Switching to Question Mode")
         self.navigation_mode = "question"
 
@@ -1505,8 +1691,8 @@ class AdvancedPDFViewer(tk.Tk):
             self.update_status_bar("No PDF loaded to navigate items.")
             return
 
-        self.layout_detection = False
-        self.dual_display_mode = False
+        self.on_new_pdf_or_item()
+
         changed = False
         if self.navigation_mode == "page":
             if self.current_page_number < self.total_pages:
@@ -1533,8 +1719,8 @@ class AdvancedPDFViewer(tk.Tk):
         if not self.engine.current_pdf_document:
             self.update_status_bar("No PDF loaded to navigate items.")
             return
-        self.layout_detection = False
-        self.dual_display_mode = False
+
+        self.on_new_pdf_or_item()
 
         changed = False
         if self.navigation_mode == "page":

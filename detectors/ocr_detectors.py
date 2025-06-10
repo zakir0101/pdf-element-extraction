@@ -36,9 +36,10 @@ class BlockType:
 
 class OcrItem(Box):
 
-    OCR_OUTPUT_DIR = os.path.join(".", "resources", "html-example")
+    OCR_OUTPUT_DIR = os.path.join(".", "output", "question-html")
     OCR_PAGE_WIDTH = 0
     OCR_PAGE_HEIGHT = 0
+    OCR_PAGE_SCALING = 0
     OCR_LINE_HEIGHT = 0
     SC = 1
 
@@ -137,6 +138,7 @@ class OcrLine(OcrItem):
 
 
 class OcrSpan(OcrItem):
+
     def __init__(self, json_dict: dict, src_image_array) -> None:
         super().__init__(json_dict, src_image_array)
         self.type = json_dict["type"]
@@ -157,6 +159,7 @@ class OcrSpan(OcrItem):
             self.content = json_dict["content"]
 
     def get_html(self) -> str:
+
         if self.html:
             return self.html
 
@@ -166,7 +169,7 @@ class OcrSpan(OcrItem):
                 # "<span class='span image-span'>\n"
                 "<img  "
                 + f"src='{img_uri}' alt='{img_uri}'"
-                + f"width='{round(self.w)}' height='{round(self.h)}'"
+                + f"width='{round(self.w//OcrItem.OCR_PAGE_SCALING * 2)}' height='{round(self.h//OcrItem.OCR_PAGE_SCALING * 2)}'"
                 + ">"
                 # + "</span>\n"
             )
@@ -249,11 +252,16 @@ class OcrSpan(OcrItem):
 
 class OcrQuestion:
     def __init__(
-        self, page_width: float, page_height: float, line_height: float
+        self,
+        page_width: float,
+        page_height: float,
+        line_height: float,
+        page_scaling,
     ) -> None:
         OcrItem.OCR_PAGE_WIDTH = page_width
         OcrItem.OCR_PAGE_HEIGHT = page_height
         OcrItem.OCR_LINE_HEIGHT = line_height
+        OcrItem.OCR_PAGE_SCALING = page_scaling
 
         os.makedirs(OcrItem.OCR_OUTPUT_DIR, exist_ok=True)
         self.block_dict: dict[str, OcrBlock] = None
