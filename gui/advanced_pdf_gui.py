@@ -55,7 +55,7 @@ ALL_MODULES = [
 ]
 
 KEY_SEQUENCE_TIMEOUT = 2000
-KAGGLE_SERVER_URL = "https://fbe1-35-231-43-146.ngrok-free.app"
+KAGGLE_SERVER_URL = "https://616d-34-125-31-247.ngrok-free.app"
 KAGGLE_SERVER_URL += "/predict"
 """
 Advanced PDF Viewer GUI application.
